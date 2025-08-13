@@ -52,6 +52,8 @@ func logout() {
 
 			// dump it from memory
 			program.wallet = nil
+
+			program.labels.loggedin.SetText("💰: 🔴")
 		}
 	}
 
