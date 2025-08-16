@@ -22,20 +22,17 @@ func home() *fyne.Container {
 		setContentAsHome()
 	}
 
-	// front and center
-	program.labels.notice.Alignment = fyne.TextAlignCenter
-
 	// let's be clear about the software
-	program.labels.notice.SetText(`
+	program.labels.notice = makeCenteredWrappedLabel(`
 THIS SOFTWARE IS ALPHA STAGE SOFTWARE
 USE ONLY FOR TESTING & EVALUATION PURPOSES 
-		`)
+`)
 
 	return container.New(layout.NewVBoxLayout(),
 		program.containers.topbar,
 		layout.NewSpacer(),
 		program.containers.dashboard,
-		container.NewCenter(program.labels.notice),
+		program.labels.notice,
 		program.containers.send,
 		program.containers.register,
 		layout.NewSpacer(),
