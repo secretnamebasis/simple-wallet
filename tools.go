@@ -1153,7 +1153,7 @@ func interaction() {
 	code.SetMinRowsVisible(10)
 
 	// wrap the words
-	code.Wrapping = fyne.TextWrapWord
+	// code.Wrapping = fyne.TextWrapWord // I think it looks better off
 
 	// and here is a place holder
 	code.SetPlaceHolder("sc code seen here")
@@ -1167,29 +1167,16 @@ func interaction() {
 	// let's validate it
 	scid.Validator = func(s string) error {
 
-		// get a client for the daemon's rpc
-		var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
-
-		// here is our results bucket
-		var sc rpc.GetSC_Result
-
-		// here is the method we are going to use
-		var method = "DERO.GetSC"
-
-		// now for some parameters
-		var scParam = rpc.GetSC_Params{
-			SCID:       s,
-			Code:       true, // we are getting the code
-			Variables:  false,
-			TopoHeight: walletapi.Get_Daemon_Height(), // get the latestest copy
-		}
-
-		// call for the contract
-		if err := rpcClient.CallFor(&sc, method, scParam); err != nil {
-			return err
-		}
 		// the code needs to be present
+		sc := getSCCode(s)
+
+		if sc.Status == "" {
+			code.SetText("")
+			return errors.New("sc status is empty")
+		}
+
 		if sc.Code == "" {
+			code.SetText("")
 			return errors.New("contract code is empty")
 		}
 
@@ -1199,6 +1186,7 @@ func interaction() {
 		// now parse the smart contract code function map
 		smart_contract, _, err := dvm.ParseSmartContract(sc.Code)
 		if err != nil {
+			code.SetText("")
 			return err
 		}
 
