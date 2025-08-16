@@ -36,7 +36,7 @@ func restore() {
 	restore.OnTapped = restoration
 
 	// let's have our selves a restore wallet dialog
-	restore_wallet = dialog.NewCustom("Restore Wallet", "dismiss",
+	restore_wallet = dialog.NewCustom("Restore Wallet", dismiss,
 		container.NewVBox(
 			program.entries.seed,
 			widget.NewLabel("OR"),

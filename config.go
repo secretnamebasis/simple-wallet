@@ -232,7 +232,7 @@ func connections() {
 	msg.Wrapping = fyne.TextWrapWord
 
 	// walk the user through the process
-	connect := dialog.NewCustom("Custom Node Connection", "dismiss",
+	connect := dialog.NewCustom("Custom Node Connection", dismiss,
 		container.New(layout.NewVBoxLayout(),
 			layout.NewSpacer(),
 			form_entry,
@@ -347,7 +347,7 @@ RPC server runs at http://127.0.0.1:10103
 	)
 
 	// let's build a walkthru for the user, resize and show
-	rpc := dialog.NewCustom("rpc server", "dismiss", content, program.window)
+	rpc := dialog.NewCustom("rpc server", dismiss, content, program.window)
 	rpc.Resize(program.size)
 	rpc.Show()
 }
@@ -671,11 +671,11 @@ func pong_server() {
 
 			// let's walk them through it
 			create := dialog.NewForm("Create a Service Address",
-				"confirm", "dismiss", items, callback, program.window)
+				confirm, dismiss, items, callback, program.window)
 			create.Resize(program.size)
 			create.Show()
 		}
-		dialog.ShowForm("Pong Server", "confirm", "dismiss", []*widget.FormItem{
+		dialog.ShowForm("Pong Server", confirm, dismiss, []*widget.FormItem{
 			widget.NewFormItem("", program.entries.pass),
 		}, callback, program.window)
 
@@ -1294,7 +1294,7 @@ func pong_server() {
 
 				// let's walk them through it
 				update := dialog.NewCustomConfirm("Update a Service Address",
-					"confirm", "dismiss", content, callback, program.window)
+					confirm, dismiss, content, callback, program.window)
 				update.Resize(program.size)
 				update.Show()
 			}
@@ -1303,7 +1303,7 @@ func pong_server() {
 			delete := widget.NewHyperlink("delete", nil)
 			delete.Alignment = fyne.TextAlignCenter
 			delete.OnTapped = func() {
-				dialog.ShowCustomConfirm("Pong Server", "confirm", "dismiss", program.entries.pass, func(b bool) {
+				dialog.ShowCustomConfirm("Pong Server", confirm, dismiss, program.entries.pass, func(b bool) {
 					// if the cancel
 					if !b {
 						return
@@ -1358,14 +1358,14 @@ func pong_server() {
 			)
 
 			// load it up, resize and show it
-			stats = dialog.NewCustom(title, "dismiss", content, program.window)
+			stats = dialog.NewCustom(title, dismiss, content, program.window)
 			stats.Resize(program.size)
 			stats.Show()
 		}
 
 		// load it up into the dialog, resize and show
 		review := dialog.NewCustom("Service Addresses",
-			"dismiss", list, program.window)
+			dismiss, list, program.window)
 		review.Resize(program.size)
 		review.Show()
 	}
@@ -1386,7 +1386,7 @@ func pong_server() {
 			review, // hyperlink
 		),
 	)
-	pong := dialog.NewCustom("pong server", "dismiss", content, program.window)
+	pong := dialog.NewCustom("pong server", dismiss, content, program.window)
 	pong.Resize(program.size)
 	pong.Show()
 }

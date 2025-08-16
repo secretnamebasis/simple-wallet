@@ -82,7 +82,7 @@ func filesign() {
 
 	// and when the user taps it
 	sign.OnTapped = func() {
-		dialog.ShowForm("Sign File?", "confirm", "cancel",
+		dialog.ShowForm("Sign File?", confirm, dismiss,
 			[]*widget.FormItem{widget.NewFormItem("", program.entries.pass)},
 			func(b bool) {
 				// if they cancel
@@ -150,7 +150,7 @@ func filesign() {
 
 	// when they click the link
 	verify.OnTapped = func() {
-		dialog.ShowForm("Verify File?", "confirm", "cancel",
+		dialog.ShowForm("Verify File?", confirm, dismiss,
 			[]*widget.FormItem{widget.NewFormItem("", program.entries.pass)},
 			func(b bool) {
 				// if they cancel
@@ -248,7 +248,7 @@ func filesign() {
 	label := makeCenteredWrappedLabel(notice)
 
 	// let's load all the widgets into a container inside a dialog
-	file := dialog.NewCustom("filesign/fileverify", "dismiss",
+	file := dialog.NewCustom("filesign/fileverify", dismiss,
 		container.NewVBox(
 			program.hyperlinks.open_file,
 			program.entries.file,
@@ -276,7 +276,7 @@ func self_crypt() {
 
 	// when the user clicks here...
 	encrypt.OnTapped = func() {
-		dialog.ShowForm("Encrypt File?", "confirm", "cancel",
+		dialog.ShowForm("Encrypt File?", confirm, dismiss,
 			[]*widget.FormItem{widget.NewFormItem("", program.entries.pass)}, func(b bool) {
 				// if they cancel
 				if !b {
@@ -343,7 +343,7 @@ func self_crypt() {
 
 	// here's what we are going to do
 	decrypt.OnTapped = func() {
-		dialog.ShowForm("Decrypt File?", "confirm", "cancel",
+		dialog.ShowForm("Decrypt File?", confirm, dismiss,
 			[]*widget.FormItem{widget.NewFormItem("", program.entries.pass)},
 			func(b bool) {
 				// if they cancel
@@ -423,7 +423,7 @@ func self_crypt() {
 	label := makeCenteredWrappedLabel(notice)
 
 	// load the widgets and dialog
-	self_crypt := dialog.NewCustom("Self Encrypt/Decrypt", "dismiss",
+	self_crypt := dialog.NewCustom("Self Encrypt/Decrypt", dismiss,
 		container.NewVBox(
 			program.hyperlinks.open_file,
 			program.entries.file,
@@ -450,7 +450,7 @@ func recipient_crypt() {
 	// now we are going to encrypt a file
 	encrypt := widget.NewHyperlink("encrypt", nil)
 	encrypt.OnTapped = func() {
-		dialog.ShowForm("Encrypt File?", "confirm", "cancel",
+		dialog.ShowForm("Encrypt File?", confirm, dismiss,
 			[]*widget.FormItem{widget.NewFormItem("", program.entries.pass)},
 			func(b bool) {
 				// if they cancel
@@ -537,7 +537,7 @@ func recipient_crypt() {
 	// let's decrypt a file
 	decrypt := widget.NewHyperlink("decrypt", nil)
 	decrypt.OnTapped = func() {
-		dialog.ShowForm("Decrypt File?", "confirm", "cancel",
+		dialog.ShowForm("Decrypt File?", confirm, dismiss,
 			[]*widget.FormItem{widget.NewFormItem("", program.entries.pass)},
 			func(b bool) {
 				// if they cancel
@@ -630,7 +630,7 @@ func recipient_crypt() {
 	label := makeCenteredWrappedLabel(notice)
 
 	// let's make a nice spash screen
-	recipient_crypt := dialog.NewCustom("Recipient Encrypt/Decrypt", "dismiss",
+	recipient_crypt := dialog.NewCustom("Recipient Encrypt/Decrypt", dismiss,
 		container.NewVBox(
 			program.hyperlinks.open_file,
 			program.entries.file,
@@ -823,7 +823,7 @@ func integrated_address_generator() {
 		}
 
 		// set the address into a splash
-		integrated_address := dialog.NewCustom("Integrated Address", "dismiss", container.NewVBox(address), program.window)
+		integrated_address := dialog.NewCustom("Integrated Address", dismiss, container.NewVBox(address), program.window)
 
 		// resize and show
 		integrated_address.Resize(program.size)
@@ -839,7 +839,7 @@ func integrated_address_generator() {
 	}
 
 	// put all the fun stuff into a dialog
-	integrated := dialog.NewForm("Integrated Address", "confirm", "dismiss", items, callback,
+	integrated := dialog.NewForm("Integrated Address", confirm, dismiss, items, callback,
 		program.window) // send it to the main window
 	// resize and show
 	integrated.Resize(program.size)
@@ -977,7 +977,7 @@ func installer() {
 	)
 
 	// let's walk throught install
-	install := dialog.NewCustomConfirm("Install Contract", "confirm", "dismiss", splash,
+	install := dialog.NewCustomConfirm("Install Contract", confirm, dismiss, splash,
 		func(b bool) {
 			// if they cnacel
 			if !b {
@@ -990,7 +990,7 @@ func installer() {
 			// dump the pass entry
 			program.entries.pass.SetText("")
 
-			dialog.ShowCustomConfirm("Confirm Password", "confirm", "dismiss", program.entries.pass,
+			dialog.ShowCustomConfirm("Confirm Password", confirm, dismiss, program.entries.pass,
 				func(b bool) {
 					// if they cnacel
 					if !b {
@@ -1337,7 +1337,7 @@ func interaction() {
 
 		// and walk the user through the argument process
 		arguments := dialog.NewCustomConfirm("Interact",
-			"confirm", "dismiss",
+			confirm, dismiss,
 			splash, func(b bool) {
 				// if they cancel
 				if !b {
@@ -1522,7 +1522,7 @@ func interaction() {
 				// load up the splash and a password entry
 				splash := container.NewVBox(sa, program.entries.password)
 
-				confirm_interaction := dialog.NewCustomConfirm("Confirm Password", "confirm", "dismiss", splash, func(b bool) {
+				confirm_interaction := dialog.NewCustomConfirm("Confirm Password", confirm, dismiss, splash, func(b bool) {
 					// if they cancel
 					if !b {
 						return
@@ -1617,7 +1617,7 @@ func interaction() {
 	confirmation := makeCenteredWrappedLabel(notice)
 
 	interact := dialog.NewCustomConfirm("Interact with Contract",
-		"confirm", "dismiss",
+		confirm, dismiss,
 		container.NewVBox(scid, code, confirmation),
 		func(b bool) {
 			// if they cancel
@@ -1626,7 +1626,7 @@ func interaction() {
 			}
 
 			// the final countdown!
-			action := dialog.NewCustom("contract interaction", "dismiss",
+			action := dialog.NewCustom("contract interaction", dismiss,
 				function_list,
 				program.window)
 
@@ -1651,7 +1651,7 @@ func add_token() {
 	t.SetPlaceHolder("SCID TOKEN ADDRESS")
 
 	// walk the user through adding a token
-	add := dialog.NewCustomConfirm("Add Token", "confirm", "dismiss",
+	add := dialog.NewCustomConfirm("Add Token", confirm, dismiss,
 		container.NewVBox(
 			layout.NewSpacer(),
 			t,

@@ -46,7 +46,7 @@ func keys() {
 	program.entries.public.Disable()
 
 	// simple way to see keys
-	dialog.ShowForm("Display Keys?", "confirm", "cancel",
+	dialog.ShowForm("Display Keys?", confirm, dismiss,
 		[]*widget.FormItem{widget.NewFormItem("", program.entries.pass)},
 		func(b bool) {
 			if b {
@@ -72,7 +72,7 @@ func keys() {
 					)
 					// let's make a dialog window with all the keys included
 					keys := dialog.NewCustom(
-						"Keys", "dismiss", scrollwindow, program.window,
+						"Keys", dismiss, scrollwindow, program.window,
 					)
 
 					keys.Resize(program.size)
@@ -147,7 +147,7 @@ func txList() {
 
 		// load up dialog with the container
 		txs := dialog.NewCustom(
-			"Transaction Detail", "dismiss",
+			"Transaction Detail", dismiss,
 			details, program.window,
 		)
 
@@ -155,7 +155,7 @@ func txList() {
 		txs.Show()
 	}
 
-	txs := dialog.NewCustom("transactions", "dismiss", program.lists.transactions, program.window)
+	txs := dialog.NewCustom("transactions", dismiss, program.lists.transactions, program.window)
 	txs.Resize(program.size)
 	txs.Show()
 }
@@ -249,7 +249,7 @@ func assetsList() {
 			title := truncator(scid)
 
 			// now set it, resize it and show it
-			entry := dialog.NewCustom(title, "dismiss", e, program.window)
+			entry := dialog.NewCustom(title, dismiss, e, program.window)
 			entry.Resize(program.size)
 			entry.Show()
 		}
@@ -258,7 +258,7 @@ func assetsList() {
 		title := truncator(scid) + "\ntransfer history"
 
 		// set the entries in the dialog, resize and show
-		transfers := dialog.NewCustom(title, "dismiss", entries_list, program.window)
+		transfers := dialog.NewCustom(title, dismiss, entries_list, program.window)
 		transfers.Resize(program.size)
 		transfers.Show()
 	}
@@ -270,7 +270,7 @@ func assetsList() {
 	scroll := container.NewScroll(program.lists.asset_list)
 
 	// and we'll set the scroll into a new dialog, resize and show
-	collection := dialog.NewCustom("Collectibles", "dismiss", scroll, program.window)
+	collection := dialog.NewCustom("Collectibles", dismiss, scroll, program.window)
 	collection.Resize(program.size)
 	collection.Show()
 }

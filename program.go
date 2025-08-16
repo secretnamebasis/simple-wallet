@@ -9,7 +9,15 @@ import (
 
 // a simple way to convert units
 const atomic_units = 100000
+
+// simple way to set file permissions
 const default_file_permissions = 0644
+
+// simple way to set dismiss
+const dismiss = `dismiss`
+
+// simple way to set confirm
+const confirm = `confirm`
 
 // not to be confused with an app, this is a program:
 var program = components{

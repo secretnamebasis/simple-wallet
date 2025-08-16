@@ -25,14 +25,16 @@ func create() {
 		program.entries.pass.SetText("")
 	}
 
-	new_account = dialog.NewCustom("Create Wallet", "dismiss",
-		container.NewVBox(
-			layout.NewSpacer(),
-			program.entries.wallet,
-			program.entries.pass,
-			program.hyperlinks.save,
-			layout.NewSpacer(),
-		), program.window)
+	content := container.NewVBox(
+		layout.NewSpacer(),
+		program.entries.wallet,
+		program.entries.pass,
+		program.hyperlinks.save,
+		layout.NewSpacer(),
+	)
+
+	new_account = dialog.NewCustom("Create Wallet", dismiss,
+		content, program.window)
 
 	program.hyperlinks.save.Alignment = fyne.TextAlignCenter
 	program.hyperlinks.save.OnTapped = save
@@ -50,26 +52,34 @@ func save() {
 	)
 	if err != nil {
 		showError(err)
-		program.entries.wallet.SetText("")
-		program.entries.pass.SetText("")
+
 	} else {
+		// now save the wallet
 		if err := program.wallet.Save_Wallet(); err != nil {
+			// if that doesn't work...
 			showError(err)
 			program.entries.wallet.SetText("")
 			program.entries.pass.SetText("")
 			return
-		} else {
+
+		} else { // follow logged in workflow
 			loggedIn()
-			keys := dialog.NewCustom("Wallet Created", "dismiss", container.NewScroll(
-				container.NewVBox(
-					program.labels.seed,
-					program.entries.seed,
-					program.labels.public,
-					program.entries.public,
-					program.labels.secret,
-					program.entries.secret,
-				),
-			), program.window)
+
+			content := container.NewVBox(
+				program.labels.seed,
+				program.entries.seed,
+				program.labels.public,
+				program.entries.public,
+				program.labels.secret,
+				program.entries.secret,
+			)
+
+			scroll := container.NewScroll(content)
+
+			title := "Wallet Created"
+
+			keys := dialog.NewCustom(title, dismiss, scroll, program.window)
+
 			keys.Resize(program.size)
 			keys.Show()
 			new_account.Dismiss()
@@ -98,14 +108,6 @@ func register() *fyne.Container {
 func registration() {
 	// we are going to do this as a go routine so the gui doesn't lock up
 	go func() {
-		// there is a registration transaction
-		var reg_tx = new(transaction.Transaction)
-
-		// there is a channel of success
-		var success = make(chan *transaction.Transaction)
-
-		// we are going to track wins and fails
-		var wins, fails uint64
 
 		// while in the go routine, update the widget accordingly
 		fyne.DoAndWait(func() {
@@ -114,6 +116,17 @@ func registration() {
 			program.activities.registration.Start()
 			program.activities.registration.Show()
 		})
+
+		// we are going to set some expectations
+
+		// there is a registration transaction
+		var reg_tx = new(transaction.Transaction)
+
+		// there is a channel of success
+		var success = make(chan *transaction.Transaction)
+
+		// we are going to track wins and fails
+		var wins, fails uint64
 
 		// we are going to use the max number of threads
 		desired_threads := runtime.GOMAXPROCS(0)

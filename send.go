@@ -323,7 +323,7 @@ func sendForm() {
 func conductTransfer() {
 
 	// make them confirm with password
-	transaction := dialog.NewForm("Password Confirmation", "Confirm", "Cancel",
+	transaction := dialog.NewForm("Password Confirmation", confirm, "Cancel",
 		[]*widget.FormItem{
 			widget.NewFormItem("", program.entries.pass),
 		},

@@ -214,7 +214,7 @@ func loginFunction() {
 		}
 	}
 	// load the login screen into the login dialog in order to open the wallet
-	program.dialogues.login = dialog.NewCustomConfirm("", "login", "dismiss",
+	program.dialogues.login = dialog.NewCustomConfirm("", "login", dismiss,
 		login_screen, open_wallet, program.window,
 	)
 	program.dialogues.login.Resize(program.size)
