@@ -29,7 +29,7 @@ func logout() {
 				program.rpc_server.RPCServer_Stop()
 
 				// make it noticable
-				program.labels.rpc_server.SetText("rpc: 🔴")
+				program.labels.rpc_server.SetText("📡: 🔴")
 
 				// dump the creds
 				program.entries.username.SetText("")
