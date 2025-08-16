@@ -45,9 +45,17 @@ func create() {
 
 func save() {
 	var err error
+	// get entries
+	filename := program.entries.wallet.Text
+	password := program.entries.pass.Text
+
+	// dump entries
+	program.entries.wallet.SetText("")
+	program.entries.pass.SetText("")
+
 	program.wallet, err = walletapi.Create_Encrypted_Wallet(
-		program.entries.wallet.Text,
-		program.entries.pass.Text,
+		filename,
+		password,
 		crypto.RandomScalarBNRed(),
 	)
 	if err != nil {
@@ -58,8 +66,6 @@ func save() {
 		if err := program.wallet.Save_Wallet(); err != nil {
 			// if that doesn't work...
 			showError(err)
-			program.entries.wallet.SetText("")
-			program.entries.pass.SetText("")
 			return
 
 		} else { // follow logged in workflow
