@@ -113,8 +113,9 @@ func maintain_connection() {
 		// then test the connection
 		if err := walletapi.Connect(walletapi.Daemon_Endpoint); err != nil {
 
-			//  if the number of tries is 3...
-			if retries == 3 {
+			//  if the number of tries is 1...
+			if retries == 1 {
+				fyne.DoAndWait(func() {
 
 				// then notify the user
 				dialog.ShowError(
