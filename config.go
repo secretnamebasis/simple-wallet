@@ -132,9 +132,10 @@ func maintain_connection() {
 				}
 				// don't break the loop
 			}
-			// count the retries
+			// increment the retries
 			retries++
-		} else { // now if they are able to connect...
+		} else {
+			// now if they are able to connect...
 
 			// retries is reset
 			retries = 0
