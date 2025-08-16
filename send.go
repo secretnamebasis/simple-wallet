@@ -505,9 +505,7 @@ func conductTransfer() {
 				},
 			}
 
-			notice := widget.NewLabel("dispatching transfer.... should recieve txid soon")
-			notice.Alignment = fyne.TextAlignCenter
-			notice.Wrapping = fyne.TextWrapWord
+			notice := makeCenteredWrappedLabel("dispatching transfer.... should recieve txid soon")
 			sync := widget.NewActivity()
 
 			sync.Start()

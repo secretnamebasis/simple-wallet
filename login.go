@@ -20,8 +20,7 @@ func loggedIn() {
 	syncing.Start()
 
 	// make some notice
-	notice := widget.NewLabel("Wallet is syncing with network\n\nPls hodl")
-	notice.Alignment = fyne.TextAlignCenter
+	notice := makeCenteredWrappedLabel("Wallet is syncing with network\n\nPls hodl")
 
 	// set the widgets to a container
 	sync := container.NewVBox(

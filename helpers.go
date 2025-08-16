@@ -420,5 +420,11 @@ func processTXQueues() {
 			}
 		}
 	}
+}
 
+func makeCenteredWrappedLabel(s string) *widget.Label {
+	label := widget.NewLabel(s)
+	label.Alignment = fyne.TextAlignCenter
+	label.Wrapping = fyne.TextWrapWord
+	return label
 }

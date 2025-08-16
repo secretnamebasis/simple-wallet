@@ -332,13 +332,11 @@ func rpc_server() {
 	}
 
 	// make a notice
-	notice := widget.NewLabel(`
+	notice := makeCenteredWrappedLabel(`
 The RPC Server allows for external apps to connect with the wallet. Be conscientious with credentials, and only have ON when necessary.
 
 RPC server runs at http://127.0.0.1:10103 
-	`) // center it and wrap it
-	notice.Alignment = fyne.TextAlignCenter
-	notice.Wrapping = fyne.TextWrapWord
+	`)
 
 	// load up the widgets into a container
 	content := container.NewVBox(
@@ -387,9 +385,7 @@ func pong_server() {
 			}
 
 			// make a notice
-			notice := widget.NewLabel("Add a new address to watch")
-			notice.Alignment = fyne.TextAlignCenter
-			notice.Wrapping = fyne.TextWrapWord
+			notice := makeCenteredWrappedLabel("Add a new address to watch")
 
 			// capture the name
 			name := widget.NewEntry()
@@ -1167,9 +1163,8 @@ func pong_server() {
 					dialog.ShowError(errors.New("pong server is off"), program.window)
 					return
 				}
-				notice := widget.NewLabel("Edit address on watch")
-				notice.Alignment = fyne.TextAlignCenter
-				notice.Wrapping = fyne.TextWrapWord
+				notice := makeCenteredWrappedLabel("Edit address on watch")
+
 				name := widget.NewEntry()
 				name.SetPlaceHolder("Item Name")
 				description := widget.NewEntry()
@@ -1382,8 +1377,7 @@ func pong_server() {
 	msg += "When an address has been pinged, the server will pong back a payload"
 	msg += "can be urls, tokens, license uuids, etc. "
 	// add it to a notice
-	notice := widget.NewLabel(msg)
-	notice.Wrapping = fyne.TextWrapWord
+	notice := makeCenteredWrappedLabel(msg)
 
 	content := container.NewVBox(
 		notice,

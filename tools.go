@@ -247,13 +247,7 @@ func filesign() {
 	notice += "fileverify allows users to verify data was signed by another user."
 
 	// load the notice into a label
-	label := widget.NewLabel(notice)
-
-	// center it
-	label.Alignment = fyne.TextAlignCenter
-
-	// wrap it
-	label.Wrapping = fyne.TextWrapWord
+	label := makeCenteredWrappedLabel(notice)
 
 	// let's load all the widgets into a container inside a dialog
 	file := dialog.NewCustom("filesign/fileverify", "dismiss",
@@ -428,9 +422,7 @@ func self_crypt() {
 	notice += "Select file to encrypt, or decrypt, for self"
 
 	// create a label widget
-	label := widget.NewLabel(notice)
-	label.Alignment = fyne.TextAlignCenter
-	label.Wrapping = fyne.TextWrapWord
+	label := makeCenteredWrappedLabel(notice)
 
 	// load the widgets and dialog
 	self_crypt := dialog.NewCustom("Self Encrypt/Decrypt", "dismiss",
@@ -634,9 +626,9 @@ func recipient_crypt() {
 	// let's also make a notice
 	notice := "Asymetrically encrypt/decrypt files. "
 	notice += "Select the file to encrypt/decrypt and enter the address of the user who sent it or is to receive. "
-	label := widget.NewLabel(notice)
-	label.Alignment = fyne.TextAlignCenter
-	label.Wrapping = fyne.TextWrapWord
+
+	// make the label
+	label := makeCenteredWrappedLabel(notice)
 
 	// let's make a nice spash screen
 	recipient_crypt := dialog.NewCustom("Recipient Encrypt/Decrypt", "dismiss",
@@ -875,8 +867,8 @@ func balance_rescan() {
 			// start a sync activity widget
 			syncing := widget.NewActivity()
 			syncing.Start()
-			notice := widget.NewLabel("syncing")
-			notice.Alignment = fyne.TextAlignCenter
+			notice := makeCenteredWrappedLabel("syncing")
+
 			// set it to a splash screen
 			sync := dialog.NewCustomWithoutButtons("syncing",
 				container.NewVBox(layout.NewSpacer(), syncing, notice, layout.NewSpacer()),
@@ -976,10 +968,7 @@ func installer() {
 	})
 
 	// see, notice
-	notice := widget.NewLabel("anonymous installs might effect intended SC functionality")
-
-	// wrap it
-	notice.Wrapping = fyne.TextWrapWord
+	notice := makeCenteredWrappedLabel("anonymous installs might effect intended SC functionality")
 
 	// let's make a splash screen
 	splash := container.NewVBox(
@@ -1355,10 +1344,7 @@ func interaction() {
 		}
 
 		// now make a nice notice
-		notice := widget.NewLabel("anonymous interactions might effect intended SC functionality")
-
-		// wrap it in a bow
-		notice.Wrapping = fyne.TextWrapWord
+		notice := makeCenteredWrappedLabel("anonymous interactions might effect intended SC functionality")
 
 		// make a splash box
 		splash := container.NewVBox(widget.NewLabel(func_names[id]), notice, isAnonymous, args, entries)
@@ -1545,9 +1531,7 @@ func interaction() {
 				}
 
 				// let's get the args for the user to review
-				sa := widget.NewLabel(string(string_args))
-				sa.Wrapping = fyne.TextWrapWord
-				sa.Alignment = fyne.TextAlignCenter
+				sa := makeCenteredWrappedLabel(string(string_args))
 
 				// load up the splash and a password entry
 				splash := container.NewVBox(sa, program.entries.password)
@@ -1614,10 +1598,8 @@ func interaction() {
 							"Please review verify all interactions"
 
 						// attach it to a notice
-						notice := widget.NewLabel(msg)
+						notice := makeCenteredWrappedLabel(msg)
 
-						// wrap it, but don't center it
-						notice.Wrapping = fyne.TextWrapWord
 						success := dialog.NewCustom("Contract Installer", "dissmiss",
 							container.NewVBox(
 								notice,
@@ -1643,9 +1625,11 @@ func interaction() {
 	}
 
 	// we want users to be happy with the code before they interact with it
-	confirmation := widget.NewLabel("If you are satisfied with the code, please confirm to be forwarded to the contract functions")
-	confirmation.Wrapping = fyne.TextWrapWord
-	confirmation.Alignment = fyne.TextAlignCenter
+	notice := "If you are satisfied with the code, "
+	notice += "please confirm to be forwarded to the contract functions"
+
+	confirmation := makeCenteredWrappedLabel(notice)
+
 	interact := dialog.NewCustomConfirm("Interact with Contract",
 		"confirm", "dismiss",
 		container.NewVBox(scid, code, confirmation),
@@ -1702,8 +1686,8 @@ func add_token() {
 			// start a sync activity widget
 			syncing := widget.NewActivity()
 			syncing.Start()
-			notice := widget.NewLabel("syncing")
-			notice.Alignment = fyne.TextAlignCenter
+			notice := makeCenteredWrappedLabel("syncing")
+
 			// set it to a splash screen
 			sync := dialog.NewCustomWithoutButtons("syncing",
 				container.NewVBox(layout.NewSpacer(), syncing, notice, layout.NewSpacer()),
