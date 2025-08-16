@@ -186,14 +186,20 @@ func connections() {
 			return
 		}
 
+		// copy the form_entry
+		endpoint := form_entry.Text
+
+		// dump the entry
+		form_entry.SetText("")
+
 		// test the connection point
-		if err := testConnection(form_entry.Text); err != nil {
+		if err := testConnection(endpoint); err != nil {
 			dialog.ShowError(err, program.window)
 			return
 		}
 
 		// attempt to connect
-		if err := walletapi.Connect(form_entry.Text); err != nil {
+		if err := walletapi.Connect(endpoint); err != nil {
 			dialog.ShowError(err, program.window)
 			return
 		} else {
@@ -201,10 +207,7 @@ func connections() {
 			dialog.ShowInformation("Connection", "success", program.window)
 		}
 		// now the current node is the entry
-		program.node.current = form_entry.Text
-
-		// dump the entry
-		form_entry.SetText("")
+		program.node.current = endpoint
 
 		// change the label
 		current_node.SetText("Current Node: " + program.node.current)
