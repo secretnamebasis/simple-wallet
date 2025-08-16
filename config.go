@@ -117,13 +117,12 @@ func maintain_connection() {
 			if retries == 1 {
 				fyne.DoAndWait(func() {
 
-				// then notify the user
-				dialog.ShowError(
-					errors.New("auto connect is not working as expected, please set custom endpoint"),
-					program.window,
-				)
-				// update the label
-				fyne.DoAndWait(func() {
+					// then notify the user
+					dialog.ShowError(
+						errors.New("auto connect is not working as expected, please set custom endpoint"),
+						program.window,
+					)
+					// update the label
 					program.labels.connection.SetText("🌐: 🔴")
 				})
 
