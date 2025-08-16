@@ -20,7 +20,6 @@ import (
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/ybbus/jsonrpc"
 	"go.etcd.io/bbolt"
-	// "go.etcd.io/bbolt"
 )
 
 // simple way to truncate hashes/address
