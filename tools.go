@@ -22,8 +22,6 @@ import (
 	"github.com/deroproject/derohe/dvm"
 	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/transaction"
-	"github.com/deroproject/derohe/walletapi"
-	"github.com/ybbus/jsonrpc"
 )
 
 func tools() *fyne.Container {
@@ -849,13 +847,12 @@ func integrated_address_generator() {
 func balance_rescan() {
 	// nice big notice
 	big_notice :=
-		"This action will clear all transfer history and balances." +
-			"Balances are nearly instant in resync; however...." +
-			"Tx history depends on node status, eg pruned/full...." +
-			"Some txs may not be available at your node connection." +
-			"for full history, and privacy, run a full node starting at block 0 upto current topoheight. " +
-			"This operation could take a long time with many token assets and transfers."
-
+		"This action will clear all transfer history and balances. " +
+			"Balances are nearly instant in resync; however... " +
+			"Tx history depends on node status, eg pruned/full... " +
+			"Some txs may not be available at your node connection. " +
+			"For full history, and privacy, run a full node starting at block 0 upto current topoheight. " +
+			"This operation could take a long time with many token assets and transfers. "
 	// here is the rescan dialog
 	rescan := dialog.NewConfirm("Balance Rescan", big_notice,
 		func(b bool) {
