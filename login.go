@@ -185,16 +185,19 @@ func loginFunction() {
 		if b {
 			var err error
 
+			// get these entries
+			filename := program.entries.wallet.Text
+			password := program.entries.pass.Text
+
+			// be sure to dump the entries
+			program.entries.wallet.SetText("")
+			program.entries.pass.SetText("")
+
 			// open the wallet using the wallet path and password
-			program.wallet, err = walletapi.Open_Encrypted_Wallet(
-				program.entries.wallet.Text, program.entries.pass.Text,
-			)
+			program.wallet, err = walletapi.Open_Encrypted_Wallet(filename, password)
 
 			// if there is a problem...
 			if err != nil || program.wallet == nil {
-
-				// clear the password
-				program.entries.pass.SetText("")
 
 				// go home
 				updateHeader(program.hyperlinks.home)
@@ -204,10 +207,6 @@ func loginFunction() {
 				showError(err)
 				return
 			}
-
-			// be sure to dump the entries
-			program.entries.wallet.SetText("")
-			program.entries.pass.SetText("")
 
 			// and then do the loggedIn thing
 			loggedIn()
