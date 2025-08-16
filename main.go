@@ -158,7 +158,7 @@ func initialize() {
 			program.entries.pass.SetText("")
 
 			if !program.wallet.Check_Password(pass) {
-				dialog.ShowError(errors.New("wrong password"), program.window)
+				showError(errors.New("wrong password"))
 				return
 			}
 

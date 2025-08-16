@@ -156,24 +156,21 @@ func sendValidator(s string) (err error) {
 
 	// at this point, we should be fairly confident
 	if program.receiver == "" {
-		err = errors.New("error obtaining receiver")
-
-		return err
+		showError(errors.New("error obtaining receiver"))
+		return
 	}
 
 	// but just to be extra sure...
 	// let's see if the receiver is not registered
 	if !isRegistered(program.receiver) {
-		err = errors.New("unregistered address")
-
-		return err
+		showError(errors.New("unregistered address"))
+		return
 	}
 
 	// also, would make sense to make sure that it is not self
 	if strings.EqualFold(program.receiver, program.wallet.GetAddress().String()) {
-		err = errors.New("cannot send to self")
-
-		return err
+		showError(errors.New("cannot send to self"))
+		return
 	}
 
 	// should be validated
@@ -197,7 +194,7 @@ func sendForm() {
 	bal := program.wallet.GetAccount().Balance_Mature
 	// and check
 	if bal < 80 {
-		dialog.ShowError(errors.New("balance is too low, please refill wallet"), program.window)
+		showError(errors.New("balance is too low, please refill wallet"))
 		return
 	}
 
@@ -357,7 +354,7 @@ func conductTransfer() {
 				return
 			} else if !passed {
 				// show them that
-				dialog.ShowError(errors.New("wrong password"), program.window)
+				showError(errors.New("wrong password"))
 			}
 
 			// if they get it right, then reset the password
@@ -375,7 +372,7 @@ func conductTransfer() {
 			// let's parse that amount so that we can work with it
 			flo, err := strconv.ParseFloat(amnt, 64)
 			if err != nil {
-				dialog.ShowError(err, program.window)
+				showError(err)
 			}
 
 			// now let's coerce it into a dero atomic units
@@ -393,7 +390,7 @@ func conductTransfer() {
 				// parse the string to uint
 				dst_uint, err := strconv.ParseUint(dst, 10, 64)
 				if err != nil {
-					dialog.ShowError(err, program.window)
+					showError(err)
 				}
 
 				// and let's append the dst as uint64 to our arguments
@@ -438,7 +435,7 @@ func conductTransfer() {
 			if _, err := args.CheckPack(transaction.PAYLOAD0_LIMIT); err != nil {
 
 				// show error if it can't
-				dialog.ShowError(err, program.window)
+				showError(err)
 				return
 			}
 
@@ -519,7 +516,7 @@ func conductTransfer() {
 				if err != nil {
 
 					// show the error
-					dialog.ShowError(err, program.window)
+					showError(err)
 					// now let's make sure each of these are re-enabled
 
 					return
@@ -537,7 +534,7 @@ func conductTransfer() {
 					} else {
 						fyne.DoAndWait(func() {
 							// if it errors out, show the err
-							dialog.ShowError(err, program.window)
+							showError(err)
 							sync.Stop()
 							transaction.Dismiss()
 						})

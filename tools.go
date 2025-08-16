@@ -100,7 +100,7 @@ func filesign() {
 				if !program.wallet.Check_Password(pass) {
 
 					// let them know if they were wrong
-					dialog.ShowError(errors.New("wrong password"), program.window)
+					showError(errors.New("wrong password"))
 
 					// dump the filepath
 					program.entries.file.SetText("")
@@ -115,7 +115,7 @@ func filesign() {
 					// read the file
 					file, err := os.ReadFile(filename)
 					if err != nil {
-						dialog.ShowError(err, program.window)
+						showError(err)
 						return
 					}
 
@@ -168,7 +168,7 @@ func filesign() {
 				if !program.wallet.Check_Password(pass) {
 
 					// show and error when wrong
-					dialog.ShowError(errors.New("wrong password"), program.window)
+					showError(errors.New("wrong password"))
 
 					//dump entry
 					program.entries.file.SetText("")
@@ -182,7 +182,7 @@ func filesign() {
 					if !strings.HasSuffix(filename, ".signed") {
 
 						// display error
-						dialog.ShowError(errors.New("not a .signed file"), program.window)
+						showError(errors.New("not a .signed file"))
 
 						return
 					}
@@ -190,7 +190,7 @@ func filesign() {
 					// if everything is good so far, read the files
 					file, err := os.ReadFile(filename)
 					if err != nil {
-						dialog.ShowError(err, program.window)
+						showError(err)
 						return
 					}
 
@@ -204,7 +204,7 @@ func filesign() {
 					if err != nil {
 
 						// show the user
-						dialog.ShowError(err, program.window)
+						showError(err)
 						return
 					}
 
@@ -291,7 +291,7 @@ func self_crypt() {
 				// check the password
 				if !program.wallet.Check_Password(pass) {
 					// notify them when wrong
-					dialog.ShowError(errors.New("wrong password"), program.window)
+					showError(errors.New("wrong password"))
 
 					// dump the entry
 					program.entries.file.SetText("")
@@ -307,14 +307,14 @@ func self_crypt() {
 					file, err := os.ReadFile(filename)
 					if err != nil {
 						// display error if there is one
-						dialog.ShowError(err, program.window)
+						showError(err)
 						return
 					}
 
 					// encrypt the data
 					data, err := program.wallet.Encrypt(file)
 					if err != nil {
-						dialog.ShowError(err, program.window)
+						showError(err)
 						return
 					}
 
@@ -360,7 +360,7 @@ func self_crypt() {
 				if !program.wallet.Check_Password(pass) {
 
 					// notify the user
-					dialog.ShowError(errors.New("wrong password"), program.window)
+					showError(errors.New("wrong password"))
 
 					// dump the file path
 					program.entries.file.SetText("")
@@ -377,21 +377,21 @@ func self_crypt() {
 					if !strings.HasSuffix(filename, ".enc") {
 
 						// notify the user
-						dialog.ShowError(errors.New("not a .enc file"), program.window)
+						showError(errors.New("not a .enc file"))
 						return
 					}
 
 					// read the file
 					file, err := os.ReadFile(filename)
 					if err != nil {
-						dialog.ShowError(err, program.window)
+						showError(err)
 						return
 					}
 
 					// decrypt the file
 					data, err := program.wallet.Decrypt(file)
 					if err != nil {
-						dialog.ShowError(err, program.window)
+						showError(err)
 						return
 					}
 
@@ -459,7 +459,7 @@ func recipient_crypt() {
 				}
 				// let's validate the address real quick
 				if err := program.entries.recipient.Validate(); err != nil {
-					dialog.ShowError(err, program.window)
+					showError(err)
 					return
 				}
 
@@ -471,7 +471,7 @@ func recipient_crypt() {
 
 				// check the password
 				if !program.wallet.Check_Password(pass) {
-					dialog.ShowError(errors.New("wrong password"), program.window)
+					showError(errors.New("wrong password"))
 					program.entries.recipient.SetText("")
 					program.entries.file.SetText("")
 				} else {
@@ -485,7 +485,7 @@ func recipient_crypt() {
 					// read the file
 					file, err := os.ReadFile(filename)
 					if err != nil {
-						dialog.ShowError(err, program.window)
+						showError(err)
 						program.entries.recipient.SetText("")
 						return
 					}
@@ -494,7 +494,7 @@ func recipient_crypt() {
 					addr, err := rpc.NewAddress(program.receiver)
 					if err != nil {
 						// show the user the error
-						dialog.ShowError(err, program.window)
+						showError(err)
 						program.entries.recipient.SetText("")
 						return
 					}
@@ -546,7 +546,7 @@ func recipient_crypt() {
 				}
 				// let's validate the address real quick
 				if err := program.entries.recipient.Validate(); err != nil {
-					dialog.ShowError(err, program.window)
+					showError(err)
 					return
 				}
 				// get the pass
@@ -557,7 +557,7 @@ func recipient_crypt() {
 
 				// check the password
 				if !program.wallet.Check_Password(pass) {
-					dialog.ShowError(errors.New("wrong password"), program.window)
+					showError(errors.New("wrong password"))
 					program.entries.file.SetText("")
 				} else {
 
@@ -566,21 +566,21 @@ func recipient_crypt() {
 
 					// check if it is an .enc file
 					if !strings.HasSuffix(filename, ".enc") {
-						dialog.ShowError(errors.New("not a .enc file"), program.window)
+						showError(errors.New("not a .enc file"))
 						return
 					}
 
 					// read the file
 					file, err := os.ReadFile(filename)
 					if err != nil {
-						dialog.ShowError(err, program.window)
+						showError(err)
 						return
 					}
 
 					// check the receiver address
 					addr, err := rpc.NewAddress(program.receiver)
 					if err != nil {
-						dialog.ShowError(err, program.window)
+						showError(err)
 						return
 					}
 
@@ -775,7 +775,7 @@ func integrated_address_generator() {
 			value.Validate() != nil {
 
 			// show them the error
-			dialog.ShowError(errors.New("something isn't working"), program.window)
+			showError(errors.New("something isn't working"))
 		}
 
 		// make an address entry
@@ -805,13 +805,13 @@ func integrated_address_generator() {
 			// make a new address struct
 			result, err := rpc.NewAddress(addr.String())
 			if err != nil {
-				dialog.ShowError(err, program.window)
+				showError(err)
 				return
 			}
 
 			// check the pack of the args
 			if _, err := args.CheckPack(transaction.PAYLOAD0_LIMIT); err != nil {
-				dialog.ShowError(err, program.window)
+				showError(err)
 				return
 			}
 			// the result arguments are now the args
@@ -887,7 +887,7 @@ func balance_rescan() {
 				// then sync the wallet for DERO
 				if err := program.wallet.Sync_Wallet_Memory_With_Daemon(); err != nil {
 					// if there is an error, notify the user
-					dialog.ShowError(err, program.window)
+					showError(err)
 					return
 				} else {
 					// now range through each token in the cache one at a time
@@ -898,7 +898,7 @@ func balance_rescan() {
 						// then add each scid back to the map
 						if err = program.wallet.TokenAdd(scid); err != nil {
 							// if err, show it
-							dialog.ShowError(err, program.window)
+							showError(err)
 							// but don't stop, just continue the loop
 							continue
 						}
@@ -906,7 +906,7 @@ func balance_rescan() {
 						// and then sync scid internally with the daemon
 						if err = program.wallet.Sync_Wallet_Memory_With_Daemon_internal(scid); err != nil {
 							// if err, show it
-							dialog.ShowError(err, program.window)
+							showError(err)
 							// but don't stop, just continue the loop
 							continue
 						}
@@ -997,7 +997,7 @@ func installer() {
 					}
 					// check the password
 					if !program.wallet.Check_Password(pass) {
-						dialog.ShowError(errors.New("wrong password"), program.window)
+						showError(errors.New("wrong password"))
 						program.entries.file.SetText("")
 						return
 					} else {
@@ -1010,7 +1010,7 @@ func installer() {
 						// read the file
 						file, err := os.ReadFile(filename)
 						if err != nil {
-							dialog.ShowError(err, program.window)
+							showError(err)
 							return
 						}
 						// coerce the file into string
@@ -1020,7 +1020,7 @@ func installer() {
 						if _, _, err = dvm.ParseSmartContract(upload); err != nil {
 
 							// show them an error if one
-							dialog.ShowError(err, program.window)
+							showError(err)
 							return
 						}
 
@@ -1079,7 +1079,7 @@ func installer() {
 						if err != nil {
 
 							// notify the user
-							dialog.ShowError(err, program.window)
+							showError(err)
 							return
 						}
 
@@ -1087,7 +1087,7 @@ func installer() {
 						if err := program.wallet.SendTransaction(tx); err != nil {
 
 							// notify the user if err
-							dialog.ShowError(err, program.window)
+							showError(err)
 							return
 						}
 
@@ -1291,10 +1291,10 @@ func interaction() {
 			case dvm.Uint64:
 				arg_type = "uint64"
 			case dvm.Invalid, dvm.None:
-				dialog.ShowError(errors.New("type is either invalid or none"), program.window)
+				showError(errors.New("type is either invalid or none"))
 				return
 			default:
-				dialog.ShowError(errors.New("unknown type"), program.window)
+				showError(errors.New("unknown type"))
 				return
 			} // pretty self explanatory
 
@@ -1384,7 +1384,7 @@ func interaction() {
 								best_guess = crypto.HashHexToHash(obj.(*widget.Entry).Text)
 								once = true
 							} else {
-								dialog.ShowError(errors.New("multiple token assets not implemented"), program.window)
+								showError(errors.New("multiple token assets not implemented"))
 								return
 							}
 						}
@@ -1397,7 +1397,7 @@ func interaction() {
 						if err != nil {
 
 							// show err if so
-							dialog.ShowError(err, program.window)
+							showError(err)
 							return
 						}
 
@@ -1446,7 +1446,7 @@ func interaction() {
 						// parse the float
 						float, err := strconv.ParseFloat(value, 64)
 						if err != nil {
-							dialog.ShowError(err, program.window)
+							showError(err)
 							return
 						}
 
@@ -1469,7 +1469,7 @@ func interaction() {
 
 						// show err if so
 						if err != nil {
-							dialog.ShowError(err, program.window)
+							showError(err)
 							return
 						}
 
@@ -1480,7 +1480,7 @@ func interaction() {
 						if best_guess.IsZero() {
 
 							// if it is, this is a problem
-							dialog.ShowError(errors.New("please report this error to the develop"), program.window)
+							showError(errors.New("please report this error to the develop"))
 							return
 						}
 
@@ -1511,7 +1511,7 @@ func interaction() {
 				string_args, err := sc_args.MarshalBinary()
 				if err != nil {
 					//show the err
-					dialog.ShowError(err, program.window)
+					showError(err)
 					// but keep going
 				}
 
@@ -1534,7 +1534,7 @@ func interaction() {
 					program.entries.pass.SetText("")
 
 					if !program.wallet.Check_Password(pass) {
-						dialog.ShowError(errors.New("wrong password"), program.window)
+						showError(errors.New("wrong password"))
 						return
 					} else {
 
@@ -1552,13 +1552,13 @@ func interaction() {
 
 						// if we have an err, show it
 						if err != nil {
-							dialog.ShowError(err, program.window)
+							showError(err)
 							return
 						}
 
 						// submit the transfer to the daemon
 						if err := program.wallet.SendTransaction(tx); err != nil {
-							dialog.ShowError(err, program.window)
+							showError(err)
 							return
 						}
 
@@ -1689,7 +1689,7 @@ func add_token() {
 					// show err if one
 					fyne.DoAndWait(func() {
 
-						dialog.ShowError(err, program.window)
+						showError(err)
 						sync.Dismiss()
 					})
 					return
@@ -1699,7 +1699,7 @@ func add_token() {
 					if err := program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
 						fyne.DoAndWait(func() {
 
-							dialog.ShowError(err, program.window)
+							showError(err)
 							sync.Dismiss()
 						})
 						return

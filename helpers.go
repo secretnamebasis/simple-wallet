@@ -30,7 +30,7 @@ func truncator(a string) string { return a[:6] + "......." + a[len(a)-6:] }
 func openExplorer() *dialog.FileDialog {
 	return dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
 		if err != nil {
-			dialog.ShowError(err, program.window)
+			showError(err)
 			return
 		}
 		if reader == nil {
@@ -96,7 +96,7 @@ func updateBalance() {
 
 			// sync with network
 			if err := program.wallet.Sync_Wallet_Memory_With_Daemon(); err != nil {
-				dialog.ShowError(err, program.window)
+				showError(err)
 				return
 			}
 
@@ -195,7 +195,7 @@ func startDB() {
 	// and let's open it
 	program.db, err = bbolt.Open(db_name, 0600, nil)
 	if err != nil {
-		dialog.ShowError(err, program.window)
+		showError(err)
 		return
 	}
 
@@ -205,7 +205,7 @@ func startDB() {
 		return err
 	})
 	if err != nil {
-		dialog.ShowError(err, program.window)
+		showError(err)
 		return
 	}
 
@@ -216,7 +216,7 @@ func startDB() {
 	})
 
 	if err != nil {
-		dialog.ShowError(err, program.window)
+		showError(err)
 		return
 	}
 }
@@ -303,7 +303,7 @@ func processTXQueues() {
 			if err := program.wallet.SendTransaction(queue.Tx); err != nil {
 				fyne.DoAndWait(func() {
 					// where ever the user is, notify them
-					dialog.ShowError(err, program.window)
+					showError(err)
 				})
 				// dump the refund and try again in the higher loop
 				refunds = slices.Delete(refunds, i, i+1)
@@ -331,7 +331,7 @@ func processTXQueues() {
 				return b.Put([]byte(queue.Entry.TXID), pong)
 			}); err != nil {
 				// where ever the user is, notify them
-				dialog.ShowError(err, program.window)
+				showError(err)
 				continue
 			}
 			msg := "refund has been sent for " + truncator(queue.Item.Address)
@@ -354,7 +354,7 @@ func processTXQueues() {
 				fyne.DoAndWait(func() {
 
 					// where ever the user is, notify them
-					dialog.ShowError(err, program.window)
+					showError(err)
 				})
 
 				// dump the tx and try again at a higher loop
@@ -407,7 +407,7 @@ func processTXQueues() {
 					return b.Put([]byte(queue.Entry.TXID), pong)
 				}); err != nil {
 					// if there is a problem, let us know
-					dialog.ShowError(err, program.window)
+					showError(err)
 					continue
 				}
 				msg := "pong has been sent for " + truncator(queue.Item.Address)
@@ -458,4 +458,8 @@ func getSCCode(scid string) rpc.GetSC_Result {
 	}
 
 	return sc
+}
+
+func showError(e error) {
+	dialog.ShowError(e, program.window)
 }

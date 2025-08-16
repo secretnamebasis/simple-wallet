@@ -53,7 +53,7 @@ func keys() {
 				// check the password for all sensitive actions
 				if !program.wallet.Check_Password(program.entries.pass.Text) {
 					// if they get is wrong, tell them
-					dialog.ShowError(errors.New("wrong password"), program.window)
+					showError(errors.New("wrong password"))
 					return
 				} else { // if they get it right
 

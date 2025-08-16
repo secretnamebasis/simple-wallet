@@ -131,7 +131,7 @@ func loginOpenFile() {
 	file := dialog.NewFileOpen(
 		func(reader fyne.URIReadCloser, err error) {
 			if err != nil {
-				dialog.ShowError(err, program.window)
+				showError(err)
 				return
 			}
 			if reader == nil {
@@ -201,7 +201,7 @@ func loginFunction() {
 				program.window.SetContent(program.containers.home)
 
 				// show the error
-				dialog.ShowError(err, program.window)
+				showError(err)
 				return
 			}
 

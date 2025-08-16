@@ -49,12 +49,12 @@ func save() {
 		crypto.RandomScalarBNRed(),
 	)
 	if err != nil {
-		dialog.ShowError(err, program.window)
+		showError(err)
 		program.entries.wallet.SetText("")
 		program.entries.pass.SetText("")
 	} else {
 		if err := program.wallet.Save_Wallet(); err != nil {
-			dialog.ShowError(err, program.window)
+			showError(err)
 			program.entries.wallet.SetText("")
 			program.entries.pass.SetText("")
 			return
@@ -214,7 +214,7 @@ Please do not leave this page.
 		// ship the registration transaction over the network
 		if err := program.wallet.SendTransaction(reg_tx); err != nil {
 			// if an error, show it
-			dialog.ShowError(err, program.window)
+			showError(err)
 			return
 		} else {
 			// if successful, shout for joy!

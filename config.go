@@ -118,9 +118,8 @@ func maintain_connection() {
 				fyne.DoAndWait(func() {
 
 					// then notify the user
-					dialog.ShowError(
+					showError(
 						errors.New("auto connect is not working as expected, please set custom endpoint"),
-						program.window,
 					)
 					// update the label
 					program.labels.connection.SetText("🌐: 🔴")
@@ -182,7 +181,7 @@ func connections() {
 
 		// obviously...
 		if form_entry.Text == "" {
-			dialog.ShowError(errors.New("cannot be empty"), program.window)
+			showError(errors.New("cannot be empty"))
 			return
 		}
 
@@ -194,13 +193,13 @@ func connections() {
 
 		// test the connection point
 		if err := testConnection(endpoint); err != nil {
-			dialog.ShowError(err, program.window)
+			showError(err)
 			return
 		}
 
 		// attempt to connect
 		if err := walletapi.Connect(endpoint); err != nil {
-			dialog.ShowError(err, program.window)
+			showError(err)
 			return
 		} else {
 			// tell the user how cool they are
@@ -291,7 +290,7 @@ func rpc_server() {
 			// now we'll label this server with the application's Unique ID
 			program.rpc_server, err = rpcserver.RPCServer_Start(program.wallet, program.application.UniqueID())
 			if err != nil {
-				dialog.ShowError(err, program.window)
+				showError(err)
 				return
 			}
 
@@ -363,7 +362,7 @@ func pong_server() {
 
 		// check if the pong server is true before adding anything to the db
 		if !program.preferences.Bool("pong_server") {
-			dialog.ShowError(errors.New("pong server is off"), program.window)
+			showError(errors.New("pong server is off"))
 			return
 		}
 
@@ -380,7 +379,7 @@ func pong_server() {
 
 			// check the password
 			if !program.wallet.Check_Password(pass) {
-				dialog.ShowError(errors.New("wrong password"), program.window)
+				showError(errors.New("wrong password"))
 				return
 			}
 
@@ -494,7 +493,7 @@ func pong_server() {
 
 					// if there is an error show it
 					if err != nil {
-						dialog.ShowError(err, program.window)
+						showError(err)
 						continue
 					}
 
@@ -571,12 +570,12 @@ func pong_server() {
 					}
 					return nil
 				}); err != nil {
-					dialog.ShowError(err, program.window)
+					showError(err)
 					return
 				}
 
 				if have_already {
-					dialog.ShowError(errors.New("already in db"), program.window)
+					showError(errors.New("already in db"))
 					return
 				}
 
@@ -588,7 +587,7 @@ func pong_server() {
 
 				// if there is an error show it
 				if err != nil {
-					dialog.ShowError(err, program.window)
+					showError(err)
 					return
 				}
 
@@ -618,7 +617,7 @@ func pong_server() {
 				if value.Text != "" {
 					f, err := strconv.ParseFloat(value.Text, 64)
 					if err != nil {
-						dialog.ShowError(err, program.window)
+						showError(err)
 						return
 					}
 					val := uint64(f * atomic_units)
@@ -639,7 +638,7 @@ func pong_server() {
 				if supply.Text != "" {
 					in, err := strconv.Atoi(supply.Text)
 					if err != nil {
-						dialog.ShowError(err, program.window)
+						showError(err)
 						return
 					}
 					item.Supply = in
@@ -649,7 +648,7 @@ func pong_server() {
 				bytes, err := json.Marshal(item)
 				// show the error if any
 				if err != nil {
-					dialog.ShowError(err, program.window)
+					showError(err)
 					return
 				}
 
@@ -892,7 +891,7 @@ func pong_server() {
 								} else if entry.Payload_RPC.Has(rpc.RPC_VALUE_TRANSFER, rpc.DataUint64) {
 									transfer.Amount = entry.Payload_RPC.Value(rpc.RPC_VALUE_TRANSFER, rpc.DataUint64).(uint64)
 								} else {
-									dialog.ShowError(errors.New("unkown amount, please debug"), program.window)
+									showError(errors.New("unkown amount, please debug"))
 								}
 								if entry.Payload_RPC.Has(rpc.RPC_ASSET, rpc.DataHash) {
 									transfer.SCID = entry.Payload_RPC.Value(rpc.RPC_ASSET, rpc.DataHash).(crypto.Hash)
@@ -918,7 +917,7 @@ func pong_server() {
 
 								// if err, where ever the user is, notify them
 								if err != nil {
-									dialog.ShowError(err, program.window)
+									showError(err)
 									continue
 								}
 
@@ -975,7 +974,7 @@ func pong_server() {
 
 							// where ever the user is, notify them
 							if err != nil {
-								dialog.ShowError(err, program.window)
+								showError(err)
 							}
 
 							// if it isn't in queue, add it
@@ -1003,7 +1002,7 @@ func pong_server() {
 	// here is what we'll do when it is tapped
 	review.OnTapped = func() {
 		if !program.preferences.Bool("pong_server") {
-			dialog.ShowError(errors.New("pong server is off"), program.window)
+			showError(errors.New("pong server is off"))
 			return
 		}
 		var items []listing // we are going to need these
@@ -1160,7 +1159,7 @@ func pong_server() {
 			edit.Alignment = fyne.TextAlignCenter
 			edit.OnTapped = func() {
 				if !program.preferences.Bool("pong_server") {
-					dialog.ShowError(errors.New("pong server is off"), program.window)
+					showError(errors.New("pong server is off"))
 					return
 				}
 				notice := makeCenteredWrappedLabel("Edit address on watch")
@@ -1223,7 +1222,7 @@ func pong_server() {
 					if value.Text != "" {
 						f, err := strconv.ParseFloat(value.Text, 64)
 						if err != nil {
-							dialog.ShowError(err, program.window)
+							showError(err)
 							return
 						}
 						val := uint64(f * atomic_units)
@@ -1253,7 +1252,7 @@ func pong_server() {
 					if supply.Text != "" {
 						in, err := strconv.Atoi(supply.Text)
 						if err != nil {
-							dialog.ShowError(err, program.window)
+							showError(err)
 							return
 						}
 						item.Supply = in
@@ -1265,7 +1264,7 @@ func pong_server() {
 					bytes, err := json.Marshal(item)
 					// show the error if any
 					if err != nil {
-						dialog.ShowError(err, program.window)
+						showError(err)
 						return
 					}
 
@@ -1316,7 +1315,7 @@ func pong_server() {
 					program.entries.pass.SetText("")
 
 					if !program.wallet.Check_Password(pass) {
-						dialog.ShowError(errors.New("wrong password"), program.window)
+						showError(errors.New("wrong password"))
 						return
 					}
 
@@ -1330,7 +1329,7 @@ func pong_server() {
 						}
 						return nil
 					}); err != nil {
-						dialog.ShowError(err, program.window)
+						showError(err)
 						return
 					}
 

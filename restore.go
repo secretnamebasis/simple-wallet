@@ -83,14 +83,14 @@ func restoration() {
 
 		// if it screws up, please show an error
 		if err != nil {
-			dialog.ShowError(err, program.window)
+			showError(err)
 			return
 		}
 
 		// attempt to save the wallet
 		if err = program.wallet.Save_Wallet(); err != nil {
 			// if it screws up, please show an error
-			dialog.ShowError(err, program.window)
+			showError(err)
 			return
 		}
 
@@ -121,7 +121,7 @@ func restoration() {
 		// decode the string
 		snb, err := hex.DecodeString(s)
 		if len(s) >= 65 || err != nil {
-			dialog.ShowError(err, program.window)
+			showError(err)
 			return
 		}
 
@@ -133,13 +133,13 @@ func restoration() {
 		)
 		// show the error if there is one
 		if err != nil {
-			dialog.ShowError(err, program.window)
+			showError(err)
 			return
 		}
 		// save the wallet
 		if err := program.wallet.Save_Wallet(); err != nil {
 			// show the error if there is one
-			dialog.ShowError(err, program.window)
+			showError(err)
 			return
 		}
 		// give the user some feedback
@@ -162,7 +162,7 @@ func restoration() {
 		)
 		// if there is an error show it
 		if err != nil {
-			dialog.ShowError(err, program.window)
+			showError(err)
 			return
 		}
 
@@ -181,7 +181,7 @@ func restoration() {
 		// decode the string into bytes
 		snb, err := hex.DecodeString(s) // ;)
 		if len(s) >= 65 || err != nil {
-			dialog.ShowError(err, program.window)
+			showError(err)
 			return
 		}
 
@@ -192,14 +192,14 @@ func restoration() {
 		)
 		// show there error if there is one
 		if err != nil {
-			dialog.ShowError(err, program.window)
+			showError(err)
 			return
 		}
 
 		// if the bytes of the two secrets are not equal...
 		if !bytes.Equal(seed.Secret, program.wallet.Secret) {
 			// show the error
-			dialog.ShowError(errors.New("seed and secret are not the same"), program.window)
+			showError(errors.New("seed and secret are not the same"))
 			return
 		}
 		// dump the seed
@@ -207,7 +207,7 @@ func restoration() {
 
 		// save the wallet , or show an error
 		if err := program.wallet.Save_Wallet(); err != nil {
-			dialog.ShowError(err, program.window)
+			showError(err)
 			return
 		}
 
@@ -224,7 +224,7 @@ func restoration() {
 		// close the splash
 		restore_wallet.Dismiss()
 	} else {
-		dialog.ShowError(errors.New("can't restore from empty fields"), program.window)
+		showError(errors.New("can't restore from empty fields"))
 		return
 	}
 }
