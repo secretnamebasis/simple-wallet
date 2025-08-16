@@ -141,18 +141,13 @@ func registration() {
 		// it is usually less... like 7-14M
 		estimate := int64(21000000)
 
-		// we are going to set some expectations
-		msg := `
+		fyne.DoAndWait(func() { // update the label in the go routine
+			program.labels.counter = makeCenteredWrappedLabel(`
 Registration POW takes time 20min-2hrs...
 If on battery, plug your computer in.
 Please do not leave this page.
-` // now, they can leave the page... but they shouldn't.
-
-		// update the label in the go routine
-		fyne.DoAndWait(func() {
-			program.labels.counter.Alignment = fyne.TextAlignCenter
-			program.labels.counter.SetText(msg)
-		})
+			`) // now, they can leave the page...
+		}) // but they shouldn't.
 
 		// for each thread
 		for range desired_threads {
