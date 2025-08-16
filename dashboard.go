@@ -176,26 +176,13 @@ func assetsList() {
 		// here is the asset details
 		asset := program.caches.hashes[lii]
 
-		// we need to get our address for the balance check
-		addr := program.wallet.GetAddress().String()
-
-		// we'll use this shorthand for the top of the chain
-		top_block := int64(-1)
-
 		// now we'll check the balance of the asset against the address
-		bal, _, err := program.wallet.GetDecryptedBalanceAtTopoHeight(asset, top_block, addr)
-		if err != nil {
-			dialog.ShowError(err, program.window)
-			return
-		}
+		bal, _ := program.wallet.Get_Balance_scid(asset)
 
 		// here is the label for the list
 		label := truncator(asset.String()) + " " + rpc.FormatMoney(bal)
 		co.(*widget.Label).SetText(label)
 	}
-
-	// for good measure, we'll refresh the list
-	program.lists.asset_list.Refresh()
 
 	// when we select an item from the list, here's what we are going to do
 	program.lists.asset_list.OnSelected = func(id widget.ListItemID) {
@@ -275,6 +262,10 @@ func assetsList() {
 		transfers.Resize(program.size)
 		transfers.Show()
 	}
+
+	// for good measure, we'll refresh the list
+	program.lists.asset_list.Refresh()
+
 	// let's set the asset list into a new scroll
 	scroll := container.NewScroll(program.lists.asset_list)
 

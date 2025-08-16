@@ -258,17 +258,8 @@ func sendForm() {
 		// dynamically obtain the asset balance for each hash
 		asset_balance := func() string {
 
-			// using the wallet address
-			addr := program.wallet.GetAddress().String()
-
 			// obtain the balance of the hash
-			bal, _, err := program.wallet.GetDecryptedBalanceAtTopoHeight(hash, -1, addr)
-
-			// if we have an err, show it
-			if err != nil {
-				dialog.ShowError(err, program.window)
-				return ""
-			}
+			bal, _ := program.wallet.Get_Balance_scid(hash)
 
 			// return a formatted string of the balance
 			return rpc.FormatMoney(bal)
