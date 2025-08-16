@@ -74,9 +74,7 @@ func save() {
 			keys.Show()
 			new_account.Dismiss()
 			updateHeader(program.hyperlinks.home)
-			program.window.SetContent(program.containers.home)
-			program.entries.wallet.SetText("")
-			program.entries.pass.SetText("")
+			setContentAsHome()
 		}
 	}
 }
@@ -192,7 +190,6 @@ Please do not leave this page.
 							desired_threads, truncated, estimate, fails, wins,
 						)
 					}
-
 				}
 			}()
 		}
@@ -218,7 +215,7 @@ Please do not leave this page.
 			return
 		} else {
 			// if successful, shout for joy!
-			dialog.ShowInformation("Registration", "registration successful", program.window)
+			showInfo("Registration", "registration successful")
 
 			// update the display in the go routine
 			fyne.DoAndWait(func() {

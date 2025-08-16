@@ -102,5 +102,5 @@ func logout() {
 	updateHeader(program.hyperlinks.home)
 
 	// show home
-	program.window.SetContent(program.containers.home)
+	setContentAsHome()
 }

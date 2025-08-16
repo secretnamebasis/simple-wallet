@@ -81,7 +81,9 @@ func sendForm() {
 
 		// if they are asking for a replyback, notify the user
 		if addr.Arguments.Has(rpc.RPC_NEEDS_REPLYBACK_ADDRESS, rpc.DataUint64) {
-			dialog.ShowInformation("Notice", "This address is requesting a reply back address to be sent with the transaction", program.window)
+			title := "Notice"
+			msg := "This address is requesting a reply back address to be sent with the transaction"
+			showInfo(title, msg)
 			program.checks.replyback.SetChecked(true)
 			program.checks.replyback.Disable()
 		}
@@ -552,7 +554,7 @@ func conductTransfer() {
 					// when tapped, copy to clipboard
 					txid.OnTapped = func() {
 						program.application.Clipboard().SetContent(tx.GetHash().String())
-						dialog.ShowInformation("", "txid copied to clipboard", program.window)
+						showInfo("", "txid copied to clipboard")
 					}
 					fyne.DoAndWait(func() {
 						sync.Stop()

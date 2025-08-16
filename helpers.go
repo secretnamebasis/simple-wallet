@@ -335,7 +335,7 @@ func processTXQueues() {
 			}
 			msg := "refund has been sent for " + truncator(queue.Item.Address)
 			fyne.DoAndWait(func() {
-				dialog.ShowInformation("Pong Server", msg, program.window)
+				showInfo("Pong Server", msg)
 				program.entries.pongs.Refresh()
 			})
 			refunds = slices.Delete(refunds, i, i+1)
@@ -412,7 +412,7 @@ func processTXQueues() {
 				msg := "pong has been sent for " + truncator(queue.Item.Address)
 
 				fyne.DoAndWait(func() {
-					dialog.ShowInformation("Pong Server", msg, program.window)
+					showInfo("Pong Server", msg)
 					program.entries.pongs.Refresh()
 				})
 				pongs = slices.Delete(pongs, i, i+1)
@@ -459,6 +459,10 @@ func getSCCode(scid string) rpc.GetSC_Result {
 	return sc
 }
 
-func showError(e error) {
-	dialog.ShowError(e, program.window)
-}
+// simple way to show error
+func showError(e error) { dialog.ShowError(e, program.window) }
+
+func showInfo(t, m string) { dialog.ShowInformation(t, m, program.window) }
+
+// simple way to go home
+func setContentAsHome() { program.window.SetContent(program.containers.home) }

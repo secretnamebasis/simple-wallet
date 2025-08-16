@@ -57,7 +57,7 @@ func loggedIn() {
 	program.hyperlinks.address.SetText(truncator(address))
 	program.hyperlinks.address.OnTapped = func() {
 		program.application.Clipboard().SetContent(address)
-		dialog.ShowInformation("", "address copied to clipboard", program.window)
+		showInfo("", "address copied to clipboard")
 	}
 
 	// update preferences
@@ -124,7 +124,7 @@ func loggedIn() {
 	updateHeader(program.hyperlinks.home)
 
 	// set the stage
-	program.window.SetContent(program.containers.home)
+	setContentAsHome()
 }
 
 func loginOpenFile() {
@@ -198,7 +198,7 @@ func loginFunction() {
 
 				// go home
 				updateHeader(program.hyperlinks.home)
-				program.window.SetContent(program.containers.home)
+				setContentAsHome()
 
 				// show the error
 				showError(err)

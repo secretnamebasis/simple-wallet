@@ -203,7 +203,7 @@ func connections() {
 			return
 		} else {
 			// tell the user how cool they are
-			dialog.ShowInformation("Connection", "success", program.window)
+			showInfo("Connection", "success")
 		}
 		// now the current node is the entry
 		program.node.current = endpoint
@@ -666,7 +666,7 @@ func pong_server() {
 				msg := truncator(item.Address) + " has been added to db"
 
 				// show success
-				dialog.ShowInformation("Pong Server", msg, program.window)
+				showInfo("Pong Server", msg)
 			}
 
 			// let's walk them through it
@@ -869,7 +869,7 @@ func pong_server() {
 
 								// inform the user
 								msg := "exhausted supply for " + item.Name + ", sending refund"
-								dialog.ShowInformation("Pong Server", msg, program.window)
+								showInfo("Pong Server", msg)
 
 								// build out the args
 								transfer.Payload_RPC = rpc.Arguments{
@@ -1287,7 +1287,7 @@ func pong_server() {
 					msg := truncator(item.Address) + " has been updated in db"
 
 					// show success
-					dialog.ShowInformation("Pong Server", msg, program.window)
+					showInfo("Pong Server", msg)
 
 					list.Refresh()
 				}

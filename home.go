@@ -17,7 +17,9 @@ func home() *fyne.Container {
 			program.entries.wallet.SetText("")
 			program.entries.pass.SetText("")
 		}
-		program.window.SetContent(program.containers.home)
+
+		// set container
+		setContentAsHome()
 	}
 
 	// front and center

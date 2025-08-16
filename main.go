@@ -77,7 +77,7 @@ func run() {
 	initialize()
 
 	// let's set a simple home container
-	program.window.SetContent(program.containers.home)
+	setContentAsHome()
 
 	// let's simply show and run the program
 	program.window.ShowAndRun()

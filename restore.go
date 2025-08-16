@@ -143,7 +143,7 @@ func restoration() {
 			return
 		}
 		// give the user some feedback
-		dialog.ShowInformation("Restore Wallet", "successfully saved as wallet.db", program.window)
+		showInfo("Restore Wallet", "successfully saved as wallet.db")
 
 		// disable these fields
 		program.entries.seed.Disable()
@@ -212,7 +212,7 @@ func restoration() {
 		}
 
 		// tell the user they have succeeded
-		dialog.ShowInformation("Restore Wallet", "successfully saved as wallet.db", program.window)
+		showInfo("Restore Wallet", "successfully saved as wallet.db")
 
 		// disable these fields
 		program.entries.seed.Disable()

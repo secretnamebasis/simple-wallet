@@ -126,7 +126,7 @@ func filesign() {
 					if !isRegistered(program.wallet.GetAddress().String()) {
 						notice := "you have signed a file as an unregistered user"
 						// notify the user, but continue anyway
-						dialog.ShowInformation("NOTICE", notice, program.window)
+						showInfo("NOTICE", notice)
 					}
 
 					// make a filename
@@ -136,7 +136,7 @@ func filesign() {
 					os.WriteFile(save_path, data, default_file_permissions)
 
 					// notify the user
-					dialog.ShowInformation("Filesign", "File successfully signed", program.window)
+					showInfo("Filesign", "File successfully signed")
 
 				}
 				// display to main window
@@ -212,7 +212,7 @@ func filesign() {
 					if !isRegistered(sign.String()) {
 						notice := "an unregistered user has signed this data"
 						// notify the user, but continue
-						dialog.ShowInformation("NOTICE", notice, program.window)
+						showInfo("NOTICE", notice)
 					}
 
 					// now trim the .signed from the filename
@@ -618,6 +618,7 @@ func recipient_crypt() {
 				}
 			}, program.window)
 	}
+
 	// let's make sure that we validate the address we use
 	program.entries.recipient.Validator = addressValidator
 
@@ -1102,7 +1103,7 @@ func installer() {
 							program.application.Clipboard().SetContent(tx.GetHash().String())
 
 							// notify the user
-							dialog.ShowInformation("", "txid copied to clipboard", program.window)
+							showInfo("", "txid copied to clipboard")
 						}
 
 						// center it
@@ -1574,7 +1575,7 @@ func interaction() {
 						// make it copiable
 						txid.OnTapped = func() {
 							program.application.Clipboard().SetContent(tx.GetHash().String())
-							dialog.ShowInformation("", "txid copied to clipboard", program.window)
+							showInfo("", "txid copied to clipboard")
 						}
 
 						// make a nice big mesesage
@@ -1711,7 +1712,7 @@ func add_token() {
 					// give notice to the user
 					fyne.DoAndWait(func() {
 
-						dialog.ShowInformation("Token Add", notice, program.window)
+						showInfo("Token Add", notice)
 						sync.Dismiss()
 					})
 				}
@@ -1723,6 +1724,7 @@ func add_token() {
 	add.Resize(program.size)
 	add.Show()
 }
+
 func addressValidator(s string) (err error) {
 
 	// any changes to the string should immediately update the receiver string
