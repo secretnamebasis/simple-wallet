@@ -19,9 +19,6 @@ func send() *fyne.Container {
 
 	program.entries.recipient.SetPlaceHolder("dero1q...0g or hot-wallet")
 
-	// simply validate strings before sending
-	program.entries.recipient.Validator = sendValidator
-
 	// build out simple options for the send action
 	program.hyperlinks.send.OnTapped = sendForm
 
@@ -33,26 +30,38 @@ func send() *fyne.Container {
 	)
 }
 
-func sendValidator(s string) (err error) {
+func sendForm() {
 
-	// if empty...
-	if s == "" {
+	// obviously, we can't send to no one,
+	// especially not a non-validated no one
+	if program.entries.recipient.Text == "" {
+		showError(errors.New("cannot send to empty address"))
 		return
 	}
 
+	// get entry
+	send_recipient := program.entries.recipient.Text
+
+	// dump the entry text
+	program.entries.recipient.SetText("")
+
+	// let's validate on the send action
+
 	// if less than 4 char...
-	if len(s) < 4 {
-		return errors.New("cannot be less than 5 char")
+	if len(send_recipient) < 4 {
+		showError(errors.New("cannot be less than 5 char"))
+		return
 	}
+
 	// any changes to the string should immediately update the receiver string
-	program.receiver = ""
+	// program.receiver = ""
 
 	// first check to see if it is an address
-	addr, err := rpc.NewAddress(s)
+	addr, err := rpc.NewAddress(send_recipient)
 	// if it is not an address...
 	if err != nil {
 		// check to see if it is a name
-		a, err := program.wallet.NameToAddress(s)
+		a, err := program.wallet.NameToAddress(send_recipient)
 		if err != nil {
 			// she barks
 			// fmt.Println(err)
@@ -174,18 +183,6 @@ func sendValidator(s string) (err error) {
 	}
 
 	// should be validated
-	return nil
-}
-
-func sendForm() {
-
-	// obviously, we can't send to no one,
-	// especially not a non-validated no one
-	if program.entries.recipient.Text == "" ||
-		program.receiver == "" {
-		dialog.ShowError(errors.New("cannot send to empty address"), program.window)
-		return
-	}
 
 	// but, we also can't send if DERO is under 80 deri
 	// so we should create a reminder for when they try
