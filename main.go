@@ -139,6 +139,7 @@ func initialize() {
 	// let's hide this for a minute
 	program.hyperlinks.logout.Hide()
 
+	// here is a simple lockscreen
 	program.hyperlinks.lockscreen.OnTapped = func() {
 		content := container.NewVBox(
 			layout.NewSpacer(),
