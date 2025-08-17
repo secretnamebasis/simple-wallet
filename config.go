@@ -266,8 +266,7 @@ func rpc_server() {
 
 	// simple options to choose from
 	program.toggles.server.Options = []string{
-		"off",
-		"on",
+		"off", "on",
 	}
 
 	// when they toggle the options
@@ -364,12 +363,6 @@ func pong_server() {
 	add.Alignment = fyne.TextAlignCenter
 
 	add.OnTapped = func() {
-
-		// check if the pong server is true before adding anything to the db
-		if !program.preferences.Bool("pong_server") {
-			showError(errors.New("pong server is off"))
-			return
-		}
 
 		callback := func(b bool) {
 			// get the pass
@@ -1006,10 +999,7 @@ func pong_server() {
 
 	// here is what we'll do when it is tapped
 	review.OnTapped = func() {
-		if !program.preferences.Bool("pong_server") {
-			showError(errors.New("pong server is off"))
-			return
-		}
+
 		var items []listing // we are going to need these
 
 		// let get an updated list of ping addresses
