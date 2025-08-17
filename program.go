@@ -77,11 +77,15 @@ var program = components{
 		pong:       widget.NewLabel("🏓: 🔴"),
 		notice:     widget.NewLabel(""),
 		balance:    widget.NewLabel("balance"),
-		counter:    widget.NewLabel("counter"),
-		address:    widget.NewLabel("address: "),
-		seed:       widget.NewLabel("seed"),
-		secret:     widget.NewLabel("secret"),
-		public:     widget.NewLabel("public"),
+		counter: makeCenteredWrappedLabel(`
+Registration POW takes time 20min-2hrs...
+If on battery, plug your computer in.
+Please do not leave this page.
+			`),
+		address: widget.NewLabel("address: "),
+		seed:    widget.NewLabel("seed"),
+		secret:  widget.NewLabel("secret"),
+		public:  widget.NewLabel("public"),
 	},
 	entries: entries{
 		username:           widget.NewEntry(),
