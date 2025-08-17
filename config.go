@@ -65,12 +65,20 @@ func maintain_connection() {
 	ticker := time.NewTicker(time.Second)
 	for range ticker.C {
 		// now if the wallet isn't connected...
-		if !walletapi.Connected {
+		if !walletapi.Connected ||
+			!walletapi.IsDaemonOnline() ||
+			testConnection(program.node.current) != nil {
 
 			// update the label and show 0s
 			fyne.DoAndWait(func() {
 				program.labels.connection.SetText("🌐: 🟡")
 				program.labels.height.SetText("⬡: 0000000")
+				if program.buttons.register.Visible() {
+					program.buttons.register.Disable()
+				} else if program.activities.registration.Visible() {
+					program.activities.registration.Stop()
+					program.activities.registration.Hide()
+				}
 			})
 
 			var fastest int64 = 10000 // we assume 10 second
@@ -102,17 +110,10 @@ func maintain_connection() {
 			// now that the nodes have been tested, make the wallet endpoint the current node
 			walletapi.Daemon_Endpoint = program.node.current
 
-		} else { // now that the wallet is connected
-
-			// make sure this is green
-			fyne.DoAndWait(func() {
-				program.labels.connection.SetText("🌐: 🟢")
-			})
 		}
-
 		// then test the connection
+		// this is hella slow because it is a dial with no context...
 		if err := walletapi.Connect(walletapi.Daemon_Endpoint); err != nil {
-
 			//  if the number of tries is 1...
 			if retries == 1 {
 				fyne.DoAndWait(func() {
@@ -135,20 +136,24 @@ func maintain_connection() {
 			retries++
 		} else {
 			// now if they are able to connect...
+			fyne.DoAndWait(func() {
+				program.labels.connection.SetText("🌐: 🟢")
+				if !program.buttons.register.Visible() &&
+					!program.activities.registration.Visible() &&
+					!program.wallet.IsRegistered() {
+					program.buttons.register.Show()
+				}
+				program.buttons.register.Enable()
+			})
 
 			// retries is reset
 			retries = 0
 
 			// update the height and node label
 			fyne.DoAndWait(func() {
-				program.labels.connection.SetText("🌐: 🟢")
-
 				height := walletapi.Get_Daemon_Height()
 				if height > old_height {
 					old_height = height
-
-					// program.labels.height.TextStyle.Bold = true
-					// program.labels.height.Refresh()
 					program.labels.height.SetText(
 						"⬡: " + strconv.Itoa(int(walletapi.Get_Daemon_Height())),
 					)

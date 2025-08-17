@@ -133,9 +133,13 @@ func registration() {
 
 		// we are going to track wins and fails
 		var wins, fails uint64
+		var os_thread, app_thread int = 1, 1
+		// reserve 1 thread for os management
+		// reserve 1 thread for app management
 
-		// we are going to use the max number of threads
-		desired_threads := runtime.GOMAXPROCS(0)
+		// we are going to use almost all threads
+		max_threads := runtime.GOMAXPROCS(0)
+		desired_threads := max_threads - os_thread - app_thread
 
 		// we estimate that roughly 21M hashes have to be attempted,
 		// it is usually less... like 7-14M
@@ -151,7 +155,9 @@ func registration() {
 				for wins == 0 {
 
 					// if the wallet isn't present or is registered... stop
-					if program.wallet == nil || program.wallet.IsRegistered() {
+					if program.wallet == nil ||
+						program.wallet.IsRegistered() ||
+						!program.activities.registration.Visible() {
 						break
 					}
 
