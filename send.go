@@ -19,6 +19,21 @@ func send() *fyne.Container {
 
 	program.entries.recipient.SetPlaceHolder("dero1q...0g or hot-wallet")
 
+	// validate if they are requesting an address first
+	program.entries.recipient.Validator = func(s string) error {
+		addr, err := rpc.NewAddress(s)
+		if err != nil {
+			return err
+		}
+		if addr.Arguments.Has(rpc.RPC_NEEDS_REPLYBACK_ADDRESS, rpc.DataUint64) {
+			title := "Notice"
+			msg := "This address is requesting a reply back address to be sent with the transaction"
+			showInfo(title, msg)
+
+		}
+		return nil
+	}
+
 	// build out simple options for the send action
 	program.hyperlinks.send.OnTapped = sendForm
 
@@ -77,13 +92,10 @@ func sendForm() {
 		// the base of that address is what we'll use as the receiver
 		program.receiver = addr.BaseAddress().String()
 
-		// while we are here... le't process the address's arguments
+		// while we are here... let's process the address's arguments
 
 		// if they are asking for a replyback, notify the user
 		if addr.Arguments.Has(rpc.RPC_NEEDS_REPLYBACK_ADDRESS, rpc.DataUint64) {
-			title := "Notice"
-			msg := "This address is requesting a reply back address to be sent with the transaction"
-			showInfo(title, msg)
 			program.checks.replyback.SetChecked(true)
 			program.checks.replyback.Disable()
 		}
@@ -158,8 +170,9 @@ func sendForm() {
 			// lock the widget to prevent error
 			program.entries.amount.Disable()
 		}
-	} else if addr.String() != "" && // if the addr isn't empty
-		!addr.IsIntegratedAddress() { // now if it is not an integrated address
+	} else if addr.String() != "" && !addr.IsIntegratedAddress() {
+		// if the addr isn't empty
+		// now if it is not an integrated address
 
 		// set the receiver
 		program.receiver = addr.String()
@@ -339,7 +352,7 @@ func conductTransfer() {
 
 			// if they get the password wrong
 			// in case they cancel
-			if !passed || !b {
+			if !b {
 
 				// clear recipient on send action
 				program.entries.recipient.SetText("")
@@ -354,6 +367,7 @@ func conductTransfer() {
 			} else if !passed {
 				// show them that
 				showError(errors.New("wrong password"))
+				return
 			}
 
 			// if they get it right, then reset the password
