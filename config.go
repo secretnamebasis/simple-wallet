@@ -54,8 +54,8 @@ func maintain_connection() {
 
 			// update the label and show 0s
 			fyne.DoAndWait(func() {
-				program.labels.connection.SetText("🌐: 🟡")
-				program.labels.height.SetText("⬡: 0000000")
+				program.labels.connection.SetText("NODE: 🟡")
+				program.labels.height.SetText("BLOCK: 0000000")
 				if program.buttons.register.Visible() {
 					program.buttons.register.Disable()
 				} else if program.activities.registration.Visible() {
@@ -106,7 +106,7 @@ func maintain_connection() {
 						errors.New("auto connect is not working as expected, please set custom endpoint"),
 					)
 					// update the label
-					program.labels.connection.SetText("🌐: 🔴")
+					program.labels.connection.SetText("NODE: 🔴")
 				})
 
 				// and if we are logged in, update to offline mode
@@ -120,7 +120,7 @@ func maintain_connection() {
 		} else {
 			// now if they are able to connect...
 			fyne.DoAndWait(func() {
-				program.labels.connection.SetText("🌐: 🟢")
+				program.labels.connection.SetText("NODE: 🟢")
 				if !program.buttons.register.Visible() &&
 					!program.activities.registration.Visible() &&
 					!program.wallet.IsRegistered() {
@@ -138,7 +138,7 @@ func maintain_connection() {
 				if height > old_height {
 					old_height = height
 					program.labels.height.SetText(
-						"⬡: " + strconv.Itoa(int(walletapi.Get_Daemon_Height())),
+						"BLOCK: " + strconv.Itoa(int(walletapi.Get_Daemon_Height())),
 					)
 					program.labels.height.Refresh()
 				}
@@ -282,7 +282,7 @@ func rpc_server() {
 			}
 
 			// and change the label
-			program.labels.rpc_server.SetText("📡: 🟢")
+			program.labels.rpc_server.SetText("RPC: 🟢")
 
 		} else if s == "off" { // but if the rpc server toggle is off
 
@@ -306,7 +306,7 @@ func rpc_server() {
 					}
 
 					// the reset the label
-					program.labels.rpc_server.SetText("📡: 🔴")
+					program.labels.rpc_server.SetText("RPC: 🔴")
 				}
 			}
 		}

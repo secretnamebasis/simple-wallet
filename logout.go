@@ -29,7 +29,7 @@ func logout() {
 				program.rpc_server.RPCServer_Stop()
 
 				// make it noticable
-				program.labels.rpc_server.SetText("📡: 🔴")
+				program.labels.rpc_server.SetText("RPC: 🔴")
 
 				// dump the creds
 				program.entries.username.SetText("")
@@ -48,7 +48,7 @@ func logout() {
 			// dump it from memory
 			program.wallet = nil
 
-			program.labels.loggedin.SetText("💰: 🔴")
+			program.labels.loggedin.SetText("WALLET: 🔴")
 		}
 	}
 

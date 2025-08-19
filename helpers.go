@@ -63,7 +63,7 @@ func isLoggedIn() {
 		if err := program.wallet.Save_Wallet(); err != nil {
 			fyne.DoAndWait(func() {
 				program.preferences.SetBool("loggedIn", false)
-				program.labels.loggedin.SetText("💰: 🔴")
+				program.labels.loggedin.SetText("WALLET: 🔴")
 			})
 		}
 	}
@@ -77,7 +77,7 @@ func updateBalance() {
 		// check to see if we are logged-in first
 		if !program.preferences.Bool("loggedIn") {
 			fyne.DoAndWait(func() {
-				program.labels.loggedin.SetText("💰: 🔴")
+				program.labels.loggedin.SetText("WALLET: 🔴")
 			})
 		} else {
 
@@ -111,7 +111,7 @@ func updateBalance() {
 				// update
 				fyne.DoAndWait(func() {
 					// obviously, we are still logged in
-					program.labels.loggedin.SetText("💰: 🟢")
+					program.labels.loggedin.SetText("WALLET: 🟢")
 
 					// update it
 					program.labels.balance.SetText(

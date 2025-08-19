@@ -63,7 +63,7 @@ func loggedIn() {
 	// update preferences
 	program.preferences.SetBool("loggedIn", true)
 	// show logged in
-	program.labels.loggedin.SetText("💰: 🟢")
+	program.labels.loggedin.SetText("WALLET: 🟢")
 
 	// update balance every second
 	go updateBalance()
