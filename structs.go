@@ -1,22 +1,18 @@
 package main
 
 import (
-	"time"
-
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/deroproject/derohe/walletapi/rpcserver"
-	"go.etcd.io/bbolt"
 )
 
 // leveraging go's strong types is extremely helpful
 
 type (
 	components struct {
-		db          *bbolt.DB
 		wallet      *walletapi.Wallet_Disk
 		rpc_server  *rpcserver.RPCServer
 		node        nodes
@@ -63,7 +59,6 @@ type (
 
 	toggles struct {
 		server *widget.RadioGroup
-		pong   *widget.RadioGroup
 	}
 	containers struct {
 		topbar,
@@ -85,7 +80,6 @@ type (
 		// supplemental
 		lockscreen,
 		unlock,
-		pong_server,
 		rpc_server,
 		contract_installer,
 		contract_interactor,
@@ -129,7 +123,6 @@ type (
 		file,
 		pass,
 		seed,
-		pongs,
 		recipient,
 		amount,
 		dst,
@@ -143,7 +136,6 @@ type (
 		height,
 		connection,
 		rpc_server,
-		pong,
 		balance,
 		counter,
 		notice,
@@ -154,20 +146,3 @@ type (
 		public *widget.Label
 	}
 )
-
-type listing struct {
-	Name        string      // the name of the thing
-	Description string      // the stuff about the thing
-	Address     string      // the thing being watched
-	DST         uint64      // the destination
-	Replyback   string      // the comment being sent back
-	Token       crypto.Hash // the token used
-	Sendback    uint64      // the count of token used
-	Supply      int         // the count of times we can do this
-}
-type pong struct {
-	Time    time.Time
-	Txid    string
-	Status  string
-	Address string
-}

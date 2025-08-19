@@ -24,9 +24,6 @@ func topbar() *fyne.Container {
 			// lastly, we want to see if this server is on
 			program.labels.rpc_server,
 
-			// let's have a fun pong label
-			program.labels.pong,
-
 			// // make a simple way to lock the screen after login
 			program.hyperlinks.lockscreen,
 		),

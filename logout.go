@@ -42,11 +42,6 @@ func logout() {
 				program.rpc_server = nil
 			}
 
-			if program.db != nil && program.preferences.Bool("pong_server") {
-				program.db.Close()
-				program.toggles.pong.SetSelected("")
-			}
-
 			// close out the wallet
 			program.wallet.Close_Encrypted_Wallet()
 
@@ -88,7 +83,6 @@ func logout() {
 	program.hyperlinks.tools.Hide()
 	program.hyperlinks.rpc_server.Hide()
 	program.hyperlinks.lockscreen.Hide()
-	program.hyperlinks.pong_server.Hide()
 
 	// show labels
 	program.labels.notice.Show()

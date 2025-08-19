@@ -30,7 +30,6 @@ var program = components{
 	},
 	toggles: toggles{
 		server: widget.NewRadioGroup([]string{}, nil),
-		pong:   widget.NewRadioGroup([]string{}, nil),
 	},
 	checks: checks{
 		replyback: widget.NewCheck("replyback?", nil),
@@ -44,7 +43,6 @@ var program = components{
 		// supplemental
 		lockscreen:                widget.NewHyperlink("🔒", nil),
 		unlock:                    widget.NewHyperlink("unlock", nil),
-		pong_server:               widget.NewHyperlink("pong server", nil),
 		rpc_server:                widget.NewHyperlink("rpc server", nil),
 		contract_installer:        widget.NewHyperlink("contract installer", nil),
 		contract_interactor:       widget.NewHyperlink("contract interactor", nil),
@@ -74,7 +72,6 @@ var program = components{
 		connection: widget.NewLabel("🌐: 🔴"),
 		loggedin:   widget.NewLabel("💰: 🔴"),
 		rpc_server: widget.NewLabel("📡: 🔴"),
-		pong:       widget.NewLabel("🏓: 🔴"),
 		notice:     widget.NewLabel(""),
 		balance:    widget.NewLabel("balance"),
 		counter: makeCenteredWrappedLabel(`
@@ -94,7 +91,6 @@ Please do not leave this page.
 		wallet:             widget.NewEntry(),
 		file:               widget.NewEntry(),
 		pass:               widget.NewEntry(),
-		pongs:              widget.NewEntry(),
 		seed:               widget.NewEntry(),
 		secret:             widget.NewEntry(),
 		public:             widget.NewEntry(),

@@ -29,7 +29,6 @@ Initial feedback suggested a contract installer/interactor would be useful, and 
     - "🌐" Node Connection 
     - "💰" Wallet Logged-In 
     - "📡" RPC Server 
-    - "🏓" Pong Server 
     - "🔒" Lockscreen Button
 - Create/Login/Restore Wallets
 - Transaction History
@@ -37,6 +36,7 @@ Initial feedback suggested a contract installer/interactor would be useful, and 
 - Seed Phrase & Public/Secret Key Reveal
 - Sending with Options, including Token Assets
 - Public Node Auto-Connect
+- RPC Server
 - Dero Tools:
     - File Signing/Verification
     - Integrated Address Generation
@@ -46,11 +46,6 @@ Initial feedback suggested a contract installer/interactor would be useful, and 
     - Balance Rescan
     - Contract Installer
     - Contract Interactor
-- RPC Server:
-    - Credentials
-- Pong Server:
-    - Add Integrated Addresses
-    - Review/Edit/Delete Integrated Addresses
 
 # Installation
 
@@ -109,9 +104,7 @@ There are many additional Dero-related technologies that could be integrated int
 | ![./assets/5.10-contract-interactor_functions.png](./assets/5.10-contract-interactor_functions.png)  | ![./assets/5.1-filesign-fileverify.png](./assets/5.1-filesign-fileverify.png)  | ![./assets/5.2-integrated-address.png](./assets/5.2-integrated-address.png)  |
 | ![./assets/5.3-self-crypt.png](./assets/5.3-self-crypt.png)  | ![./assets/5.4-recipient-crypt.png](./assets/5.4-recipient-crypt.png)  | ![./assets/5.5-token_add.png](./assets/5.5-token_add.png)  |
 | ![./assets/5.6-token_add_success.png](./assets/5.6-token_add_success.png)  | ![./assets/5.7-balance-rescan.png](./assets/5.7-balance-rescan.png)  | ![./assets/5.8-contract-installer.png](./assets/5.8-contract-installer.png)  |
-| ![./assets/5.9-contract-interactor.png](./assets/5.9-contract-interactor.png)  | ![./assets/5-tools.png](./assets/5-tools.png)  | ![./assets/6.1-rpc-server.png](./assets/6.1-rpc-server.png)  |
-| ![./assets/6.2-pong-server.png](./assets/6.2-pong-server.png)  | ![./assets/6.3-pong-server_add.png](./assets/6.3-pong-server_add.png)  | ![./assets/6.4-pong-server_list.png](./assets/6.4-pong-server_list.png)  |
-| ![./assets/6.5-pong-server_detail.png](./assets/6.5-pong-server_detail.png)  | ![./assets/6.6-pong-server_update.png](./assets/6.6-pong-server_update.png)  | ![./assets/6-configs.png](./assets/6-configs.png)  |
+| ![./assets/5.9-contract-interactor.png](./assets/5.9-contract-interactor.png)  | ![./assets/5-tools.png](./assets/5-tools.png)  | ![./assets/6.1-rpc-server.png](./assets/6.1-rpc-server.png) | ![./assets/6-configs.png](./assets/6-configs.png)  |
 | ![./assets/7-lockscreen.png](./assets/7-lockscreen.png)  |   |   |
 
 # Contributing

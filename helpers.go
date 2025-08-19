@@ -2,12 +2,10 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"slices"
 	"strings"
 	"time"
 
@@ -16,10 +14,8 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
-	"github.com/deroproject/derohe/transaction"
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/ybbus/jsonrpc"
-	"go.etcd.io/bbolt"
 )
 
 // simple way to truncate hashes/address
@@ -179,47 +175,6 @@ func isRegistered(s string) bool {
 	return true
 }
 
-func startDB() {
-
-	// let's make a simple pong db
-
-	// let's name our db
-	address := program.wallet.GetAddress().String()
-	last_eight_chars := len(address) - 8
-	truncated := address[last_eight_chars:]
-	db_name := truncated + ".bbolt.db"
-
-	var err error
-
-	// and let's open it
-	program.db, err = bbolt.Open(db_name, 0600, nil)
-	if err != nil {
-		showError(err)
-		return
-	}
-
-	// also, let's have a bucket for pings we are watching for
-	err = program.db.Update(func(tx *bbolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte("PING"))
-		return err
-	})
-	if err != nil {
-		showError(err)
-		return
-	}
-
-	// now let'd make sure there is a pong bucket for outgoing
-	err = program.db.Update(func(tx *bbolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte("PONG"))
-		return err
-	})
-
-	if err != nil {
-		showError(err)
-		return
-	}
-}
-
 // simple way to test http connection to derod
 func testConnection(s string) error {
 
@@ -272,153 +227,6 @@ func testConnection(s string) error {
 		return errors.New("body does not contain DERO")
 	}
 	return nil
-}
-
-type queue struct {
-	Item  listing
-	Entry rpc.Entry
-	Tx    *transaction.Transaction
-}
-
-var sends []*transaction.Transaction
-
-var pongs []queue
-var refunds []queue
-
-func processTXQueues() {
-	for program.preferences.Bool("pong_server") {
-		old_height := walletapi.Get_Daemon_Height()
-		for i, queue := range refunds {
-			height := walletapi.Get_Daemon_Height()
-			if height == old_height {
-				continue
-			}
-			old_height = walletapi.Get_Daemon_Height()
-			// fmt.Println(queue)
-			if !program.preferences.Bool("pong_server") {
-				return
-			}
-			// attempt
-			if err := program.wallet.SendTransaction(queue.Tx); err != nil {
-				fyne.DoAndWait(func() {
-					// where ever the user is, notify them
-					showError(err)
-				})
-				// dump the refund and try again in the higher loop
-				refunds = slices.Delete(refunds, i, i+1)
-				continue
-			}
-
-			// we actually need to refund it... so we record that?
-			if err := program.db.Update(func(tx *bbolt.Tx) error {
-				b := tx.Bucket([]byte("PONG"))
-
-				// make a new entry
-				pong, err := json.Marshal(pong{
-					Time:    time.Now(),
-					Txid:    queue.Entry.TXID,
-					Status:  "refunded",
-					Address: queue.Item.Address,
-				})
-
-				// if this screws up...
-				if err != nil {
-					return err
-				}
-
-				// put to db
-				return b.Put([]byte(queue.Entry.TXID), pong)
-			}); err != nil {
-				// where ever the user is, notify them
-				showError(err)
-				continue
-			}
-			msg := "refund has been sent for " + truncator(queue.Item.Address)
-			fyne.DoAndWait(func() {
-				showInfo("Pong Server", msg)
-				program.entries.pongs.Refresh()
-			})
-			refunds = slices.Delete(refunds, i, i+1)
-		}
-
-		for i, queue := range pongs {
-
-			// fmt.Println(queue)
-			if !program.preferences.Bool("pong_server") {
-				return
-			}
-
-			if err := program.wallet.SendTransaction(queue.Tx); err != nil {
-
-				fyne.DoAndWait(func() {
-
-					// where ever the user is, notify them
-					showError(err)
-				})
-
-				// dump the tx and try again at a higher loop
-				pongs = slices.Delete(pongs, i, i+1)
-				continue
-			} else { // update the db
-				if err := program.db.Update(func(tx *bbolt.Tx) error {
-
-					b := tx.Bucket([]byte("PING"))
-
-					new_supply := queue.Item.Supply - 1
-					// hopefully we don't experience failure
-					updated_supply := listing{
-						Name:        queue.Item.Name,
-						Description: queue.Item.Description,
-						Address:     queue.Item.Address,
-						DST:         queue.Item.DST,
-						Replyback:   queue.Item.Replyback,
-						Token:       queue.Item.Token,
-						Sendback:    queue.Item.Sendback,
-						Supply:      new_supply,
-					}
-
-					bytes, err := json.Marshal(updated_supply)
-					if err != nil {
-						return err
-					}
-
-					if err := b.Put([]byte(queue.Item.Address), bytes); err != nil {
-						return err
-					}
-
-					// go to the pong bucket
-					b = tx.Bucket([]byte("PONG"))
-
-					// make a new entry
-					pong, err := json.Marshal(pong{
-						Time:    time.Now(),
-						Txid:    queue.Entry.TXID,
-						Status:  "done",
-						Address: queue.Item.Address,
-					})
-
-					// if this screws up...
-					if err != nil {
-						return err
-					}
-
-					// put to db
-					return b.Put([]byte(queue.Entry.TXID), pong)
-				}); err != nil {
-					// if there is a problem, let us know
-					showError(err)
-					continue
-				}
-				msg := "pong has been sent for " + truncator(queue.Item.Address)
-
-				fyne.DoAndWait(func() {
-					showInfo("Pong Server", msg)
-					program.entries.pongs.Refresh()
-				})
-				pongs = slices.Delete(pongs, i, i+1)
-			}
-		}
-	}
 }
 
 func makeCenteredWrappedLabel(s string) *widget.Label {

@@ -74,9 +74,6 @@ func loggedIn() {
 	// save wallet every second
 	go isLoggedIn()
 
-	// // let's make a simple way to have a pong db
-	go startDB()
-
 	// check for registration
 	if program.wallet.Wallet_Memory.IsRegistered() {
 		// show them where to send
@@ -110,7 +107,6 @@ func loggedIn() {
 	program.hyperlinks.tools.Show()
 	program.hyperlinks.logout.Show()
 	program.hyperlinks.send.Show()
-	program.hyperlinks.pong_server.Show()
 	program.hyperlinks.lockscreen.Show()
 
 	// show containers
