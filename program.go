@@ -3,6 +3,7 @@ package main
 import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
+	"fyne.io/fyne/v2/theme"
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/deroproject/derohe/walletapi/rpcserver"
 )
@@ -35,6 +36,15 @@ var program = components{
 	checks: checks{
 		replyback: widget.NewCheck("replyback?", nil),
 	},
+
+	buttons: buttons{
+    	open_file: widget.NewButtonWithIcon(
+			"open File to sign", 
+			theme.FolderOpenIcon(), // or any other icon
+			func() { // call your function
+    	}),
+	},
+
 	hyperlinks: hyperlinks{
 		// header
 		home:    widget.NewHyperlink("home", nil),
@@ -54,7 +64,7 @@ var program = components{
 		restore:                   widget.NewHyperlink("restore wallet", nil),
 		connections:               widget.NewHyperlink("connections", nil),
 		open_wallet:               widget.NewHyperlink("open wallet", nil),
-		open_file:                 widget.NewHyperlink("open file", nil),
+		
 		address:                   widget.NewHyperlink("address", nil),
 		send:                      widget.NewHyperlink("send", nil),
 		login:                     widget.NewHyperlink("login", nil),
@@ -116,8 +126,8 @@ Please do not leave this page.
 
 	name: "simple wallet",
 	size: fyne.NewSize(
-		425,
-		425,
+		900,
+		600,
 	),
 }
 

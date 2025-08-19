@@ -95,7 +95,6 @@ type (
 		restore,
 		connections,
 		create,
-		open_file,
 		open_wallet,
 		address,
 		send,
@@ -111,6 +110,7 @@ type (
 	}
 	buttons struct {
 		register *widget.Button
+		open_file *widget.Button
 	}
 	selections struct {
 		assets *widget.Select
