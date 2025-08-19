@@ -72,8 +72,8 @@ func filesign() {
 
 	// let's make it noticeable that you can select the file
 	program.entries.file.SetPlaceHolder("/path/to/file.txt")
-	program.hyperlinks.open_file.SetText("open file to sign")
-	program.hyperlinks.open_file.OnTapped = func() {
+	
+	program.buttons.open_file.OnTapped = func() {
 		program.dialogues.open.Resize(program.size)
 		program.dialogues.open.Show()
 	}
@@ -250,7 +250,7 @@ func filesign() {
 	// let's load all the widgets into a container inside a dialog
 	file := dialog.NewCustom("filesign/fileverify", dismiss,
 		container.NewVBox(
-			program.hyperlinks.open_file,
+			program.buttons.open_file,
 			program.entries.file,
 			container.NewAdaptiveGrid(2,
 				container.NewCenter(sign),
@@ -265,8 +265,8 @@ func filesign() {
 func self_crypt() {
 	// another round of make sure this works XD
 	program.entries.file.SetPlaceHolder("/path/to/file.txt")
-	program.hyperlinks.open_file.SetText("open file to encrypt/decrypt")
-	program.hyperlinks.open_file.OnTapped = func() {
+	program.buttons.open_file.SetText("open file to encrypt/decrypt")
+	program.buttons.open_file.OnTapped = func() {
 		program.dialogues.open.Resize(program.size)
 		program.dialogues.open.Show()
 	}
@@ -425,7 +425,7 @@ func self_crypt() {
 	// load the widgets and dialog
 	self_crypt := dialog.NewCustom("Self Encrypt/Decrypt", dismiss,
 		container.NewVBox(
-			program.hyperlinks.open_file,
+			program.buttons.open_file,
 			program.entries.file,
 			container.NewAdaptiveGrid(2,
 				container.NewCenter(encrypt),
@@ -441,8 +441,8 @@ func self_crypt() {
 func recipient_crypt() {
 	// let's make a simple way to open a file
 	program.entries.file.SetPlaceHolder("/path/to/file.txt")
-	program.hyperlinks.open_file.SetText("open file to encrypt/decrypt")
-	program.hyperlinks.open_file.OnTapped = func() {
+	program.buttons.open_file.SetText("open file to encrypt/decrypt")
+	program.buttons.open_file.OnTapped = func() {
 		program.dialogues.open.Resize(program.size)
 		program.dialogues.open.Show()
 	}
@@ -632,7 +632,7 @@ func recipient_crypt() {
 	// let's make a nice spash screen
 	recipient_crypt := dialog.NewCustom("Recipient Encrypt/Decrypt", dismiss,
 		container.NewVBox(
-			program.hyperlinks.open_file,
+			program.buttons.open_file,
 			program.entries.file,
 			program.entries.recipient,
 			container.NewAdaptiveGrid(2,
@@ -929,7 +929,7 @@ func balance_rescan() {
 func installer() {
 
 	// for fun, let's make easy to find a file
-	program.hyperlinks.open_file.OnTapped = func() {
+	program.buttons.open_file.OnTapped = func() {
 		program.dialogues.open.Resize(program.size)
 		program.dialogues.open.Show()
 	}
@@ -970,7 +970,7 @@ func installer() {
 
 	// let's make a splash screen
 	splash := container.NewVBox(
-		program.hyperlinks.open_file,
+		program.buttons.open_file,
 		program.entries.file,
 		isAnonymous,
 		notice,
