@@ -46,7 +46,7 @@ var program = components{
 		configs: widget.NewHyperlink("configs", nil),
 		logout:  widget.NewHyperlink("logout", nil),
 		// supplemental
-		lockscreen:                widget.NewHyperlink("🔒", nil),
+		lockscreen:                widget.NewHyperlink("lockscreen", nil),
 		unlock:                    widget.NewHyperlink("unlock", nil),
 		rpc_server:                widget.NewHyperlink("rpc server", nil),
 		contract_installer:        widget.NewHyperlink("contract installer", nil),
@@ -72,10 +72,10 @@ var program = components{
 		recipient_encrypt_decrypt: widget.NewHyperlink("recipient crypt", nil),
 	},
 	labels: labels{
-		height:     widget.NewLabel("⬡: 0000000"),
-		connection: widget.NewLabel("🌐: 🔴"),
-		loggedin:   widget.NewLabel("💰: 🔴"),
-		rpc_server: widget.NewLabel("📡: 🔴"),
+		height:     widget.NewLabel("BLOCK: 0000000"),
+		connection: widget.NewLabel("NODE: 🔴"),
+		loggedin:   widget.NewLabel("WALLET: 🔴"),
+		rpc_server: widget.NewLabel("RPC: 🔴"),
 		notice:     widget.NewLabel(""),
 		balance:    widget.NewLabel("balance"),
 		counter: makeCenteredWrappedLabel(`
