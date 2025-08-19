@@ -95,8 +95,12 @@ func updateBalance() {
 				return
 			}
 
-			// get the balance
+			if program.wallet == nil {
+				return
+			}
+
 			bal, _ := program.wallet.Get_Balance()
+			// get the balance
 
 			// check it against previous
 			if previous_bal != bal {
