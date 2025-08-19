@@ -72,7 +72,7 @@ func filesign() {
 
 	// let's make it noticeable that you can select the file
 	program.entries.file.SetPlaceHolder("/path/to/file.txt")
-	
+	program.buttons.open_file.SetText("Open file to sign/verify")
 	program.buttons.open_file.OnTapped = func() {
 		program.dialogues.open.Resize(program.size)
 		program.dialogues.open.Show()
