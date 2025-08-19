@@ -18,7 +18,12 @@ func (customTheme) Font(style fyne.TextStyle) fyne.Resource {
 
 func (customTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
 	if name == theme.ColorNameDisabled { // so that you can see disabled text
-		return color.White
+		return color.CMYK{
+			C: 100,
+			M: 0,
+			Y: 100,
+			K: 61,
+		}
 	}
 	return theme.DefaultTheme().Color(name, variant)
 }
