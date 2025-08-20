@@ -31,10 +31,20 @@ USE ONLY FOR TESTING & EVALUATION PURPOSES
 	return container.New(layout.NewVBoxLayout(),
 		program.containers.topbar,
 		layout.NewSpacer(),
-		program.containers.dashboard,
 		program.labels.notice,
+		container.NewAdaptiveGrid(2,
+			container.NewCenter(
+				container.NewHBox(
+					program.labels.address,
+					program.hyperlinks.address,
+				)),
+			container.NewCenter(
+				program.labels.balance,
+			),
+		),
 		program.containers.send,
 		program.containers.register,
+		program.containers.dashboard,
 		layout.NewSpacer(),
 		program.containers.bottombar,
 	)
