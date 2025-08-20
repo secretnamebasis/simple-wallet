@@ -127,9 +127,11 @@ func maintain_connection() {
 				if !program.buttons.register.Visible() &&
 					!program.activities.registration.Visible() &&
 					!program.wallet.IsRegistered() {
+
+					// and let them register
 					program.buttons.register.Show()
+					program.buttons.register.Enable()
 				}
-				program.buttons.register.Enable()
 			})
 
 			// retries is reset
