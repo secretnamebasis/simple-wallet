@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -123,23 +124,36 @@ func txList() {
 		// body the entries
 		entries[id].ProcessPayload()
 
-		// let's make a simple entry widget
-		entry := widget.NewEntry()
+		e := entries[id]
 
-		// make it like a text box
-		entry.MultiLine = true
+		lines := strings.SplitSeq(e.String(), "\n")
+		tx_details := container.NewVBox()
 
-		// make sure the words wrap
-		entry.Wrapping = fyne.TextWrapWord
-
-		// set the test to be the stringified version of the entry
-		entry.SetText(entries[id].String())
-
-		// lock it down so they can't change it
-		entry.Disable()
+		for line := range lines {
+			if line == "" {
+				continue
+			}
+			fmt.Println(line)
+			pair := strings.Split(line, ": ")
+			key := pair[0]
+			key_entry := widget.NewLabel(key)
+			value := pair[1]
+			var v string = value
+			if key != "Time" {
+				if len(value) > 16 {
+					v = truncator(value)
+				}
+			}
+			value_hyperlink := widget.NewHyperlink(v, nil)
+			value_hyperlink.OnTapped = func() {
+				program.application.Clipboard().SetContent(value)
+				showInfo("", value+" copied to clipboard")
+			}
+			tx_details.Add(container.NewAdaptiveGrid(2, key_entry, value_hyperlink))
+		}
 
 		// make a simple details scrolling container
-		details := container.NewScroll(entry)
+		details := container.NewScroll(tx_details)
 
 		// load up dialog with the container
 		txs := dialog.NewCustom(
@@ -183,6 +197,8 @@ func assetsList() {
 	// when we select an item from the list, here's what we are going to do
 	program.lists.asset_list.OnSelected = func(id widget.ListItemID) {
 
+		program.lists.asset_list.Unselect(id)
+
 		// here is the asset hash
 		asset := program.caches.hashes[id]
 
@@ -225,27 +241,50 @@ func assetsList() {
 
 		// so now, when we select an entry on the list we'll show the transfer details
 		entries_list.OnSelected = func(id widget.ListItemID) {
+			entries_list.Unselect(id)
 
-			// we'll use a new entry
-			e := widget.NewEntry()
-
-			// make it like a block of text
-			e.MultiLine = true
-
-			// wrap them words
-			e.Wrapping = fyne.TextWrapWord
-
-			// lock it down
-			e.Disable()
-
-			// we'll set this transfer to the entry
-			e.SetText("SCID: " + scid + "\n" + entries[id].String())
+			lines := strings.SplitSeq(entries[id].String(), "\n")
+			asset_details := container.NewVBox()
+			scid_label := widget.NewLabel("SCID")
+			scid_hyperlink := widget.NewHyperlink(truncator(scid), nil)
+			scid_hyperlink.OnTapped = func() {
+				program.application.Clipboard().SetContent(scid)
+				showInfo("", scid+" copied to clipboard")
+			}
+			asset_details.Add(container.NewAdaptiveGrid(2, scid_label, scid_hyperlink))
+			for line := range lines {
+				if line == "" {
+					continue
+				}
+				pair := strings.Split(line, ": ")
+				key := pair[0]
+				value := pair[1]
+				var v string = value
+				if key != "Time" {
+					if len(value) > 16 {
+						v = truncator(value)
+					}
+				}
+				value_hyperlink := widget.NewHyperlink(v, nil)
+				value_hyperlink.OnTapped = func() {
+					program.application.Clipboard().SetContent(value)
+					showInfo("", value+" copied to clipboard")
+				}
+				asset_details.Add(
+					container.NewAdaptiveGrid(2,
+						widget.NewLabel(key),
+						value_hyperlink,
+					),
+				)
+			}
 
 			// we'll truncate the scid for the title
 			title := truncator(scid)
 
+			details := container.NewScroll(asset_details)
+
 			// now set it, resize it and show it
-			entry := dialog.NewCustom(title, dismiss, e, program.window)
+			entry := dialog.NewCustom(title, dismiss, details, program.window)
 			entry.Resize(program.size)
 			entry.Show()
 		}
@@ -253,8 +292,17 @@ func assetsList() {
 		// we'll use the truncated scid as the header for the transfers
 		title := truncator(scid) + "\ntransfer history"
 
+		scid_hyperlink := widget.NewHyperlink(scid, nil)
+		scid_hyperlink.OnTapped = func() {
+			program.application.Clipboard().SetContent(scid)
+			showInfo("", scid+" copied to clipboard")
+		}
+
+		content := container.NewAdaptiveGrid(1,
+			container.NewCenter(scid_hyperlink), entries_list)
+
 		// set the entries in the dialog, resize and show
-		transfers := dialog.NewCustom(title, dismiss, entries_list, program.window)
+		transfers := dialog.NewCustom(title, dismiss, content, program.window)
 		transfers.Resize(program.size)
 		transfers.Show()
 	}
