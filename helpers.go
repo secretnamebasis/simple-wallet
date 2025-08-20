@@ -72,6 +72,7 @@ func isLoggedIn() {
 // this loop gets the wallet's balance and updates the label
 func updateBalance() {
 	var previous_bal uint64
+	var bal uint64
 	ticker := time.NewTicker(time.Second)
 	for range ticker.C {
 		// check to see if we are logged-in first
@@ -80,12 +81,11 @@ func updateBalance() {
 				program.labels.loggedin.SetText("WALLET: 🔴")
 			})
 		} else {
-
-			if strings.Contains(program.labels.balance.Text, "balance") {
+			if bal == 0 {
 				fyne.DoAndWait(func() {
 					// update it
 					program.labels.balance.SetText(
-						fmt.Sprintf("DERO: %s", "syncing"))
+						fmt.Sprintf("BALANCE: %s", "syncing"))
 				})
 			}
 
@@ -99,7 +99,7 @@ func updateBalance() {
 				return
 			}
 
-			bal, _ := program.wallet.Get_Balance()
+			bal, _ = program.wallet.Get_Balance()
 			// get the balance
 
 			// check it against previous
@@ -115,9 +115,8 @@ func updateBalance() {
 
 					// update it
 					program.labels.balance.SetText(
-						fmt.Sprintf("DERO: %s", rpc.FormatMoney(bal)))
+						fmt.Sprintf("BALANCE: %s", rpc.FormatMoney(bal)))
 
-					program.labels.balance.Refresh()
 				})
 			}
 		}
