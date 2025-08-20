@@ -29,7 +29,7 @@ Initial feedback suggested a contract installer/interactor would be useful, and 
     - "NODE" Node Connection 
     - "WALLET" Wallet Logged-In 
     - "RPC" RPC Server 
-    - "lockscreen" Lockscreen Button
+- "🔒" Lockscreen Button
 - Create/Login/Restore Wallets
 - Transaction History
 - Asset Collections with Histories
