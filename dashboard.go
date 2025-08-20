@@ -13,24 +13,20 @@ import (
 
 func dashboard() *fyne.Container {
 	// simple way to find your keys
-	program.hyperlinks.keys.OnTapped = keys
+	program.buttons.keys.OnTapped = keys
 
 	// simple way to find all dero transfers
-	program.hyperlinks.transactions.OnTapped = txList
+	program.buttons.transactions.OnTapped = txList
 
 	// simple way to review assets and their transfer histories :)
-	program.hyperlinks.assets.OnTapped = assetsList
+	program.buttons.assets.OnTapped = assetsList
 
 	// we'll return all this stuff into the home as a dashboard
 	return container.NewVBox(
-		container.NewCenter(container.NewHBox(
-			container.NewCenter(program.hyperlinks.address),
-			container.NewCenter(program.labels.balance),
-		)),
 		container.NewAdaptiveGrid(3,
-			container.NewCenter(program.hyperlinks.transactions),
-			container.NewCenter(program.hyperlinks.assets),
-			container.NewCenter(program.hyperlinks.keys),
+			container.NewVBox(program.buttons.transactions),
+			container.NewVBox(program.buttons.assets),
+			container.NewVBox(program.buttons.keys),
 		),
 	)
 }

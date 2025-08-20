@@ -92,6 +92,12 @@ func initialize() {
 	// now let's fill in the top too
 	program.containers.topbar = topbar()
 
+	// let's have an easy way to see address and balances
+	// but let's hide them for a moment
+	program.labels.address.Hide()
+	program.hyperlinks.address.Hide()
+	program.labels.balance.Hide()
+
 	// let's make a simple dashboard
 	program.containers.dashboard = dashboard()
 	// and let's hide it for the moment
@@ -174,7 +180,7 @@ func initialize() {
 		lockscreen.Show()
 
 	}
-
+	// and let's hide these for a moment
 	program.hyperlinks.lockscreen.Hide()
 
 	// captain's orders

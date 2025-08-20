@@ -8,7 +8,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
@@ -17,7 +17,7 @@ import (
 
 func send() *fyne.Container {
 
-	program.entries.recipient.SetPlaceHolder("dero1q...0g or hot-wallet")
+	program.entries.recipient.SetPlaceHolder("receiver address: dero...")
 
 	// validate if they are requesting an address first
 	program.entries.recipient.Validator = func(s string) error {
@@ -35,13 +35,12 @@ func send() *fyne.Container {
 	}
 
 	// build out simple options for the send action
-	program.hyperlinks.send.OnTapped = sendForm
+	program.buttons.send.SetIcon(theme.MailSendIcon())
+	program.buttons.send.OnTapped = sendForm
 
-	program.hyperlinks.send.Alignment = fyne.TextAlignCenter
-
-	return container.New(layout.NewVBoxLayout(),
+	return container.NewVBox(
 		program.entries.recipient,
-		program.hyperlinks.send,
+		program.buttons.send,
 	)
 }
 

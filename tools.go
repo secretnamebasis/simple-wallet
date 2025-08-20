@@ -33,25 +33,25 @@ func tools() *fyne.Container {
 	}
 
 	// let's set the functions for each of these links
-	program.hyperlinks.filesign.OnTapped = filesign
-	program.hyperlinks.self_encrypt_decrypt.OnTapped = self_crypt
-	program.hyperlinks.recipient_encrypt_decrypt.OnTapped = recipient_crypt
-	program.hyperlinks.integrated.OnTapped = integrated_address_generator
-	program.hyperlinks.balance_rescan.OnTapped = balance_rescan
-	program.hyperlinks.contract_installer.OnTapped = installer
-	program.hyperlinks.contract_interactor.OnTapped = interaction
-	program.hyperlinks.token_add.OnTapped = add_token
+	program.buttons.filesign.OnTapped = filesign
+	program.buttons.self_encrypt_decrypt.OnTapped = self_crypt
+	program.buttons.recipient_encrypt_decrypt.OnTapped = recipient_crypt
+	program.buttons.integrated.OnTapped = integrated_address_generator
+	program.buttons.balance_rescan.OnTapped = balance_rescan
+	program.buttons.contract_installer.OnTapped = installer
+	program.buttons.contract_interactor.OnTapped = interaction
+	program.buttons.token_add.OnTapped = add_token
 
 	// and then set them in a container called toolbox
 	program.containers.toolbox = container.NewAdaptiveGrid(2,
-		container.NewCenter(program.hyperlinks.filesign),
-		container.NewCenter(program.hyperlinks.integrated),
-		container.NewCenter(program.hyperlinks.self_encrypt_decrypt),
-		container.NewCenter(program.hyperlinks.recipient_encrypt_decrypt),
-		container.NewCenter(program.hyperlinks.token_add),
-		container.NewCenter(program.hyperlinks.balance_rescan),
-		container.NewCenter(program.hyperlinks.contract_installer),
-		container.NewCenter(program.hyperlinks.contract_interactor),
+		container.NewVBox(program.buttons.filesign),
+		container.NewVBox(program.buttons.integrated),
+		container.NewVBox(program.buttons.self_encrypt_decrypt),
+		container.NewVBox(program.buttons.recipient_encrypt_decrypt),
+		container.NewVBox(program.buttons.token_add),
+		container.NewVBox(program.buttons.balance_rescan),
+		container.NewVBox(program.buttons.contract_installer),
+		container.NewVBox(program.buttons.contract_interactor),
 	)
 
 	// and now, let's hide them
@@ -933,6 +933,8 @@ func installer() {
 		program.dialogues.open.Resize(program.size)
 		program.dialogues.open.Show()
 	}
+
+	program.buttons.open_file.SetText("Open file to install")
 
 	// let's validate that file, shall we?
 	program.entries.file.Validator = func(s string) error {

@@ -21,18 +21,21 @@ func configs() *fyne.Container {
 	// here's what happens when we click on configs
 	program.hyperlinks.configs.OnTapped = func() {
 		updateHeader(program.hyperlinks.configs)
-		program.hyperlinks.connections.OnTapped = connections
+		program.buttons.connections.OnTapped = connections
 		program.window.SetContent(program.containers.configs)
 	}
 
 	// let's make a simple way to manage the rpc server
-	program.hyperlinks.rpc_server.OnTapped = rpc_server
+	program.buttons.rpc_server.OnTapped = rpc_server
+
+	// let's start off by hiding it
+	program.buttons.rpc_server.Hide()
 
 	return container.New(layout.NewVBoxLayout(),
 		program.containers.topbar,
 		layout.NewSpacer(),
-		container.NewCenter(program.hyperlinks.connections),
-		container.NewCenter(program.hyperlinks.rpc_server),
+		container.NewVBox(program.buttons.connections),
+		container.NewVBox(program.buttons.rpc_server),
 		layout.NewSpacer(),
 		program.containers.bottombar,
 	)
