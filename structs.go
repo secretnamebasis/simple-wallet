@@ -80,38 +80,38 @@ type (
 		// supplemental
 		lockscreen,
 		unlock,
-		rpc_server,
-		contract_installer,
-		contract_interactor,
 		generate,
-		assets,
-		token_add,
 		restore,
-		connections,
 		create,
-		open_file,
 		open_wallet,
 		address,
-		send,
-		save,
-		keys,
+		save *widget.Hyperlink
+	}
+	buttons struct {
+		register,
+		open_file,
 		transactions,
-		balance_rescan,
-		integrated,
+		assets,
+		keys,
+		send,
+		connections,
+		rpc_server,
 		filesign,
 		fileverify,
 		self_encrypt_decrypt,
-		recipient_encrypt_decrypt *widget.Hyperlink
-	}
-	buttons struct {
-		register *widget.Button
+		recipient_encrypt_decrypt,
+		token_add,
+		balance_rescan,
+		integrated,
+		contract_installer,
+		contract_interactor *widget.Button
 	}
 	selections struct {
 		assets *widget.Select
 	}
 	lists struct {
-		transactions *widget.List
-		asset_list   *widget.List
+		transactions,
+		asset_list *widget.List
 	}
 	activities struct {
 		registration *widget.Activity

@@ -18,6 +18,9 @@ func bottombar() *fyne.Container {
 			program.hyperlinks.configs,
 			// here is a simple login/logout pattern
 			program.hyperlinks.login, program.hyperlinks.logout,
+
+			// // make a simple way to lock the screen after login
+			program.hyperlinks.lockscreen,
 		),
 	)
 }

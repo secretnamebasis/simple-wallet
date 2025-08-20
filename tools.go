@@ -33,25 +33,25 @@ func tools() *fyne.Container {
 	}
 
 	// let's set the functions for each of these links
-	program.hyperlinks.filesign.OnTapped = filesign
-	program.hyperlinks.self_encrypt_decrypt.OnTapped = self_crypt
-	program.hyperlinks.recipient_encrypt_decrypt.OnTapped = recipient_crypt
-	program.hyperlinks.integrated.OnTapped = integrated_address_generator
-	program.hyperlinks.balance_rescan.OnTapped = balance_rescan
-	program.hyperlinks.contract_installer.OnTapped = installer
-	program.hyperlinks.contract_interactor.OnTapped = interaction
-	program.hyperlinks.token_add.OnTapped = add_token
+	program.buttons.filesign.OnTapped = filesign
+	program.buttons.self_encrypt_decrypt.OnTapped = self_crypt
+	program.buttons.recipient_encrypt_decrypt.OnTapped = recipient_crypt
+	program.buttons.integrated.OnTapped = integrated_address_generator
+	program.buttons.balance_rescan.OnTapped = balance_rescan
+	program.buttons.contract_installer.OnTapped = installer
+	program.buttons.contract_interactor.OnTapped = interaction
+	program.buttons.token_add.OnTapped = add_token
 
 	// and then set them in a container called toolbox
 	program.containers.toolbox = container.NewAdaptiveGrid(2,
-		container.NewCenter(program.hyperlinks.filesign),
-		container.NewCenter(program.hyperlinks.integrated),
-		container.NewCenter(program.hyperlinks.self_encrypt_decrypt),
-		container.NewCenter(program.hyperlinks.recipient_encrypt_decrypt),
-		container.NewCenter(program.hyperlinks.token_add),
-		container.NewCenter(program.hyperlinks.balance_rescan),
-		container.NewCenter(program.hyperlinks.contract_installer),
-		container.NewCenter(program.hyperlinks.contract_interactor),
+		container.NewVBox(program.buttons.filesign),
+		container.NewVBox(program.buttons.integrated),
+		container.NewVBox(program.buttons.self_encrypt_decrypt),
+		container.NewVBox(program.buttons.recipient_encrypt_decrypt),
+		container.NewVBox(program.buttons.token_add),
+		container.NewVBox(program.buttons.balance_rescan),
+		container.NewVBox(program.buttons.contract_installer),
+		container.NewVBox(program.buttons.contract_interactor),
 	)
 
 	// and now, let's hide them
@@ -72,8 +72,8 @@ func filesign() {
 
 	// let's make it noticeable that you can select the file
 	program.entries.file.SetPlaceHolder("/path/to/file.txt")
-	program.hyperlinks.open_file.SetText("open file to sign")
-	program.hyperlinks.open_file.OnTapped = func() {
+	program.buttons.open_file.SetText("Open file to sign/verify")
+	program.buttons.open_file.OnTapped = func() {
 		program.dialogues.open.Resize(program.size)
 		program.dialogues.open.Show()
 	}
@@ -250,7 +250,7 @@ func filesign() {
 	// let's load all the widgets into a container inside a dialog
 	file := dialog.NewCustom("filesign/fileverify", dismiss,
 		container.NewVBox(
-			program.hyperlinks.open_file,
+			program.buttons.open_file,
 			program.entries.file,
 			container.NewAdaptiveGrid(2,
 				container.NewCenter(sign),
@@ -265,8 +265,8 @@ func filesign() {
 func self_crypt() {
 	// another round of make sure this works XD
 	program.entries.file.SetPlaceHolder("/path/to/file.txt")
-	program.hyperlinks.open_file.SetText("open file to encrypt/decrypt")
-	program.hyperlinks.open_file.OnTapped = func() {
+	program.buttons.open_file.SetText("open file to encrypt/decrypt")
+	program.buttons.open_file.OnTapped = func() {
 		program.dialogues.open.Resize(program.size)
 		program.dialogues.open.Show()
 	}
@@ -425,7 +425,7 @@ func self_crypt() {
 	// load the widgets and dialog
 	self_crypt := dialog.NewCustom("Self Encrypt/Decrypt", dismiss,
 		container.NewVBox(
-			program.hyperlinks.open_file,
+			program.buttons.open_file,
 			program.entries.file,
 			container.NewAdaptiveGrid(2,
 				container.NewCenter(encrypt),
@@ -441,8 +441,8 @@ func self_crypt() {
 func recipient_crypt() {
 	// let's make a simple way to open a file
 	program.entries.file.SetPlaceHolder("/path/to/file.txt")
-	program.hyperlinks.open_file.SetText("open file to encrypt/decrypt")
-	program.hyperlinks.open_file.OnTapped = func() {
+	program.buttons.open_file.SetText("open file to encrypt/decrypt")
+	program.buttons.open_file.OnTapped = func() {
 		program.dialogues.open.Resize(program.size)
 		program.dialogues.open.Show()
 	}
@@ -632,7 +632,7 @@ func recipient_crypt() {
 	// let's make a nice spash screen
 	recipient_crypt := dialog.NewCustom("Recipient Encrypt/Decrypt", dismiss,
 		container.NewVBox(
-			program.hyperlinks.open_file,
+			program.buttons.open_file,
 			program.entries.file,
 			program.entries.recipient,
 			container.NewAdaptiveGrid(2,
@@ -929,10 +929,12 @@ func balance_rescan() {
 func installer() {
 
 	// for fun, let's make easy to find a file
-	program.hyperlinks.open_file.OnTapped = func() {
+	program.buttons.open_file.OnTapped = func() {
 		program.dialogues.open.Resize(program.size)
 		program.dialogues.open.Show()
 	}
+
+	program.buttons.open_file.SetText("Open file to install")
 
 	// let's validate that file, shall we?
 	program.entries.file.Validator = func(s string) error {
@@ -970,7 +972,7 @@ func installer() {
 
 	// let's make a splash screen
 	splash := container.NewVBox(
-		program.hyperlinks.open_file,
+		program.buttons.open_file,
 		program.entries.file,
 		isAnonymous,
 		notice,

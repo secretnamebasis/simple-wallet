@@ -25,11 +25,11 @@ Initial feedback suggested a contract installer/interactor would be useful, and 
 
 # Features
 - Easy to read topbar: 
-    - "⬡" Block Beight 
-    - "🌐" Node Connection 
-    - "💰" Wallet Logged-In 
-    - "📡" RPC Server 
-    - "🔒" Lockscreen Button
+    - "BLOCK" Block Beight 
+    - "NODE" Node Connection 
+    - "WALLET" Wallet Logged-In 
+    - "RPC" RPC Server 
+    - "lockscreen" Lockscreen Button
 - Create/Login/Restore Wallets
 - Transaction History
 - Asset Collections with Histories

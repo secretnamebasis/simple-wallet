@@ -29,7 +29,7 @@ func logout() {
 				program.rpc_server.RPCServer_Stop()
 
 				// make it noticable
-				program.labels.rpc_server.SetText("📡: 🔴")
+				program.labels.rpc_server.SetText("RPC: 🔴")
 
 				// dump the creds
 				program.entries.username.SetText("")
@@ -48,7 +48,7 @@ func logout() {
 			// dump it from memory
 			program.wallet = nil
 
-			program.labels.loggedin.SetText("💰: 🔴")
+			program.labels.loggedin.SetText("WALLET: 🔴")
 		}
 	}
 
@@ -79,10 +79,17 @@ func logout() {
 
 	// hide hyperlinks
 	program.hyperlinks.logout.Hide()
-	program.hyperlinks.assets.Hide()
 	program.hyperlinks.tools.Hide()
-	program.hyperlinks.rpc_server.Hide()
 	program.hyperlinks.lockscreen.Hide()
+	program.hyperlinks.address.Hide()
+
+	// hide labels
+	program.labels.address.Hide()
+	program.labels.balance.Hide()
+
+	// hide buttons
+	program.buttons.rpc_server.Hide()
+	program.buttons.assets.Hide()
 
 	// show labels
 	program.labels.notice.Show()

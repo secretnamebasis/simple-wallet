@@ -12,6 +12,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
 	"github.com/deroproject/derohe/walletapi"
 )
 
@@ -91,6 +92,12 @@ func initialize() {
 	// now let's fill in the top too
 	program.containers.topbar = topbar()
 
+	// let's have an easy way to see address and balances
+	// but let's hide them for a moment
+	program.labels.address.Hide()
+	program.hyperlinks.address.Hide()
+	program.labels.balance.Hide()
+
 	// let's make a simple dashboard
 	program.containers.dashboard = dashboard()
 	// and let's hide it for the moment
@@ -121,6 +128,11 @@ func initialize() {
 
 	// let's make an simple way to open files
 	program.dialogues.open = openExplorer()
+
+	// set open file button within app to prevent error:
+	// 'Fyne error:  Attempt to access current Fyne app when none is started'
+	program.buttons.open_file = widget.NewButtonWithIcon(
+		"", theme.FolderOpenIcon(), func() {})
 
 	// as a precaution, let's make sure that
 	// these text fields are treated like passwords
@@ -168,7 +180,7 @@ func initialize() {
 		lockscreen.Show()
 
 	}
-
+	// and let's hide these for a moment
 	program.hyperlinks.lockscreen.Hide()
 
 	// captain's orders

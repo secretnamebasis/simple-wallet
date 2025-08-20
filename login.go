@@ -63,7 +63,7 @@ func loggedIn() {
 	// update preferences
 	program.preferences.SetBool("loggedIn", true)
 	// show logged in
-	program.labels.loggedin.SetText("💰: 🟢")
+	program.labels.loggedin.SetText("WALLET: 🟢")
 
 	// update balance every second
 	go updateBalance()
@@ -80,13 +80,13 @@ func loggedIn() {
 		program.containers.send.Show()
 
 		// review assets
-		program.hyperlinks.assets.Show()
+		program.buttons.assets.Show()
 
 		// they don't need to register
 		program.containers.register.Hide()
 	} else {
+		program.buttons.assets.Hide()
 		program.containers.register.Show()
-		program.hyperlinks.assets.Hide()
 		program.containers.send.Hide()
 	}
 
@@ -102,12 +102,19 @@ func loggedIn() {
 	program.hyperlinks.login.Hide()
 	program.labels.notice.Hide()
 
+	// show labels
+	program.labels.address.Show()
+	program.labels.balance.Show()
+
 	// show links
-	program.hyperlinks.rpc_server.Show()
 	program.hyperlinks.tools.Show()
 	program.hyperlinks.logout.Show()
-	program.hyperlinks.send.Show()
 	program.hyperlinks.lockscreen.Show()
+	program.hyperlinks.address.Show()
+
+	// show buttons
+	program.buttons.rpc_server.Show()
+	program.buttons.send.Show()
 
 	// show containers
 	program.containers.toolbox.Show()
@@ -115,6 +122,7 @@ func loggedIn() {
 
 	// nice to be in a refreshed home
 	program.containers.home.Refresh()
+	program.containers.topbar.Refresh()
 
 	// update the header to be home
 	updateHeader(program.hyperlinks.home)

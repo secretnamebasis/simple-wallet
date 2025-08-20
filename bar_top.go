@@ -23,9 +23,6 @@ func topbar() *fyne.Container {
 
 			// lastly, we want to see if this server is on
 			program.labels.rpc_server,
-
-			// // make a simple way to lock the screen after login
-			program.hyperlinks.lockscreen,
 		),
 	)
 }
