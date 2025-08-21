@@ -20,7 +20,7 @@ func (t *twoThirds) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 	objects[0].Resize(fyne.NewSize(left, size.Height))
 	objects[0].Move(fyne.NewPos(0, 0))
 
-	// we are goign to use just a tiny bit of padding
+	// we are going to use just a tiny bit of padding
 	padding := float32(2.0)
 
 	// let's resize and reposition the left object
