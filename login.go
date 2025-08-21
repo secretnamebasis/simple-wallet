@@ -174,8 +174,10 @@ func loginFunction() {
 	// this will be our simple login container
 	login_screen := container.NewVBox(
 		layout.NewSpacer(),
-		container.NewCenter(program.hyperlinks.open_wallet),
-		program.entries.wallet,
+		container.New(&twoThirds{},
+			program.entries.wallet,
+			program.buttons.open_wallet,
+		),
 		program.entries.pass,
 		container.NewAdaptiveGrid(2,
 			container.NewCenter(program.hyperlinks.create),

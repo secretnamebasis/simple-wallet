@@ -250,12 +250,17 @@ func filesign() {
 	// let's load all the widgets into a container inside a dialog
 	file := dialog.NewCustom("filesign/fileverify", dismiss,
 		container.NewVBox(
-			program.buttons.open_file,
-			program.entries.file,
+			layout.NewSpacer(),
+			container.New(&twoThirds{},
+				program.entries.file,
+				program.buttons.open_file,
+			),
 			container.NewAdaptiveGrid(2,
 				container.NewCenter(sign),
 				container.NewCenter(verify),
-			), label,
+			),
+			label,
+			layout.NewSpacer(),
 		), program.window)
 
 	//resize and show
@@ -425,12 +430,18 @@ func self_crypt() {
 	// load the widgets and dialog
 	self_crypt := dialog.NewCustom("Self Encrypt/Decrypt", dismiss,
 		container.NewVBox(
-			program.buttons.open_file,
-			program.entries.file,
+			layout.NewSpacer(),
+			container.New(&twoThirds{},
+				program.entries.file,
+				program.buttons.open_file,
+			),
 			container.NewAdaptiveGrid(2,
 				container.NewCenter(encrypt),
 				container.NewCenter(decrypt),
-			), label),
+			),
+			label,
+			layout.NewSpacer(),
+		),
 		// load it in the main window
 		program.window)
 
@@ -632,13 +643,18 @@ func recipient_crypt() {
 	// let's make a nice spash screen
 	recipient_crypt := dialog.NewCustom("Recipient Encrypt/Decrypt", dismiss,
 		container.NewVBox(
-			program.buttons.open_file,
-			program.entries.file,
-			program.entries.recipient,
+			layout.NewSpacer(),
+			container.New(&twoThirds{},
+				program.entries.file,
+				program.buttons.open_file,
+			),
+			program.entries.counterparty,
 			container.NewAdaptiveGrid(2,
 				container.NewCenter(encrypt),
 				container.NewCenter(decrypt),
-			), label,
+			),
+			label,
+			layout.NewSpacer(),
 		), program.window)
 
 	// resize it and show it
@@ -972,10 +988,14 @@ func installer() {
 
 	// let's make a splash screen
 	splash := container.NewVBox(
-		program.buttons.open_file,
-		program.entries.file,
+		layout.NewSpacer(),
+		container.New(&twoThirds{},
+			program.entries.file,
+			program.buttons.open_file,
+		),
 		isAnonymous,
 		notice,
+		layout.NewSpacer(),
 	)
 
 	// let's walk throught install
