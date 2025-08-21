@@ -83,12 +83,12 @@ type (
 		generate,
 		restore,
 		create,
-		open_wallet,
 		address,
 		save *widget.Hyperlink
 	}
 	buttons struct {
 		register,
+		open_wallet,
 		open_file,
 		transactions,
 		assets,
@@ -123,6 +123,7 @@ type (
 		file,
 		pass,
 		seed,
+		counterparty,
 		recipient,
 		amount,
 		dst,

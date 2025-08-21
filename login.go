@@ -164,8 +164,8 @@ func loginFunction() {
 	program.entries.pass.SetPlaceHolder("w41137-p@55w0rd")
 
 	// if they don't know where it is they can find it graphically
-	program.hyperlinks.open_wallet.SetText("find wallet in explorer")
-	program.hyperlinks.open_wallet.OnTapped = loginOpenFile
+	program.buttons.open_wallet.SetText("find wallet in explorer")
+	program.buttons.open_wallet.OnTapped = loginOpenFile
 
 	// 	let's make a simple way to create a new wallet in case they don't have one
 	program.hyperlinks.create.SetText("create new wallet")
@@ -174,8 +174,10 @@ func loginFunction() {
 	// this will be our simple login container
 	login_screen := container.NewVBox(
 		layout.NewSpacer(),
-		container.NewCenter(program.hyperlinks.open_wallet),
-		program.entries.wallet,
+		container.New(&twoThirds{},
+			program.entries.wallet,
+			program.buttons.open_wallet,
+		),
 		program.entries.pass,
 		container.NewAdaptiveGrid(2,
 			container.NewCenter(program.hyperlinks.create),

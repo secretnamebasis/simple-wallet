@@ -38,7 +38,7 @@ func send() *fyne.Container {
 	program.buttons.send.SetIcon(theme.MailSendIcon())
 	program.buttons.send.OnTapped = sendForm
 
-	return container.NewVBox(
+	return container.New(&twoThirds{},
 		program.entries.recipient,
 		program.buttons.send,
 	)

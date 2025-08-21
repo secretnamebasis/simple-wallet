@@ -250,12 +250,17 @@ func filesign() {
 	// let's load all the widgets into a container inside a dialog
 	file := dialog.NewCustom("filesign/fileverify", dismiss,
 		container.NewVBox(
-			program.buttons.open_file,
-			program.entries.file,
+			layout.NewSpacer(),
+			container.New(&twoThirds{},
+				program.entries.file,
+				program.buttons.open_file,
+			),
 			container.NewAdaptiveGrid(2,
 				container.NewCenter(sign),
 				container.NewCenter(verify),
-			), label,
+			),
+			label,
+			layout.NewSpacer(),
 		), program.window)
 
 	//resize and show
@@ -425,12 +430,18 @@ func self_crypt() {
 	// load the widgets and dialog
 	self_crypt := dialog.NewCustom("Self Encrypt/Decrypt", dismiss,
 		container.NewVBox(
-			program.buttons.open_file,
-			program.entries.file,
+			layout.NewSpacer(),
+			container.New(&twoThirds{},
+				program.entries.file,
+				program.buttons.open_file,
+			),
 			container.NewAdaptiveGrid(2,
 				container.NewCenter(encrypt),
 				container.NewCenter(decrypt),
-			), label),
+			),
+			label,
+			layout.NewSpacer(),
+		),
 		// load it in the main window
 		program.window)
 
@@ -441,6 +452,7 @@ func self_crypt() {
 func recipient_crypt() {
 	// let's make a simple way to open a file
 	program.entries.file.SetPlaceHolder("/path/to/file.txt")
+	program.entries.counterparty.SetPlaceHolder("counterparty address: dero...")
 	program.buttons.open_file.SetText("open file to encrypt/decrypt")
 	program.buttons.open_file.OnTapped = func() {
 		program.dialogues.open.Resize(program.size)
@@ -458,7 +470,7 @@ func recipient_crypt() {
 					return
 				}
 				// let's validate the address real quick
-				if err := program.entries.recipient.Validate(); err != nil {
+				if err := program.entries.counterparty.Validate(); err != nil {
 					showError(err)
 					return
 				}
@@ -472,7 +484,7 @@ func recipient_crypt() {
 				// check the password
 				if !program.wallet.Check_Password(pass) {
 					showError(errors.New("wrong password"))
-					program.entries.recipient.SetText("")
+					program.entries.counterparty.SetText("")
 					program.entries.file.SetText("")
 				} else {
 
@@ -486,7 +498,7 @@ func recipient_crypt() {
 					file, err := os.ReadFile(filename)
 					if err != nil {
 						showError(err)
-						program.entries.recipient.SetText("")
+						program.entries.counterparty.SetText("")
 						return
 					}
 
@@ -495,7 +507,7 @@ func recipient_crypt() {
 					if err != nil {
 						// show the user the error
 						showError(err)
-						program.entries.recipient.SetText("")
+						program.entries.counterparty.SetText("")
 						return
 					}
 
@@ -545,7 +557,7 @@ func recipient_crypt() {
 					return
 				}
 				// let's validate the address real quick
-				if err := program.entries.recipient.Validate(); err != nil {
+				if err := program.entries.counterparty.Validate(); err != nil {
 					showError(err)
 					return
 				}
@@ -620,7 +632,7 @@ func recipient_crypt() {
 	}
 
 	// let's make sure that we validate the address we use
-	program.entries.recipient.Validator = addressValidator
+	program.entries.counterparty.Validator = addressValidator
 
 	// let's also make a notice
 	notice := "Asymetrically encrypt/decrypt files. "
@@ -632,13 +644,18 @@ func recipient_crypt() {
 	// let's make a nice spash screen
 	recipient_crypt := dialog.NewCustom("Recipient Encrypt/Decrypt", dismiss,
 		container.NewVBox(
-			program.buttons.open_file,
-			program.entries.file,
-			program.entries.recipient,
+			layout.NewSpacer(),
+			container.New(&twoThirds{},
+				program.entries.file,
+				program.buttons.open_file,
+			),
+			program.entries.counterparty,
 			container.NewAdaptiveGrid(2,
 				container.NewCenter(encrypt),
 				container.NewCenter(decrypt),
-			), label,
+			),
+			label,
+			layout.NewSpacer(),
 		), program.window)
 
 	// resize it and show it
@@ -972,10 +989,14 @@ func installer() {
 
 	// let's make a splash screen
 	splash := container.NewVBox(
-		program.buttons.open_file,
-		program.entries.file,
+		layout.NewSpacer(),
+		container.New(&twoThirds{},
+			program.entries.file,
+			program.buttons.open_file,
+		),
 		isAnonymous,
 		notice,
+		layout.NewSpacer(),
 	)
 
 	// let's walk throught install
