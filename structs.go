@@ -123,6 +123,7 @@ type (
 		file,
 		pass,
 		seed,
+		counterparty,
 		recipient,
 		amount,
 		dst,

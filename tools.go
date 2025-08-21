@@ -452,6 +452,7 @@ func self_crypt() {
 func recipient_crypt() {
 	// let's make a simple way to open a file
 	program.entries.file.SetPlaceHolder("/path/to/file.txt")
+	program.entries.counterparty.SetPlaceHolder("counterparty address: dero...")
 	program.buttons.open_file.SetText("open file to encrypt/decrypt")
 	program.buttons.open_file.OnTapped = func() {
 		program.dialogues.open.Resize(program.size)
@@ -469,7 +470,7 @@ func recipient_crypt() {
 					return
 				}
 				// let's validate the address real quick
-				if err := program.entries.recipient.Validate(); err != nil {
+				if err := program.entries.counterparty.Validate(); err != nil {
 					showError(err)
 					return
 				}
@@ -483,7 +484,7 @@ func recipient_crypt() {
 				// check the password
 				if !program.wallet.Check_Password(pass) {
 					showError(errors.New("wrong password"))
-					program.entries.recipient.SetText("")
+					program.entries.counterparty.SetText("")
 					program.entries.file.SetText("")
 				} else {
 
@@ -497,7 +498,7 @@ func recipient_crypt() {
 					file, err := os.ReadFile(filename)
 					if err != nil {
 						showError(err)
-						program.entries.recipient.SetText("")
+						program.entries.counterparty.SetText("")
 						return
 					}
 
@@ -506,7 +507,7 @@ func recipient_crypt() {
 					if err != nil {
 						// show the user the error
 						showError(err)
-						program.entries.recipient.SetText("")
+						program.entries.counterparty.SetText("")
 						return
 					}
 
@@ -556,7 +557,7 @@ func recipient_crypt() {
 					return
 				}
 				// let's validate the address real quick
-				if err := program.entries.recipient.Validate(); err != nil {
+				if err := program.entries.counterparty.Validate(); err != nil {
 					showError(err)
 					return
 				}
@@ -631,7 +632,7 @@ func recipient_crypt() {
 	}
 
 	// let's make sure that we validate the address we use
-	program.entries.recipient.Validator = addressValidator
+	program.entries.counterparty.Validator = addressValidator
 
 	// let's also make a notice
 	notice := "Asymetrically encrypt/decrypt files. "

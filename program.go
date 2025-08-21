@@ -98,6 +98,7 @@ Please do not leave this page.
 		seed:               widget.NewEntry(),
 		secret:             widget.NewEntry(),
 		public:             widget.NewEntry(),
+		counterparty:       widget.NewEntry(),
 		recipient:          widget.NewEntry(),
 		amount:             widget.NewEntry(),
 		dst:                widget.NewEntry(),
