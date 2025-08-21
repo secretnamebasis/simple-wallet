@@ -37,6 +37,7 @@ var program = components{
 
 	buttons: buttons{
 		open_file:                 widget.NewButton("", nil),
+		open_wallet:               widget.NewButton("open wallet", nil),
 		send:                      widget.NewButton("SEND", nil),
 		assets:                    widget.NewButton("ASSETS", nil),
 		keys:                      widget.NewButton("KEYS", nil),
@@ -61,15 +62,14 @@ var program = components{
 		configs: widget.NewHyperlink("configs", nil),
 		logout:  widget.NewHyperlink("logout", nil),
 		// supplemental
-		lockscreen:  widget.NewHyperlink(" 🔒", nil),
-		unlock:      widget.NewHyperlink("unlock", nil),
-		create:      widget.NewHyperlink("create", nil),
-		generate:    widget.NewHyperlink("generate", nil),
-		restore:     widget.NewHyperlink("restore wallet", nil),
-		open_wallet: widget.NewHyperlink("open wallet", nil),
-		address:     widget.NewHyperlink("address", nil),
-		login:       widget.NewHyperlink("login", nil),
-		save:        widget.NewHyperlink("save", nil),
+		lockscreen: widget.NewHyperlink(" 🔒", nil),
+		unlock:     widget.NewHyperlink("unlock", nil),
+		create:     widget.NewHyperlink("create", nil),
+		generate:   widget.NewHyperlink("generate", nil),
+		restore:    widget.NewHyperlink("restore wallet", nil),
+		address:    widget.NewHyperlink("address", nil),
+		login:      widget.NewHyperlink("login", nil),
+		save:       widget.NewHyperlink("save", nil),
 	},
 	labels: labels{
 		height:     widget.NewLabel("BLOCK: 0000000"),
