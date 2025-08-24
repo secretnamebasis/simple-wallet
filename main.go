@@ -189,9 +189,6 @@ func initialize() {
 	// test localhost first, then connect from a list of public nodes
 	go maintain_connection()
 
-	// keep a simple connection going through the wallet's api
-	go walletapi.Keep_Connectivity()
-
 }
 
 // captain's orders
