@@ -113,6 +113,7 @@ func maintain_connection() {
 					)
 					// update the label
 					program.labels.connection.SetText("NODE: 🔴")
+					program.labels.height.SetText("BLOCK: 0000000")
 					program.buttons.send.Disable()
 					program.entries.recipient.Disable()
 					program.buttons.token_add.Disable()
@@ -133,7 +134,10 @@ func maintain_connection() {
 		} else {
 			// now if they are able to connect...
 			fyne.DoAndWait(func() {
+
 				program.labels.connection.SetText("NODE: 🟢")
+
+				// obviously registration is different
 				if !program.buttons.register.Visible() &&
 					!program.activities.registration.Visible() &&
 					!program.wallet.IsRegistered() {
