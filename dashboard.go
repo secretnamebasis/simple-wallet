@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -133,7 +132,6 @@ func txList() {
 			if line == "" {
 				continue
 			}
-			fmt.Println(line)
 			pair := strings.Split(line, ": ")
 			key := pair[0]
 			key_entry := widget.NewLabel(key)
