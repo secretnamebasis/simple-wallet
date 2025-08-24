@@ -134,6 +134,9 @@ func initialize() {
 	program.buttons.open_file = widget.NewButtonWithIcon(
 		"", theme.FolderOpenIcon(), func() {})
 
+	program.buttons.open_wallet = widget.NewButtonWithIcon(
+		"", theme.FolderOpenIcon(), func() {})		
+
 	// as a precaution, let's make sure that
 	// these text fields are treated like passwords
 	// that way, their visibility can be toggled
