@@ -74,6 +74,9 @@ func loggedIn() {
 	// save wallet every second
 	go isLoggedIn()
 
+	// and while we are at it, notify me every time a new entry comes in
+	go notificationNewEntry()
+
 	// check for registration
 	if program.wallet.Wallet_Memory.IsRegistered() {
 		// show them where to send

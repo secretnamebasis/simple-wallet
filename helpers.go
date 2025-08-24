@@ -68,6 +68,61 @@ func isLoggedIn() {
 		}
 	}
 }
+func notificationNewEntry() {
+	ticker := time.NewTicker(time.Second * 1) // we are going to be a little aggressive here
+	// and because we aren't doing any fancy websocket stuff...
+	var old_len int
+	for range ticker.C { // range that ticker
+		if program.wallet == nil {
+			continue
+		}
+
+		// go get the transfers
+		current_transfers := allTransfers() // yeah... this is the slow way
+		current_len := len(current_transfers)
+		//
+
+		// get the height
+		diff := current_len - old_len
+		old_len = current_len
+
+		if diff == current_len {
+			continue
+		}
+
+		if diff == 0 {
+			continue
+		}
+
+		// continue looping if there are none
+		if current_len == 0 {
+			continue
+		}
+
+		// check if we are still logged in
+		if !program.preferences.Bool("loggedIn") {
+			continue
+		}
+		// fmt.Println(diff)
+
+		// let's make a notice
+		var notice string
+
+		inset := current_len - diff
+		fmt.Println("diff", diff, "inset", inset)
+		// lazy approach to building a notice
+		new_transfers := current_transfers[inset:]
+		for _, each := range new_transfers {
+			fmt.Println(each)
+			notice += each.String() + "\n"
+		}
+
+		// ship the notification
+		notification := fyne.NewNotification("New Transfer", notice)
+		program.application.SendNotification(notification)
+
+	}
+}
 
 // this loop gets the wallet's balance and updates the label
 func updateBalance() {
