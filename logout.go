@@ -48,6 +48,9 @@ func logout() {
 			// dump it from memory
 			program.wallet = nil
 
+			// reset the balance
+			program.labels.balance.SetText("Balance: 0")
+
 			program.labels.loggedin.SetText("WALLET: 🔴")
 		}
 	}

@@ -79,13 +79,17 @@ func updateBalance() {
 		if !program.preferences.Bool("loggedIn") {
 			fyne.DoAndWait(func() {
 				program.labels.loggedin.SetText("WALLET: 🔴")
+				program.labels.balance.SetText(
+					fmt.Sprintf("BALANCE: %s", rpc.FormatMoney(0)))
+				bal, previous_bal = 0, 0
 			})
 		} else {
-			if bal == 0 {
+			if bal == 0 && program.wallet.IsRegistered() {
 				fyne.DoAndWait(func() {
 					// update it
 					program.labels.balance.SetText(
 						fmt.Sprintf("BALANCE: %s", "syncing"))
+
 				})
 			}
 
@@ -99,14 +103,11 @@ func updateBalance() {
 				return
 			}
 
-			bal, _ = program.wallet.Get_Balance()
 			// get the balance
+			bal, _ = program.wallet.Get_Balance()
 
 			// check it against previous
 			if previous_bal != bal {
-
-				// set the old as the new
-				previous_bal = bal
 
 				// update
 				fyne.DoAndWait(func() {
