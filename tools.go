@@ -24,6 +24,48 @@ import (
 	"github.com/deroproject/derohe/transaction"
 )
 
+type ResponsiveGrid struct{}
+
+func (r *ResponsiveGrid) Layout(objects []fyne.CanvasObject, size fyne.Size) {
+	cols := 1
+	if size.Width >= 600 {
+		cols = 2
+	}
+
+	count := len(objects)
+	if count == 0 {
+		return
+	}
+
+	
+
+		// calculate tallest button
+	cellHeight := float32(0)
+	for _, obj := range objects {
+		h := obj.MinSize().Height
+		if h > cellHeight {
+			cellHeight = h
+		}
+	}
+
+	cellWidth := size.Width / float32(cols)
+	padding := float32(5)
+
+	for i, obj := range objects {
+		row := i / cols
+		col := i % cols
+		x := float32(col) * cellWidth
+		y := float32(row)*(cellHeight+padding)
+		obj.Move(fyne.NewPos(x, y))
+		obj.Resize(fyne.NewSize(cellWidth, cellHeight))
+	}
+}
+	
+
+func (r *ResponsiveGrid) MinSize(objects []fyne.CanvasObject) fyne.Size {
+	return fyne.NewSize(300, 300)
+}
+
 func tools() *fyne.Container {
 
 	// let's do this when we click on tool
@@ -43,7 +85,7 @@ func tools() *fyne.Container {
 	program.buttons.token_add.OnTapped = add_token
 
 	// and then set them in a container called toolbox
-	program.containers.toolbox = container.NewAdaptiveGrid(2,
+	toolButtons := []fyne.CanvasObject{
 		container.NewVBox(program.buttons.filesign),
 		container.NewVBox(program.buttons.integrated),
 		container.NewVBox(program.buttons.self_encrypt_decrypt),
@@ -52,7 +94,10 @@ func tools() *fyne.Container {
 		container.NewVBox(program.buttons.balance_rescan),
 		container.NewVBox(program.buttons.contract_installer),
 		container.NewVBox(program.buttons.contract_interactor),
-	)
+	}
+
+	// Wrap them in a responsive container
+	program.containers.toolbox = container.New(&ResponsiveGrid{}, toolButtons...)
 
 	// and now, let's hide them
 	program.containers.toolbox.Hide()
