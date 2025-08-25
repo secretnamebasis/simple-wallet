@@ -112,7 +112,8 @@ Please do not leave this page.
 	rpc_server: new(rpcserver.RPCServer),
 	wallet:     new(walletapi.Wallet_Disk),
 	node: nodes{
-		list: node_list,
+		list:    node_list,
+		current: `127.0.0.1:10102`,
 	},
 
 	name: "simple wallet",
