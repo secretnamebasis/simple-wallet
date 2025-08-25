@@ -94,6 +94,8 @@ func maintain_connection() {
 			// now that the nodes have been tested, make the wallet endpoint the current node
 			walletapi.Daemon_Endpoint = program.node.current
 
+		} else {
+			walletapi.Daemon_Endpoint = program.node.current
 		}
 		// then test the connection
 		// this is hella slow because it is a dial with no context...
