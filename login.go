@@ -84,11 +84,13 @@ func loggedIn() {
 
 		// review assets
 		program.buttons.assets.Show()
-
+		program.buttons.assets.Enable()
+		program.buttons.transactions.Enable()
 		// they don't need to register
 		program.containers.register.Hide()
 	} else {
-		program.buttons.assets.Hide()
+		program.buttons.assets.Disable()
+		program.buttons.transactions.Disable()
 		program.containers.register.Show()
 		program.containers.send.Hide()
 	}
@@ -117,6 +119,7 @@ func loggedIn() {
 
 	// show buttons
 	program.buttons.rpc_server.Show()
+	program.buttons.assets.Show()
 	program.buttons.send.Show()
 
 	// show containers
