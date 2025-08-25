@@ -93,7 +93,14 @@ func sendForm() {
 		}
 		// if a valid , they are the receiver
 		if a != "" {
-			program.receiver = a
+			if strings.EqualFold(
+				a, program.wallet.GetAddress().String(),
+			) {
+				showError(errors.New("cannot send to self"))
+				return
+			} else {
+				program.receiver = a
+			}
 		}
 
 		// now if the address is an integrated address...
@@ -194,16 +201,16 @@ func sendForm() {
 		return
 	}
 
+	// also, would make sense to make sure that it is not self
+	if strings.EqualFold(program.receiver, program.wallet.GetAddress().String()) {
+		showError(errors.New("cannot send to self"))
+		return
+	}
+
 	// but just to be extra sure...
 	// let's see if the receiver is not registered
 	if !isRegistered(program.receiver) {
 		showError(errors.New("unregistered address"))
-		return
-	}
-
-	// also, would make sense to make sure that it is not self
-	if strings.EqualFold(program.receiver, program.wallet.GetAddress().String()) {
-		showError(errors.New("cannot send to self"))
 		return
 	}
 
