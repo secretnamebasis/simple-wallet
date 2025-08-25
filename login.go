@@ -181,6 +181,11 @@ func loginFunction() {
 	program.entries.wallet.SetPlaceHolder("/path/to/wallet.db")
 	program.entries.pass.SetPlaceHolder("w41137-p@55w0rd")
 
+	// OnSubmitted accepts TypedKey Return as submission
+	program.entries.pass.OnSubmitted = func(s string) {
+		program.dialogues.login.Confirm()
+	}
+
 	// if they don't know where it is they can find it graphically
 	program.buttons.open_wallet.SetText("find wallet in explorer")
 	program.buttons.open_wallet.OnTapped = loginOpenFile
