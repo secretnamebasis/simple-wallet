@@ -73,54 +73,72 @@ func notificationNewEntry() {
 	// and because we aren't doing any fancy websocket stuff...
 	var old_len int
 	for range ticker.C { // range that ticker
+		// check if we are still logged in
+		if !program.preferences.Bool("loggedIn") {
+			break
+		}
+		// check if the wallet is present
 		if program.wallet == nil {
+			continue
+		}
+		// check if we are registered
+		if !program.wallet.IsRegistered() {
 			continue
 		}
 
 		// go get the transfers
-		current_transfers := allTransfers() // yeah... this is the slow way
-		current_len := len(current_transfers)
-		//
+		var current_transfers []rpc.Entry
+		if program.wallet != nil { // expressly validate this
+			current_transfers = allTransfers()
+		} else {
+			continue
+		}
 
-		// get the height
+		// now get the length of transfers
+		current_len := len(current_transfers)
+		// do a diff check
 		diff := current_len - old_len
+
+		// set current as old length
 		old_len = current_len
 
-		if diff == current_len {
+		// now if they are the same, move on
+		if diff == current_len ||
+			diff == 0 ||
+			current_len == 0 {
 			continue
 		}
 
-		if diff == 0 {
-			continue
-		}
-
-		// continue looping if there are none
-		if current_len == 0 {
-			continue
-		}
-
-		// check if we are still logged in
-		if !program.preferences.Bool("loggedIn") {
-			continue
-		}
-		// fmt.Println(diff)
-
-		// let's make a notice
-		var notice string
-
+		// determine the inset for the slice
 		inset := current_len - diff
-		fmt.Println("diff", diff, "inset", inset)
-		// lazy approach to building a notice
+
+		// define the new transfers slice
 		new_transfers := current_transfers[inset:]
+
+		// now range the new transfers
 		for _, each := range new_transfers {
-			fmt.Println(each)
-			notice += each.String() + "\n"
+
+			// only show today's transfers
+			today := time.Now()
+			midnight := time.Date(
+				today.Year(),
+				today.Month(),
+				today.Day(),
+				0, 0, 0, 0,
+				time.UTC,
+			)
+			if each.Time.Before(midnight) { // maybe look in to longer timescales
+				continue
+			}
+
+			// build a notification
+			notification := fyne.NewNotification(
+				"New Transfer", each.String(),
+			)
+
+			// ship the notification
+			program.application.SendNotification(notification)
 		}
-
-		// ship the notification
-		notification := fyne.NewNotification("New Transfer", notice)
-		program.application.SendNotification(notification)
-
 	}
 }
 
