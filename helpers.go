@@ -264,7 +264,9 @@ func testConnection(s string) error {
 	}
 
 	// set a timeout context
-	ctx, cancel := context.WithTimeout(req.Context(), time.Second*1)
+	ctx, cancel := context.WithTimeout(req.Context(),
+		time.Second*3, // the world is a big place
+	)
 
 	// defer the cancel of the request
 	defer cancel()
