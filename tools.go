@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 
 	"fyne.io/fyne/v2"
@@ -887,8 +888,7 @@ func balance_rescan() {
 			// start a sync activity widget
 			syncing := widget.NewActivity()
 			syncing.Start()
-			notice := makeCenteredWrappedLabel("syncing")
-
+			notice := makeCenteredWrappedLabel("Beginning Scan")
 			// set it to a splash screen
 			sync := dialog.NewCustomWithoutButtons("syncing",
 				container.NewVBox(layout.NewSpacer(), syncing, notice, layout.NewSpacer()),
@@ -906,6 +906,34 @@ func balance_rescan() {
 
 				// clean the wallet
 				program.wallet.Clean()
+				var done bool
+				go func() {
+
+					var old int
+					ticker := time.NewTicker(time.Second)
+					for range ticker.C {
+						if done {
+							break
+						}
+
+						transfers := allTransfers()
+						current := len(transfers)
+						if current == old {
+							continue
+						}
+						diff := current - old
+						old = current
+						for _, each := range transfers[diff:] {
+							fyne.DoAndWait(func() {
+								notice.SetText("BlockHash: " + each.BlockHash)
+							})
+							time.Sleep(time.Second)
+							fyne.DoAndWait(func() {
+								notice.SetText("Retrieving more txs")
+							})
+						}
+					}
+				}()
 
 				// then sync the wallet for DERO
 				if err := program.wallet.Sync_Wallet_Memory_With_Daemon(); err != nil {
@@ -936,6 +964,7 @@ func balance_rescan() {
 					}
 					// when done, shut down the sync status in the go routine
 					fyne.DoAndWait(func() {
+						done = true
 						syncing.Stop()
 						sync.Dismiss()
 					})
