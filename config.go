@@ -51,9 +51,7 @@ func maintain_connection() {
 	ticker := time.NewTicker(time.Second)
 	for range ticker.C {
 		// now if the wallet isn't connected...
-		if !walletapi.Connected ||
-			!walletapi.IsDaemonOnline() ||
-			testConnection(program.node.current) != nil {
+		if testConnection(program.node.current) != nil {
 
 			// update the label and show 0s
 			fyne.DoAndWait(func() {
@@ -96,10 +94,17 @@ func maintain_connection() {
 			// now that the nodes have been tested, make the wallet endpoint the current node
 			walletapi.Daemon_Endpoint = program.node.current
 
+		} else {
+			walletapi.Daemon_Endpoint = program.node.current
 		}
 		// then test the connection
 		// this is hella slow because it is a dial with no context...
 		if err := walletapi.Connect(walletapi.Daemon_Endpoint); err != nil {
+
+			// be sure to drop the rpc server
+			if program.rpc_server != nil {
+				program.rpc_server = nil
+			}
 			//  if the number of tries is 1...
 			if retries == 1 {
 				fyne.DoAndWait(func() {
@@ -110,6 +115,7 @@ func maintain_connection() {
 					)
 					// update the label
 					program.labels.connection.SetText("NODE: 🔴")
+					program.labels.height.SetText("BLOCK: 0000000")
 					program.buttons.send.Disable()
 					program.entries.recipient.Disable()
 					program.buttons.token_add.Disable()
@@ -126,10 +132,14 @@ func maintain_connection() {
 			}
 			// increment the retries
 			retries++
+			fmt.Println("connection retry attempt", retries)
 		} else {
 			// now if they are able to connect...
 			fyne.DoAndWait(func() {
+
 				program.labels.connection.SetText("NODE: 🟢")
+
+				// obviously registration is different
 				if !program.buttons.register.Visible() &&
 					!program.activities.registration.Visible() &&
 					!program.wallet.IsRegistered() {
@@ -144,10 +154,12 @@ func maintain_connection() {
 			retries = 0
 
 			// update the height and node label
-			fyne.DoAndWait(func() {
-				height := walletapi.Get_Daemon_Height()
-				if height > old_height {
-					old_height = height
+			height := walletapi.Get_Daemon_Height()
+
+			// simple way to see if height has changed
+			if height > old_height {
+				old_height = height
+				fyne.DoAndWait(func() {
 					program.labels.height.SetText(
 						"BLOCK: " + strconv.Itoa(int(walletapi.Get_Daemon_Height())),
 					)
@@ -159,12 +171,12 @@ func maintain_connection() {
 					program.buttons.contract_installer.Enable()
 					program.buttons.contract_interactor.Enable()
 
-				}
-				// also set the wallet to online mode
-				if program.preferences.Bool("loggedIn") {
-					program.wallet.SetOnlineMode()
-				}
-			})
+				})
+			}
+			// also set the wallet to online mode
+			if program.preferences.Bool("loggedIn") {
+				program.wallet.SetOnlineMode()
+			}
 		}
 	}
 }

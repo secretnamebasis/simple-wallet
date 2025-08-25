@@ -97,7 +97,7 @@ func save() {
 func register() *fyne.Container {
 	// let's make a registration button
 	icon := theme.UploadIcon()
-	program.buttons.register = widget.NewButtonWithIcon("register", icon, nil)
+	program.buttons.register = widget.NewButtonWithIcon("REGISTER", icon, nil)
 
 	// here is what happens when we push the register button...
 	program.buttons.register.OnTapped = registration
@@ -106,8 +106,8 @@ func register() *fyne.Container {
 	return container.NewVBox(
 		layout.NewSpacer(),
 		program.activities.registration,
-		program.labels.counter,
 		program.buttons.register,
+		program.labels.counter,
 		layout.NewSpacer(),
 	)
 }
@@ -232,6 +232,8 @@ func registration() {
 			// update the display in the go routine
 			fyne.DoAndWait(func() {
 				program.containers.send.Show()
+				program.buttons.assets.Enable()
+				program.buttons.transactions.Enable()
 				program.containers.register.Hide()
 			})
 			return

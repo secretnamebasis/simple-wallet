@@ -20,19 +20,30 @@ func send() *fyne.Container {
 	program.entries.recipient.SetPlaceHolder("receiver address: dero...")
 
 	// validate if they are requesting an address first
-	program.entries.recipient.Validator = func(s string) error {
+	validate_address := func(s string) error {
+		if s == "" {
+			return nil
+		}
+
 		addr, err := rpc.NewAddress(s)
 		if err != nil {
-			return err
+			if a_string, err := program.wallet.NameToAddress(s); err != nil {
+				return err
+			} else {
+				addr, _ = rpc.NewAddress(a_string)
+			}
 		}
 		if addr.Arguments.Has(rpc.RPC_NEEDS_REPLYBACK_ADDRESS, rpc.DataUint64) {
 			title := "Notice"
 			msg := "This address is requesting a reply back address to be sent with the transaction"
 			showInfo(title, msg)
-
 		}
 		return nil
 	}
+
+	// experience has shown that the validator is very aggressive
+	// don't try to do too much or it will be slow waiting for daemon calls
+	program.entries.recipient.Validator = validate_address
 
 	// build out simple options for the send action
 	program.buttons.send.SetIcon(theme.MailSendIcon())
@@ -82,7 +93,14 @@ func sendForm() {
 		}
 		// if a valid , they are the receiver
 		if a != "" {
-			program.receiver = a
+			if strings.EqualFold(
+				a, program.wallet.GetAddress().String(),
+			) {
+				showError(errors.New("cannot send to self"))
+				return
+			} else {
+				program.receiver = a
+			}
 		}
 
 		// now if the address is an integrated address...
@@ -183,16 +201,16 @@ func sendForm() {
 		return
 	}
 
+	// also, would make sense to make sure that it is not self
+	if strings.EqualFold(program.receiver, program.wallet.GetAddress().String()) {
+		showError(errors.New("cannot send to self"))
+		return
+	}
+
 	// but just to be extra sure...
 	// let's see if the receiver is not registered
 	if !isRegistered(program.receiver) {
 		showError(errors.New("unregistered address"))
-		return
-	}
-
-	// also, would make sense to make sure that it is not self
-	if strings.EqualFold(program.receiver, program.wallet.GetAddress().String()) {
-		showError(errors.New("cannot send to self"))
 		return
 	}
 

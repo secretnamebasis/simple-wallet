@@ -68,6 +68,79 @@ func isLoggedIn() {
 		}
 	}
 }
+func notificationNewEntry() {
+	ticker := time.NewTicker(time.Second * 1) // we are going to be a little aggressive here
+	// and because we aren't doing any fancy websocket stuff...
+	var old_len int
+	for range ticker.C { // range that ticker
+		// check if we are still logged in
+		if !program.preferences.Bool("loggedIn") {
+			break
+		}
+		// check if the wallet is present
+		if program.wallet == nil {
+			continue
+		}
+		// check if we are registered
+		if !program.wallet.IsRegistered() {
+			continue
+		}
+
+		// go get the transfers
+		var current_transfers []rpc.Entry
+		if program.wallet != nil { // expressly validate this
+			current_transfers = allTransfers()
+		} else {
+			continue
+		}
+
+		// now get the length of transfers
+		current_len := len(current_transfers)
+		// do a diff check
+		diff := current_len - old_len
+
+		// set current as old length
+		old_len = current_len
+
+		// now if they are the same, move on
+		if diff == current_len ||
+			diff == 0 ||
+			current_len == 0 {
+			continue
+		}
+
+		// determine the inset for the slice
+		inset := current_len - diff
+
+		// define the new transfers slice
+		new_transfers := current_transfers[inset:]
+
+		// now range the new transfers
+		for _, each := range new_transfers {
+
+			// only show today's transfers
+			today := time.Now()
+			midnight := time.Date(
+				today.Year(),
+				today.Month(),
+				today.Day(),
+				0, 0, 0, 0,
+				time.UTC,
+			)
+			if each.Time.Before(midnight) { // maybe look in to longer timescales
+				continue
+			}
+
+			// build a notification
+			notification := fyne.NewNotification(
+				"New Transfer", each.String(),
+			)
+
+			// ship the notification
+			program.application.SendNotification(notification)
+		}
+	}
+}
 
 // this loop gets the wallet's balance and updates the label
 func updateBalance() {
@@ -79,34 +152,36 @@ func updateBalance() {
 		if !program.preferences.Bool("loggedIn") {
 			fyne.DoAndWait(func() {
 				program.labels.loggedin.SetText("WALLET: 🔴")
+				program.labels.balance.SetText(
+					fmt.Sprintf("BALANCE: %s", rpc.FormatMoney(0)))
+				bal, previous_bal = 0, 0
 			})
 		} else {
-			if bal == 0 {
+			if bal == 0 && program.wallet.IsRegistered() {
 				fyne.DoAndWait(func() {
 					// update it
 					program.labels.balance.SetText(
 						fmt.Sprintf("BALANCE: %s", "syncing"))
+
+				})
+			} else if bal == 0 && !program.wallet.IsRegistered() {
+				fyne.DoAndWait(func() {
+					// update it
+					program.labels.balance.SetText(
+						fmt.Sprintf("BALANCE: %s", "unregistered"))
+
 				})
 			}
-
-			// sync with network
-			if err := program.wallet.Sync_Wallet_Memory_With_Daemon(); err != nil {
-				showError(err)
-				return
-			}
-
+			// check if there is a wallet first
 			if program.wallet == nil {
 				return
 			}
 
-			bal, _ = program.wallet.Get_Balance()
 			// get the balance
+			bal, _ = program.wallet.Get_Balance()
 
 			// check it against previous
 			if previous_bal != bal {
-
-				// set the old as the new
-				previous_bal = bal
 
 				// update
 				fyne.DoAndWait(func() {
@@ -189,7 +264,9 @@ func testConnection(s string) error {
 	}
 
 	// set a timeout context
-	ctx, cancel := context.WithTimeout(req.Context(), time.Second*1)
+	ctx, cancel := context.WithTimeout(req.Context(),
+		time.Second*3, // the world is a big place
+	)
 
 	// defer the cancel of the request
 	defer cancel()

@@ -6,6 +6,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
+	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/walletapi"
 )
 
@@ -74,6 +75,20 @@ func loggedIn() {
 	// save wallet every second
 	go isLoggedIn()
 
+	// start sync with DERO history
+	go program.wallet.SyncHistory(crypto.ZEROHASH)
+
+	// and sync asset histories
+	for _, asset := range program.caches.hashes {
+		if asset != crypto.ZEROHASH {
+			// separate go routine for each asset
+			go program.wallet.SyncHistory(asset)
+		}
+	}
+
+	// and while we are at it, notify me every time a new entry comes in
+	go notificationNewEntry()
+
 	// check for registration
 	if program.wallet.Wallet_Memory.IsRegistered() {
 		// show them where to send
@@ -81,11 +96,13 @@ func loggedIn() {
 
 		// review assets
 		program.buttons.assets.Show()
-
+		program.buttons.assets.Enable()
+		program.buttons.transactions.Enable()
 		// they don't need to register
 		program.containers.register.Hide()
 	} else {
-		program.buttons.assets.Hide()
+		program.buttons.assets.Disable()
+		program.buttons.transactions.Disable()
 		program.containers.register.Show()
 		program.containers.send.Hide()
 	}
@@ -114,6 +131,7 @@ func loggedIn() {
 
 	// show buttons
 	program.buttons.rpc_server.Show()
+	program.buttons.assets.Show()
 	program.buttons.send.Show()
 
 	// show containers

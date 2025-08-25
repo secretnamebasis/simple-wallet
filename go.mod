@@ -6,7 +6,6 @@ require (
 	fyne.io/fyne/v2 v2.6.1
 	github.com/deroproject/derohe v0.0.0-20240229002921-e9df1205b660
 	github.com/ybbus/jsonrpc v2.1.2+incompatible
-	go.etcd.io/bbolt v1.4.2
 )
 
 require (
@@ -16,6 +15,7 @@ require (
 	github.com/beevik/ntp v1.4.3 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/caarlos0/env/v6 v6.10.1 // indirect
+	github.com/cenkalti/hub v1.0.2 // indirect
 	github.com/cenkalti/rpc2 v1.0.4 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/creachadair/jrpc2 v1.3.1 // indirect
@@ -54,6 +54,7 @@ require (
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.5.1 // indirect
 	github.com/onsi/gomega v1.38.0 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/rymdport/portal v0.4.1 // indirect
@@ -62,6 +63,11 @@ require (
 	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
+	github.com/templexxx/cpu v0.1.1 // indirect
+	github.com/templexxx/xorsimd v0.4.3 // indirect
+	github.com/tjfoc/gmsm v1.4.1 // indirect
+	github.com/valyala/fastrand v1.1.0 // indirect
+	github.com/valyala/histogram v1.2.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xtaci/kcp-go/v5 v5.6.22 // indirect
 	github.com/yuin/goldmark v1.7.8 // indirect

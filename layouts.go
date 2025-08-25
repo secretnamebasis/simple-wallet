@@ -53,3 +53,42 @@ func (t *twoThirds) MinSize(objects []fyne.CanvasObject) fyne.Size {
 	// and return them
 	return fyne.NewSize(width, height)
 }
+
+type responsiveGrid struct{}
+
+func (r *responsiveGrid) Layout(objects []fyne.CanvasObject, size fyne.Size) {
+	cols := 1
+	if size.Width >= 600 {
+		cols = 2
+	}
+
+	count := len(objects)
+	if count == 0 {
+		return
+	}
+
+	// calculate tallest button
+	cellHeight := float32(0)
+	for _, obj := range objects {
+		h := obj.MinSize().Height
+		if h > cellHeight {
+			cellHeight = h
+		}
+	}
+
+	cellWidth := size.Width / float32(cols)
+	padding := float32(3)
+
+	for i, obj := range objects {
+		row := i / cols
+		col := i % cols
+		x := float32(col) * cellWidth
+		y := float32(row) * (cellHeight + padding)
+		obj.Move(fyne.NewPos(x, y))
+		obj.Resize(fyne.NewSize(cellWidth-padding, cellHeight))
+	}
+}
+
+func (r *responsiveGrid) MinSize(objects []fyne.CanvasObject) fyne.Size {
+	return fyne.NewSize(300, 300)
+}
