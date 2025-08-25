@@ -6,6 +6,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
+	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/walletapi"
 )
 
@@ -73,6 +74,17 @@ func loggedIn() {
 
 	// save wallet every second
 	go isLoggedIn()
+
+	// start sync with DERO history
+	go program.wallet.SyncHistory(crypto.ZEROHASH)
+
+	// and sync asset histories
+	for _, asset := range program.caches.hashes {
+		if asset != crypto.ZEROHASH {
+			// separate go routine for each asset
+			go program.wallet.SyncHistory(asset)
+		}
+	}
 
 	// and while we are at it, notify me every time a new entry comes in
 	go notificationNewEntry()

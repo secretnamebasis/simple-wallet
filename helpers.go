@@ -164,14 +164,15 @@ func updateBalance() {
 						fmt.Sprintf("BALANCE: %s", "syncing"))
 
 				})
-			}
+			} else if bal == 0 && !program.wallet.IsRegistered() {
+				fyne.DoAndWait(func() {
+					// update it
+					program.labels.balance.SetText(
+						fmt.Sprintf("BALANCE: %s", "unregistered"))
 
-			// sync with network
-			if err := program.wallet.Sync_Wallet_Memory_With_Daemon(); err != nil {
-				showError(err)
-				return
+				})
 			}
-
+			// check if there is a wallet first
 			if program.wallet == nil {
 				return
 			}
