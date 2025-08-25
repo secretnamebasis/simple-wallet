@@ -211,36 +211,39 @@ func loginFunction() {
 
 	// let's make a login for the wallet
 	open_wallet := func(b bool) {
-		if b {
-			var err error
+		// get these entries
+		filename := program.entries.wallet.Text
+		password := program.entries.pass.Text
 
-			// get these entries
-			filename := program.entries.wallet.Text
-			password := program.entries.pass.Text
+		// be sure to dump the entries
+		program.entries.wallet.SetText("")
+		program.entries.pass.SetText("")
 
-			// be sure to dump the entries
-			program.entries.wallet.SetText("")
-			program.entries.pass.SetText("")
-
-			// open the wallet using the wallet path and password
-			program.wallet, err = walletapi.Open_Encrypted_Wallet(filename, password)
-
-			// if there is a problem...
-			if err != nil || program.wallet == nil {
-
-				// go home
-				updateHeader(program.hyperlinks.home)
-				setContentAsHome()
-
-				// show the error
-				showError(err)
-				return
-			}
-
-			// and then do the loggedIn thing
-			loggedIn()
+		if !b { // in case they cancel
+			return
 		}
+
+		var err error
+
+		// open the wallet using the wallet path and password
+		program.wallet, err = walletapi.Open_Encrypted_Wallet(filename, password)
+
+		// if there is a problem...
+		if err != nil || program.wallet == nil {
+
+			// go home
+			updateHeader(program.hyperlinks.home)
+			setContentAsHome()
+
+			// show the error
+			showError(err)
+			return
+		}
+
+		// and then do the loggedIn thing
+		loggedIn()
 	}
+
 	// load the login screen into the login dialog in order to open the wallet
 	program.dialogues.login = dialog.NewCustomConfirm("", "login", dismiss,
 		login_screen, open_wallet, program.window,
