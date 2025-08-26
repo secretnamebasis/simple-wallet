@@ -351,9 +351,13 @@ func sendForm() {
 }
 
 func conductTransfer() {
-
+	var t *dialog.FormDialog
+	program.entries.pass.OnSubmitted = func(s string) {
+		t.Submit()
+		t.Dismiss()
+	}
 	// make them confirm with password
-	transaction := dialog.NewForm("Password Confirmation", confirm, "Cancel",
+	t = dialog.NewForm("Password Confirmation", confirm, "Cancel",
 		[]*widget.FormItem{
 			widget.NewFormItem("", program.entries.pass),
 		},
@@ -386,9 +390,6 @@ func conductTransfer() {
 				showError(errors.New("wrong password"))
 				return
 			}
-
-			// if they get it right, then reset the password
-			program.entries.pass.SetText("")
 
 			// let's start with a set of arguments
 			args := rpc.Arguments{}
@@ -603,8 +604,8 @@ func conductTransfer() {
 		}, program.window)
 
 	// resize and show
-	transaction.Resize(program.size)
-	transaction.Show()
+	t.Resize(program.size)
+	t.Show()
 }
 
 func enableOptionals() {

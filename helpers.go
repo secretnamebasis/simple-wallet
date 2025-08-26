@@ -32,7 +32,7 @@ func openExplorer() *dialog.FileDialog {
 			return
 		}
 		defer reader.Close()
-		program.entries.file.SetText(reader.URI().Path())
+		program.entries.file.entry.SetText(reader.URI().Path())
 	}, program.window)
 }
 

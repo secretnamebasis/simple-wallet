@@ -1,6 +1,9 @@
 package main
 
-import "fyne.io/fyne/v2"
+import (
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/theme"
+)
 
 type twoThirds struct{}
 
@@ -21,7 +24,7 @@ func (t *twoThirds) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 	objects[0].Move(fyne.NewPos(0, 0))
 
 	// we are going to use just a tiny bit of padding
-	padding := float32(2.0)
+	padding := theme.Padding()
 
 	// let's resize and reposition the left object
 	objects[1].Resize(fyne.NewSize(right-padding, size.Height))
@@ -42,13 +45,8 @@ func (t *twoThirds) MinSize(objects []fyne.CanvasObject) fyne.Size {
 	// add those up
 	width := left.Width + right.Width
 
-	// the height of the left side is fine
-	var height float32 = left.Height
-
-	// unless it is bigger than the right side
-	if left.Height > right.Height {
-		height = right.Height
-	}
+	// the height of the largest object
+	height := fyne.Max(left.Height, right.Height)
 
 	// and return them
 	return fyne.NewSize(width, height)
@@ -69,15 +67,19 @@ func (r *responsiveGrid) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 
 	// calculate tallest button
 	cellHeight := float32(0)
+
+	// range through the objects
 	for _, obj := range objects {
+
+		// get its min
 		h := obj.MinSize().Height
-		if h > cellHeight {
-			cellHeight = h
-		}
+
+		// and compare
+		cellHeight = fyne.Max(h, cellHeight)
 	}
 
 	cellWidth := size.Width / float32(cols)
-	padding := float32(3)
+	padding := theme.Padding()
 
 	for i, obj := range objects {
 		row := i / cols

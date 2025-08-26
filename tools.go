@@ -77,18 +77,19 @@ func tools() *fyne.Container {
 func filesign() {
 
 	// let's make it noticeable that you can select the file
-	program.entries.file.SetPlaceHolder("/path/to/file.txt")
-	program.buttons.open_file.SetText("Open file to sign/verify")
-	program.buttons.open_file.OnTapped = func() {
-		program.dialogues.open.Resize(program.size)
-		program.dialogues.open.Show()
-	}
+	program.entries.file.entry.SetPlaceHolder("/path/to/file.txt")
+
 	// now let's make a sign hyperlink
 	sign := widget.NewHyperlink("filesign", nil)
 
 	// and when the user taps it
 	sign.OnTapped = func() {
-		dialog.ShowForm("Sign File?", confirm, dismiss,
+		var fs *dialog.FormDialog
+		program.entries.pass.OnSubmitted = func(s string) {
+			fs.Submit()
+			fs.Dismiss()
+		}
+		fs = dialog.NewForm("Sign File?", confirm, dismiss,
 			[]*widget.FormItem{widget.NewFormItem("", program.entries.pass)},
 			func(b bool) {
 				// if they cancel
@@ -109,14 +110,14 @@ func filesign() {
 					showError(errors.New("wrong password"))
 
 					// dump the filepath
-					program.entries.file.SetText("")
+					program.entries.file.entry.SetText("")
 					return
 				} else {
 					// get the filename
-					filename := program.entries.file.Text
+					filename := program.entries.file.entry.Text
 
 					//dump the entry
-					program.entries.file.SetText("")
+					program.entries.file.entry.SetText("")
 
 					// read the file
 					file, err := os.ReadFile(filename)
@@ -147,6 +148,7 @@ func filesign() {
 				}
 				// display to main window
 			}, program.window)
+		fs.Show()
 	}
 
 	// we are going to do the same thing, but the reverse direction
@@ -156,7 +158,12 @@ func filesign() {
 
 	// when they click the link
 	verify.OnTapped = func() {
-		dialog.ShowForm("Verify File?", confirm, dismiss,
+		var v *dialog.FormDialog
+		program.entries.pass.OnSubmitted = func(s string) {
+			v.Submit()
+			v.Dismiss()
+		}
+		v = dialog.NewForm("Verify File?", confirm, dismiss,
 			[]*widget.FormItem{widget.NewFormItem("", program.entries.pass)},
 			func(b bool) {
 				// if they cancel
@@ -177,12 +184,12 @@ func filesign() {
 					showError(errors.New("wrong password"))
 
 					//dump entry
-					program.entries.file.SetText("")
+					program.entries.file.entry.SetText("")
 
 				} else {
 					// get the filename
-					filename := program.entries.file.Text
-					program.entries.file.SetText("")
+					filename := program.entries.file.entry.Text
+					program.entries.file.entry.SetText("")
 
 					// check if the file is a .signed file
 					if !strings.HasSuffix(filename, ".signed") {
@@ -233,16 +240,14 @@ func filesign() {
 						"Message saved as " + save_path
 
 					// load the notice into the dialog
-					fv := dialog.NewInformation("Fileverify", notice, program.window)
-
-					// resize and show
-					fv.Resize(program.size)
+					fv := dialog.NewInformation("FileVerify", notice, program.window)
 					fv.Show()
 					return
 				}
 
 				// load it into the main window
 			}, program.window)
+		v.Show()
 	}
 
 	// now let's make another notice
@@ -257,10 +262,7 @@ func filesign() {
 	file := dialog.NewCustom("filesign/fileverify", dismiss,
 		container.NewVBox(
 			layout.NewSpacer(),
-			container.New(&twoThirds{},
-				program.entries.file,
-				program.buttons.open_file,
-			),
+			container.NewVBox(program.entries.file),
 			container.NewAdaptiveGrid(2,
 				container.NewCenter(sign),
 				container.NewCenter(verify),
@@ -275,19 +277,19 @@ func filesign() {
 }
 func self_crypt() {
 	// another round of make sure this works XD
-	program.entries.file.SetPlaceHolder("/path/to/file.txt")
-	program.buttons.open_file.SetText("open file to encrypt/decrypt")
-	program.buttons.open_file.OnTapped = func() {
-		program.dialogues.open.Resize(program.size)
-		program.dialogues.open.Show()
-	}
+	program.entries.file.entry.SetPlaceHolder("/path/to/file.txt")
 
 	// let's encrypt data
 	encrypt := widget.NewHyperlink("encrypt", nil)
 
 	// when the user clicks here...
 	encrypt.OnTapped = func() {
-		dialog.ShowForm("Encrypt File?", confirm, dismiss,
+		var e *dialog.FormDialog
+		program.entries.pass.OnSubmitted = func(s string) {
+			e.Submit()
+			e.Dismiss()
+		}
+		e = dialog.NewForm("Encrypt File?", confirm, dismiss,
 			[]*widget.FormItem{widget.NewFormItem("", program.entries.pass)}, func(b bool) {
 				// if they cancel
 				if !b {
@@ -305,14 +307,14 @@ func self_crypt() {
 					showError(errors.New("wrong password"))
 
 					// dump the entry
-					program.entries.file.SetText("")
+					program.entries.file.entry.SetText("")
 				} else {
 
 					// get the filename
-					filename := program.entries.file.Text
+					filename := program.entries.file.entry.Text
 
 					// dump the entry
-					program.entries.file.SetText("")
+					program.entries.file.entry.SetText("")
 
 					// read the file
 					file, err := os.ReadFile(filename)
@@ -347,6 +349,7 @@ func self_crypt() {
 
 				}
 			}, program.window)
+		e.Show()
 	}
 
 	// now let's decrypt
@@ -354,7 +357,13 @@ func self_crypt() {
 
 	// here's what we are going to do
 	decrypt.OnTapped = func() {
-		dialog.ShowForm("Decrypt File?", confirm, dismiss,
+		var d *dialog.FormDialog
+		program.entries.pass.OnSubmitted = func(s string) {
+			d.Submit()
+			d.Dismiss()
+		}
+
+		d = dialog.NewForm("Decrypt File?", confirm, dismiss,
 			[]*widget.FormItem{widget.NewFormItem("", program.entries.pass)},
 			func(b bool) {
 				// if they cancel
@@ -374,15 +383,15 @@ func self_crypt() {
 					showError(errors.New("wrong password"))
 
 					// dump the file path
-					program.entries.file.SetText("")
+					program.entries.file.entry.SetText("")
 
 				} else {
 
 					// get the file name
-					filename := program.entries.file.Text
+					filename := program.entries.file.entry.Text
 
 					// dump the entry
-					program.entries.file.SetText("")
+					program.entries.file.entry.SetText("")
 
 					// check if this is an .enc file
 					if !strings.HasSuffix(filename, ".enc") {
@@ -424,6 +433,7 @@ func self_crypt() {
 				}
 				// show decrypt in the window
 			}, program.window)
+		d.Show()
 	}
 
 	// let's make another notice
@@ -437,10 +447,7 @@ func self_crypt() {
 	self_crypt := dialog.NewCustom("Self Encrypt/Decrypt", dismiss,
 		container.NewVBox(
 			layout.NewSpacer(),
-			container.New(&twoThirds{},
-				program.entries.file,
-				program.buttons.open_file,
-			),
+			container.NewVBox(program.entries.file),
 			container.NewAdaptiveGrid(2,
 				container.NewCenter(encrypt),
 				container.NewCenter(decrypt),
@@ -457,18 +464,18 @@ func self_crypt() {
 }
 func recipient_crypt() {
 	// let's make a simple way to open a file
-	program.entries.file.SetPlaceHolder("/path/to/file.txt")
+	program.entries.file.entry.SetPlaceHolder("/path/to/file.txt")
 	program.entries.counterparty.SetPlaceHolder("counterparty address: dero...")
-	program.buttons.open_file.SetText("open file to encrypt/decrypt")
-	program.buttons.open_file.OnTapped = func() {
-		program.dialogues.open.Resize(program.size)
-		program.dialogues.open.Show()
-	}
 
 	// now we are going to encrypt a file
 	encrypt := widget.NewHyperlink("encrypt", nil)
 	encrypt.OnTapped = func() {
-		dialog.ShowForm("Encrypt File?", confirm, dismiss,
+		var e *dialog.FormDialog
+		program.entries.pass.OnSubmitted = func(s string) {
+			e.Submit()
+			e.Dismiss()
+		}
+		e = dialog.NewForm("Encrypt File?", confirm, dismiss,
 			[]*widget.FormItem{widget.NewFormItem("", program.entries.pass)},
 			func(b bool) {
 				// if they cancel
@@ -491,14 +498,14 @@ func recipient_crypt() {
 				if !program.wallet.Check_Password(pass) {
 					showError(errors.New("wrong password"))
 					program.entries.counterparty.SetText("")
-					program.entries.file.SetText("")
+					program.entries.file.entry.SetText("")
 				} else {
 
 					//get the filename
-					filename := program.entries.file.Text
+					filename := program.entries.file.entry.Text
 
 					// dump the entry
-					program.entries.file.SetText("")
+					program.entries.file.entry.SetText("")
 
 					// read the file
 					file, err := os.ReadFile(filename)
@@ -550,12 +557,18 @@ func recipient_crypt() {
 				}
 				// use the main window for the encrypt
 			}, program.window)
+		e.Show()
 	}
 
 	// let's decrypt a file
 	decrypt := widget.NewHyperlink("decrypt", nil)
 	decrypt.OnTapped = func() {
-		dialog.ShowForm("Decrypt File?", confirm, dismiss,
+		var d *dialog.FormDialog
+		program.entries.pass.OnSubmitted = func(s string) {
+			d.Submit()
+			d.Dismiss()
+		}
+		d = dialog.NewForm("Decrypt File?", confirm, dismiss,
 			[]*widget.FormItem{widget.NewFormItem("", program.entries.pass)},
 			func(b bool) {
 				// if they cancel
@@ -576,11 +589,11 @@ func recipient_crypt() {
 				// check the password
 				if !program.wallet.Check_Password(pass) {
 					showError(errors.New("wrong password"))
-					program.entries.file.SetText("")
+					program.entries.file.entry.SetText("")
 				} else {
 
 					// get the filename
-					filename := program.entries.file.Text
+					filename := program.entries.file.entry.Text
 
 					// check if it is an .enc file
 					if !strings.HasSuffix(filename, ".enc") {
@@ -635,6 +648,7 @@ func recipient_crypt() {
 					return
 				}
 			}, program.window)
+		d.Show()
 	}
 
 	// let's make sure that we validate the address we use
@@ -651,10 +665,7 @@ func recipient_crypt() {
 	recipient_crypt := dialog.NewCustom("Recipient Encrypt/Decrypt", dismiss,
 		container.NewVBox(
 			layout.NewSpacer(),
-			container.New(&twoThirds{},
-				program.entries.file,
-				program.buttons.open_file,
-			),
+			container.NewVBox(program.entries.file),
 			program.entries.counterparty,
 			container.NewAdaptiveGrid(2,
 				container.NewCenter(encrypt),
@@ -979,16 +990,8 @@ func balance_rescan() {
 }
 func installer() {
 
-	// for fun, let's make easy to find a file
-	program.buttons.open_file.OnTapped = func() {
-		program.dialogues.open.Resize(program.size)
-		program.dialogues.open.Show()
-	}
-
-	program.buttons.open_file.SetText("Open file to install")
-
 	// let's validate that file, shall we?
-	program.entries.file.Validator = func(s string) error {
+	program.entries.file.entry.Validator = func(s string) error {
 		// read the file
 		b, err := os.ReadFile(s)
 
@@ -1024,10 +1027,7 @@ func installer() {
 	// let's make a splash screen
 	splash := container.NewVBox(
 		layout.NewSpacer(),
-		container.New(&twoThirds{},
-			program.entries.file,
-			program.buttons.open_file,
-		),
+		container.NewVBox(program.entries.file),
 		isAnonymous,
 		notice,
 		layout.NewSpacer(),
@@ -1041,29 +1041,35 @@ func installer() {
 				return
 			}
 
-			// get the password
-			pass := program.entries.pass.Text
-
-			// dump the pass entry
-			program.entries.pass.SetText("")
-
-			dialog.ShowCustomConfirm("Confirm Password", confirm, dismiss, program.entries.pass,
+			var ic *dialog.ConfirmDialog
+			// if they press enter, we assume it means confirm
+			program.entries.pass.OnSubmitted = func(s string) {
+				ic.Confirm()
+				ic.Dismiss()
+			}
+			ic = dialog.NewCustomConfirm("Confirm Password", confirm, dismiss, program.entries.pass,
 				func(b bool) {
 					// if they cnacel
 					if !b {
 						return
 					}
+					// get the password
+					pass := program.entries.pass.Text
+
+					// dump the pass entry
+					program.entries.pass.SetText("")
+
 					// check the password
 					if !program.wallet.Check_Password(pass) {
 						showError(errors.New("wrong password"))
-						program.entries.file.SetText("")
+						program.entries.file.entry.SetText("")
 						return
 					} else {
 						// get the filename
-						filename := program.entries.file.Text
+						filename := program.entries.file.entry.Text
 
 						// dump the entry
-						program.entries.file.SetText("")
+						program.entries.file.entry.SetText("")
 
 						// read the file
 						file, err := os.ReadFile(filename)
@@ -1181,10 +1187,9 @@ func installer() {
 
 					// so I put a window in your window...
 				}, program.window)
-
+			ic.Show()
 			// so you can enjoy windows... XD
-		}, program.window,
-	)
+		}, program.window)
 
 	// resize and show
 	install.Resize(program.size)
@@ -1578,8 +1583,13 @@ func interaction() {
 
 				// load up the splash and a password entry
 				splash := container.NewVBox(sa, program.entries.password)
-
-				confirm_interaction := dialog.NewCustomConfirm("Confirm Password", confirm, dismiss, splash, func(b bool) {
+				var ci *dialog.ConfirmDialog
+				// if they press enter here, it is a confirmation
+				program.entries.pass.OnSubmitted = func(s string) {
+					ci.Confirm()
+					ci.Dismiss()
+				}
+				ci = dialog.NewCustomConfirm("Confirm Password", confirm, dismiss, splash, func(b bool) {
 					// if they cancel
 					if !b {
 						return
@@ -1656,9 +1666,7 @@ func interaction() {
 					// load it to the main window
 				}, program.window)
 
-				// resize and show
-				confirm_interaction.Resize(program.size)
-				confirm_interaction.Show()
+				ci.Show()
 
 			}, program.window)
 

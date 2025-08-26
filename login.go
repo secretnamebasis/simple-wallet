@@ -160,7 +160,7 @@ func loginOpenFile() {
 				return
 			}
 			defer reader.Close()
-			program.entries.wallet.SetText(reader.URI().Path())
+			program.entries.wallet.entry.SetText(reader.URI().Path())
 		},
 		program.window,
 	)
@@ -178,8 +178,13 @@ func loginFunction() {
 	}
 
 	// here is a simple way to find their existing wallet
-	program.entries.wallet.SetPlaceHolder("/path/to/wallet.db")
+	program.entries.wallet.entry.SetPlaceHolder("/path/to/wallet.db")
 	program.entries.pass.SetPlaceHolder("w41137-p@55w0rd")
+
+	// OnSubmitted accepts TypedKey Return as submission
+	program.entries.pass.OnSubmitted = func(s string) {
+		program.dialogues.login.Confirm()
+	}
 
 	// if they don't know where it is they can find it graphically
 	program.buttons.open_wallet.SetText("find wallet in explorer")
@@ -192,10 +197,7 @@ func loginFunction() {
 	// this will be our simple login container
 	login_screen := container.NewVBox(
 		layout.NewSpacer(),
-		container.New(&twoThirds{},
-			program.entries.wallet,
-			program.buttons.open_wallet,
-		),
+		container.NewVBox(program.entries.wallet),
 		program.entries.pass,
 		container.NewAdaptiveGrid(2,
 			container.NewCenter(program.hyperlinks.create),
@@ -206,36 +208,39 @@ func loginFunction() {
 
 	// let's make a login for the wallet
 	open_wallet := func(b bool) {
-		if b {
-			var err error
+		// get these entries
+		filename := program.entries.wallet.entry.Text
+		password := program.entries.pass.Text
 
-			// get these entries
-			filename := program.entries.wallet.Text
-			password := program.entries.pass.Text
+		// be sure to dump the entries
+		program.entries.wallet.entry.SetText("")
+		program.entries.pass.SetText("")
 
-			// be sure to dump the entries
-			program.entries.wallet.SetText("")
-			program.entries.pass.SetText("")
-
-			// open the wallet using the wallet path and password
-			program.wallet, err = walletapi.Open_Encrypted_Wallet(filename, password)
-
-			// if there is a problem...
-			if err != nil || program.wallet == nil {
-
-				// go home
-				updateHeader(program.hyperlinks.home)
-				setContentAsHome()
-
-				// show the error
-				showError(err)
-				return
-			}
-
-			// and then do the loggedIn thing
-			loggedIn()
+		if !b { // in case they cancel
+			return
 		}
+
+		var err error
+
+		// open the wallet using the wallet path and password
+		program.wallet, err = walletapi.Open_Encrypted_Wallet(filename, password)
+
+		// if there is a problem...
+		if err != nil || program.wallet == nil {
+
+			// go home
+			updateHeader(program.hyperlinks.home)
+			setContentAsHome()
+
+			// show the error
+			showError(err)
+			return
+		}
+
+		// and then do the loggedIn thing
+		loggedIn()
 	}
+
 	// load the login screen into the login dialog in order to open the wallet
 	program.dialogues.login = dialog.NewCustomConfirm("", "login", dismiss,
 		login_screen, open_wallet, program.window,

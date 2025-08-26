@@ -45,6 +45,12 @@ func restore() {
 			program.entries.pass,
 			restore,
 		), program.window)
+
+	// if they press enter... it's as if they clicked restore
+	program.entries.pass.OnSubmitted = func(s string) {
+		restore_wallet.Dismiss()
+		restoration()
+	}
 	restore_wallet.Resize(program.size)
 	restore_wallet.Show()
 }
