@@ -36,6 +36,12 @@ func create() {
 	new_account = dialog.NewCustom("Create Wallet", dismiss,
 		content, program.window)
 
+	// if they press enter, it is as if they pressed save
+	program.entries.pass.OnSubmitted = func(s string) {
+		new_account.Dismiss()
+		save()
+	}
+
 	program.hyperlinks.save.Alignment = fyne.TextAlignCenter
 	program.hyperlinks.save.OnTapped = save
 

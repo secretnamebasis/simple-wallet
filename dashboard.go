@@ -42,7 +42,14 @@ func keys() {
 	program.entries.public.Disable()
 
 	// simple way to see keys
-	dialog.ShowForm("Display Keys?", confirm, dismiss,
+	var k *dialog.FormDialog
+
+	// if they press enter, it is the same as clicking confirm
+	program.entries.pass.OnSubmitted = func(s string) {
+		k.Dismiss()
+		k.Submit()
+	}
+	k = dialog.NewForm("Display Keys?", confirm, dismiss,
 		[]*widget.FormItem{widget.NewFormItem("", program.entries.pass)},
 		func(b bool) {
 			if b {
@@ -77,6 +84,8 @@ func keys() {
 				}
 			}
 		}, program.window)
+
+	k.Show()
 
 	// dump password when done
 	program.entries.pass.SetText("")
