@@ -45,13 +45,8 @@ func (t *twoThirds) MinSize(objects []fyne.CanvasObject) fyne.Size {
 	// add those up
 	width := left.Width + right.Width
 
-	// the height of the left side is fine
-	var height float32 = left.Height
-
-	// unless it is bigger than the right side
-	if left.Height > right.Height {
-		height = right.Height
-	}
+	// the height of the largest object
+	height := fyne.Max(left.Height, right.Height)
 
 	// and return them
 	return fyne.NewSize(width, height)
@@ -72,11 +67,15 @@ func (r *responsiveGrid) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 
 	// calculate tallest button
 	cellHeight := float32(0)
+
+	// range through the objects
 	for _, obj := range objects {
+
+		// get its min
 		h := obj.MinSize().Height
-		if h > cellHeight {
-			cellHeight = h
-		}
+
+		// and compare
+		cellHeight = fyne.Max(h, cellHeight)
 	}
 
 	cellWidth := size.Width / float32(cols)
