@@ -160,7 +160,7 @@ func loginOpenFile() {
 				return
 			}
 			defer reader.Close()
-			program.entries.wallet.SetText(reader.URI().Path())
+			program.entries.wallet.entry.SetText(reader.URI().Path())
 		},
 		program.window,
 	)
@@ -178,7 +178,7 @@ func loginFunction() {
 	}
 
 	// here is a simple way to find their existing wallet
-	program.entries.wallet.SetPlaceHolder("/path/to/wallet.db")
+	program.entries.wallet.entry.SetPlaceHolder("/path/to/wallet.db")
 	program.entries.pass.SetPlaceHolder("w41137-p@55w0rd")
 
 	// OnSubmitted accepts TypedKey Return as submission
@@ -197,10 +197,7 @@ func loginFunction() {
 	// this will be our simple login container
 	login_screen := container.NewVBox(
 		layout.NewSpacer(),
-		container.New(&twoThirds{},
-			program.entries.wallet,
-			program.buttons.open_wallet,
-		),
+		container.NewVBox(program.entries.wallet),
 		program.entries.pass,
 		container.NewAdaptiveGrid(2,
 			container.NewCenter(program.hyperlinks.create),
@@ -212,11 +209,11 @@ func loginFunction() {
 	// let's make a login for the wallet
 	open_wallet := func(b bool) {
 		// get these entries
-		filename := program.entries.wallet.Text
+		filename := program.entries.wallet.entry.Text
 		password := program.entries.pass.Text
 
 		// be sure to dump the entries
-		program.entries.wallet.SetText("")
+		program.entries.wallet.entry.SetText("")
 		program.entries.pass.SetText("")
 
 		if !b { // in case they cancel

@@ -92,8 +92,6 @@ Please do not leave this page.
 		username:           widget.NewEntry(),
 		password:           widget.NewEntry(),
 		node:               widget.NewEntry(),
-		wallet:             widget.NewEntry(),
-		file:               widget.NewEntry(),
 		pass:               widget.NewEntry(),
 		seed:               widget.NewEntry(),
 		secret:             widget.NewEntry(),

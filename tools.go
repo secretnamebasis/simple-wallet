@@ -77,12 +77,8 @@ func tools() *fyne.Container {
 func filesign() {
 
 	// let's make it noticeable that you can select the file
-	program.entries.file.SetPlaceHolder("/path/to/file.txt")
-	program.buttons.open_file.SetText("Open file to sign/verify")
-	program.buttons.open_file.OnTapped = func() {
-		program.dialogues.open.Resize(program.size)
-		program.dialogues.open.Show()
-	}
+	program.entries.file.entry.SetPlaceHolder("/path/to/file.txt")
+
 	// now let's make a sign hyperlink
 	sign := widget.NewHyperlink("filesign", nil)
 
@@ -109,14 +105,14 @@ func filesign() {
 					showError(errors.New("wrong password"))
 
 					// dump the filepath
-					program.entries.file.SetText("")
+					program.entries.file.entry.SetText("")
 					return
 				} else {
 					// get the filename
-					filename := program.entries.file.Text
+					filename := program.entries.file.entry.Text
 
 					//dump the entry
-					program.entries.file.SetText("")
+					program.entries.file.entry.SetText("")
 
 					// read the file
 					file, err := os.ReadFile(filename)
@@ -177,12 +173,12 @@ func filesign() {
 					showError(errors.New("wrong password"))
 
 					//dump entry
-					program.entries.file.SetText("")
+					program.entries.file.entry.SetText("")
 
 				} else {
 					// get the filename
-					filename := program.entries.file.Text
-					program.entries.file.SetText("")
+					filename := program.entries.file.entry.Text
+					program.entries.file.entry.SetText("")
 
 					// check if the file is a .signed file
 					if !strings.HasSuffix(filename, ".signed") {
@@ -257,10 +253,7 @@ func filesign() {
 	file := dialog.NewCustom("filesign/fileverify", dismiss,
 		container.NewVBox(
 			layout.NewSpacer(),
-			container.New(&twoThirds{},
-				program.entries.file,
-				program.buttons.open_file,
-			),
+			container.NewVBox(program.entries.file),
 			container.NewAdaptiveGrid(2,
 				container.NewCenter(sign),
 				container.NewCenter(verify),
@@ -275,12 +268,7 @@ func filesign() {
 }
 func self_crypt() {
 	// another round of make sure this works XD
-	program.entries.file.SetPlaceHolder("/path/to/file.txt")
-	program.buttons.open_file.SetText("open file to encrypt/decrypt")
-	program.buttons.open_file.OnTapped = func() {
-		program.dialogues.open.Resize(program.size)
-		program.dialogues.open.Show()
-	}
+	program.entries.file.entry.SetPlaceHolder("/path/to/file.txt")
 
 	// let's encrypt data
 	encrypt := widget.NewHyperlink("encrypt", nil)
@@ -305,14 +293,14 @@ func self_crypt() {
 					showError(errors.New("wrong password"))
 
 					// dump the entry
-					program.entries.file.SetText("")
+					program.entries.file.entry.SetText("")
 				} else {
 
 					// get the filename
-					filename := program.entries.file.Text
+					filename := program.entries.file.entry.Text
 
 					// dump the entry
-					program.entries.file.SetText("")
+					program.entries.file.entry.SetText("")
 
 					// read the file
 					file, err := os.ReadFile(filename)
@@ -374,15 +362,15 @@ func self_crypt() {
 					showError(errors.New("wrong password"))
 
 					// dump the file path
-					program.entries.file.SetText("")
+					program.entries.file.entry.SetText("")
 
 				} else {
 
 					// get the file name
-					filename := program.entries.file.Text
+					filename := program.entries.file.entry.Text
 
 					// dump the entry
-					program.entries.file.SetText("")
+					program.entries.file.entry.SetText("")
 
 					// check if this is an .enc file
 					if !strings.HasSuffix(filename, ".enc") {
@@ -437,10 +425,7 @@ func self_crypt() {
 	self_crypt := dialog.NewCustom("Self Encrypt/Decrypt", dismiss,
 		container.NewVBox(
 			layout.NewSpacer(),
-			container.New(&twoThirds{},
-				program.entries.file,
-				program.buttons.open_file,
-			),
+			container.NewVBox(program.entries.file),
 			container.NewAdaptiveGrid(2,
 				container.NewCenter(encrypt),
 				container.NewCenter(decrypt),
@@ -457,13 +442,8 @@ func self_crypt() {
 }
 func recipient_crypt() {
 	// let's make a simple way to open a file
-	program.entries.file.SetPlaceHolder("/path/to/file.txt")
+	program.entries.file.entry.SetPlaceHolder("/path/to/file.txt")
 	program.entries.counterparty.SetPlaceHolder("counterparty address: dero...")
-	program.buttons.open_file.SetText("open file to encrypt/decrypt")
-	program.buttons.open_file.OnTapped = func() {
-		program.dialogues.open.Resize(program.size)
-		program.dialogues.open.Show()
-	}
 
 	// now we are going to encrypt a file
 	encrypt := widget.NewHyperlink("encrypt", nil)
@@ -491,14 +471,14 @@ func recipient_crypt() {
 				if !program.wallet.Check_Password(pass) {
 					showError(errors.New("wrong password"))
 					program.entries.counterparty.SetText("")
-					program.entries.file.SetText("")
+					program.entries.file.entry.SetText("")
 				} else {
 
 					//get the filename
-					filename := program.entries.file.Text
+					filename := program.entries.file.entry.Text
 
 					// dump the entry
-					program.entries.file.SetText("")
+					program.entries.file.entry.SetText("")
 
 					// read the file
 					file, err := os.ReadFile(filename)
@@ -576,11 +556,11 @@ func recipient_crypt() {
 				// check the password
 				if !program.wallet.Check_Password(pass) {
 					showError(errors.New("wrong password"))
-					program.entries.file.SetText("")
+					program.entries.file.entry.SetText("")
 				} else {
 
 					// get the filename
-					filename := program.entries.file.Text
+					filename := program.entries.file.entry.Text
 
 					// check if it is an .enc file
 					if !strings.HasSuffix(filename, ".enc") {
@@ -651,10 +631,7 @@ func recipient_crypt() {
 	recipient_crypt := dialog.NewCustom("Recipient Encrypt/Decrypt", dismiss,
 		container.NewVBox(
 			layout.NewSpacer(),
-			container.New(&twoThirds{},
-				program.entries.file,
-				program.buttons.open_file,
-			),
+			container.NewVBox(program.entries.file),
 			program.entries.counterparty,
 			container.NewAdaptiveGrid(2,
 				container.NewCenter(encrypt),
@@ -979,16 +956,8 @@ func balance_rescan() {
 }
 func installer() {
 
-	// for fun, let's make easy to find a file
-	program.buttons.open_file.OnTapped = func() {
-		program.dialogues.open.Resize(program.size)
-		program.dialogues.open.Show()
-	}
-
-	program.buttons.open_file.SetText("Open file to install")
-
 	// let's validate that file, shall we?
-	program.entries.file.Validator = func(s string) error {
+	program.entries.file.entry.Validator = func(s string) error {
 		// read the file
 		b, err := os.ReadFile(s)
 
@@ -1024,10 +993,7 @@ func installer() {
 	// let's make a splash screen
 	splash := container.NewVBox(
 		layout.NewSpacer(),
-		container.New(&twoThirds{},
-			program.entries.file,
-			program.buttons.open_file,
-		),
+		container.NewVBox(program.entries.file),
 		isAnonymous,
 		notice,
 		layout.NewSpacer(),
@@ -1056,14 +1022,14 @@ func installer() {
 					// check the password
 					if !program.wallet.Check_Password(pass) {
 						showError(errors.New("wrong password"))
-						program.entries.file.SetText("")
+						program.entries.file.entry.SetText("")
 						return
 					} else {
 						// get the filename
-						filename := program.entries.file.Text
+						filename := program.entries.file.entry.Text
 
 						// dump the entry
-						program.entries.file.SetText("")
+						program.entries.file.entry.SetText("")
 
 						// read the file
 						file, err := os.ReadFile(filename)

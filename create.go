@@ -20,8 +20,8 @@ var new_account *dialog.CustomDialog
 func create() {
 	program.dialogues.login.Dismiss()
 
-	if program.entries.wallet.Text != "" || program.entries.pass.Text != "" {
-		program.entries.wallet.SetText("")
+	if program.entries.wallet.entry.Text != "" || program.entries.pass.Text != "" {
+		program.entries.wallet.entry.SetText("")
 		program.entries.pass.SetText("")
 	}
 
@@ -46,11 +46,11 @@ func create() {
 func save() {
 	var err error
 	// get entries
-	filename := program.entries.wallet.Text
+	filename := program.entries.wallet.entry.Text
 	password := program.entries.pass.Text
 
 	// dump entries
-	program.entries.wallet.SetText("")
+	program.entries.wallet.entry.SetText("")
 	program.entries.pass.SetText("")
 
 	program.wallet, err = walletapi.Create_Encrypted_Wallet(
