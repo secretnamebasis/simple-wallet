@@ -21,7 +21,7 @@ func (t *twoThirds) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 	objects[0].Move(fyne.NewPos(0, 0))
 
 	// we are going to use just a tiny bit of padding
-	padding := float32(2.0)
+	padding := theme.Padding()
 
 	// let's resize and reposition the left object
 	objects[1].Resize(fyne.NewSize(right-padding, size.Height))
@@ -77,7 +77,7 @@ func (r *responsiveGrid) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 	}
 
 	cellWidth := size.Width / float32(cols)
-	padding := float32(3)
+	padding := theme.Padding()
 
 	for i, obj := range objects {
 		row := i / cols
