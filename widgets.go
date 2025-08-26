@@ -75,7 +75,7 @@ func newEntryWithIcon(pw fyne.Window, icon fyne.Resource, action func()) *entryW
 	return ewi
 }
 
-// CreateRenderer defines how the fileEntry should be rendered
+// CreateRenderer defines how the entryWithIcon should be rendered
 func (f *entryWithIcon) CreateRenderer() fyne.WidgetRenderer {
 	return &entryWithIconRenderer{
 		entryWithIcon: f, // include the entryWithIcon
