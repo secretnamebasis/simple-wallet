@@ -286,6 +286,8 @@ func testConnection(s string) error {
 		// return the error
 		if strings.Contains(err.Error(), "connect: connection refused") {
 			return err
+		} else if strings.Contains(err.Error(), "context deadline exceeded") {
+			return err
 		} else {
 			// show these errors in the terminal just because
 			fmt.Println("unhandled err", err)
