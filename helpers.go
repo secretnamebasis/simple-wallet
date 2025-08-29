@@ -317,6 +317,30 @@ func makeCenteredWrappedLabel(s string) *widget.Label {
 	return label
 }
 
+func getDaemonInfo() rpc.GetInfo_Result {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	// get a client for the daemon's rpc
+	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
+
+	// here is our results bucket
+	var info rpc.GetInfo_Result
+
+	// here is the method we are going to use
+	var method = "DERO.GetInfo"
+
+	// call for the contract
+	if err := rpcClient.CallFor(ctx, &info, method); err != nil {
+		fmt.Println(err)
+		return rpc.GetInfo_Result{}
+	}
+	// the code needs to be present
+	if info.TopoHeight == 0 {
+		return rpc.GetInfo_Result{}
+	}
+
+	return info
+}
 func getSCCode(scid string) rpc.GetSC_Result {
 
 	// get a client for the daemon's rpc
