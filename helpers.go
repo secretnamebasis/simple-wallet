@@ -69,7 +69,8 @@ func isLoggedIn() {
 	}
 }
 func notificationNewEntry() {
-	ticker := time.NewTicker(time.Second * 1) // we are going to be a little aggressive here
+	// we are going to be a little aggressive here
+	ticker := time.NewTicker(time.Second)
 	// and because we aren't doing any fancy websocket stuff...
 	var old_len int
 	for range ticker.C { // range that ticker
