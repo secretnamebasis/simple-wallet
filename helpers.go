@@ -15,7 +15,7 @@ import (
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/walletapi"
-	"github.com/ybbus/jsonrpc"
+	"github.com/ybbus/jsonrpc/v3"
 )
 
 // simple way to truncate hashes/address
@@ -228,6 +228,8 @@ func buildAssetHashList() {
 }
 
 func isRegistered(s string) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 	// make a new client
 	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
 
@@ -244,7 +246,7 @@ func isRegistered(s string) bool {
 	}
 
 	// if we have an error here..
-	if err := rpcClient.CallFor(&result, method, params); err != nil {
+	if err := rpcClient.CallFor(ctx, &result, method, params); err != nil {
 		return false
 	}
 	if result.Registration == 0 {
@@ -265,9 +267,7 @@ func testConnection(s string) error {
 	}
 
 	// set a timeout context
-	ctx, cancel := context.WithTimeout(req.Context(),
-		time.Second*3, // the world is a big place
-	)
+	ctx, cancel := context.WithTimeout(req.Context(), timeout)
 
 	// defer the cancel of the request
 	defer cancel()
@@ -342,6 +342,8 @@ func getDaemonInfo() rpc.GetInfo_Result {
 	return info
 }
 func getSCCode(scid string) rpc.GetSC_Result {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
 	// get a client for the daemon's rpc
 	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
@@ -361,7 +363,7 @@ func getSCCode(scid string) rpc.GetSC_Result {
 	}
 
 	// call for the contract
-	if err := rpcClient.CallFor(&sc, method, scParam); err != nil {
+	if err := rpcClient.CallFor(ctx, &sc, method, scParam); err != nil {
 		return rpc.GetSC_Result{}
 	}
 	// the code needs to be present
