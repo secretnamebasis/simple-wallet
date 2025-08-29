@@ -46,16 +46,23 @@ func maintain_connection() {
 
 	// we will track retries
 	var retries int
-	old_height := walletapi.Get_Daemon_Height()
-	// this is an infinite loop
+	// track the height
+	var height int64
+	var old_height int64
+	// the purpose of this function is to obtain topo height every second
 	ticker := time.NewTicker(time.Second)
+	// assuming the localhost connection works
+	walletapi.Daemon_Endpoint = program.node.current
+	// this is an infinite loop
 	for range ticker.C {
-		// now if the wallet isn't connected...
-		if testConnection(program.node.current) != nil {
+		// get the height directly from the daemon
+		if getDaemonInfo().TopoHeight == 0 ||
+			// and make the connection right now
+			walletapi.Connect(walletapi.Daemon_Endpoint) != nil {
 
 			// update the label and show 0s
 			fyne.DoAndWait(func() {
-				program.labels.connection.SetText("NODE: 🟡")
+				program.labels.connection.SetText("NODE: 🟡") // signalling unstable
 				program.labels.height.SetText("BLOCK: 0000000")
 				if program.buttons.register.Visible() {
 					program.buttons.register.Disable()
@@ -64,7 +71,7 @@ func maintain_connection() {
 					program.activities.registration.Hide()
 				}
 			})
-
+			// now we need to range and connect
 			var fastest int64 = 10000 // we assume 10 second
 
 			// now range through the nodes in the list
@@ -72,7 +79,6 @@ func maintain_connection() {
 
 				// make a start time for determining how fast this goes
 				start := time.Now()
-
 				// here is a helper
 				if err := testConnection(node.ip); err != nil {
 					continue
@@ -90,51 +96,51 @@ func maintain_connection() {
 					program.node.current = node.ip
 				}
 			}
-
-			// now that the nodes have been tested, make the wallet endpoint the current node
+			// assuming the fastest connection works
 			walletapi.Daemon_Endpoint = program.node.current
+			// re-test the connection
+			if err := walletapi.Connect(walletapi.Daemon_Endpoint); err != nil {
+				// show why?
+				// showError(err)
 
-		} else {
-			walletapi.Daemon_Endpoint = program.node.current
-		}
-		// then test the connection
-		// this is hella slow because it is a dial with no context...
-		if err := walletapi.Connect(walletapi.Daemon_Endpoint); err != nil {
-
-			// be sure to drop the rpc server
-			if program.rpc_server != nil {
-				program.rpc_server = nil
-			}
-			//  if the number of tries is 1...
-			if retries == 1 {
-				fyne.DoAndWait(func() {
-
-					// then notify the user
-					showError(
-						errors.New("auto connect is not working as expected, please set custom endpoint"),
-					)
-					// update the label
-					program.labels.connection.SetText("NODE: 🔴")
-					program.labels.height.SetText("BLOCK: 0000000")
-					program.buttons.send.Disable()
-					program.entries.recipient.Disable()
-					program.buttons.token_add.Disable()
-					program.buttons.balance_rescan.Disable()
-					program.buttons.contract_installer.Disable()
-					program.buttons.contract_interactor.Disable()
-				})
-
-				// and if we are logged in, update to offline mode
-				if program.preferences.Bool("loggedIn") {
-					program.wallet.SetOfflineMode()
+				// be sure to drop the rpc server
+				if program.rpc_server != nil {
+					program.rpc_server = nil
 				}
-				// don't break the loop
+				//  if the number of tries is 1...
+				if retries == 1 {
+					fyne.DoAndWait(func() {
+
+						// then notify the user
+						showError(
+							errors.New("autoconnect is not working as expected.\n" +
+								"Please set custom endpoint"),
+						)
+						// update the label
+						program.labels.connection.SetText("NODE: 🔴")
+						program.labels.height.SetText("BLOCK: 0000000")
+						program.buttons.send.Disable()
+						program.entries.recipient.Disable()
+						program.buttons.token_add.Disable()
+						program.buttons.balance_rescan.Disable()
+						program.buttons.contract_installer.Disable()
+						program.buttons.contract_interactor.Disable()
+					})
+
+					// and if we are logged in, update to offline mode
+					if program.preferences.Bool("loggedIn") {
+						program.wallet.SetOfflineMode()
+					}
+					// don't break the loop
+				}
+				// increment the retries
+				retries++
+				fmt.Println("connection retry attempt", retries)
 			}
-			// increment the retries
-			retries++
-			fmt.Println("connection retry attempt", retries)
-		} else {
+		} else { // the connection should be working
+			height = getDaemonInfo().TopoHeight
 			// now if they are able to connect...
+			// update the height and node label
 			fyne.DoAndWait(func() {
 
 				program.labels.connection.SetText("NODE: 🟢")
@@ -152,9 +158,6 @@ func maintain_connection() {
 
 			// retries is reset
 			retries = 0
-
-			// update the height and node label
-			height := walletapi.Get_Daemon_Height()
 
 			// simple way to see if height has changed
 			if height > old_height {

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
 	"github.com/deroproject/derohe/walletapi"
@@ -18,6 +20,9 @@ const dismiss = `dismiss`
 
 // simple way to set confirm
 const confirm = `confirm`
+
+// simple way to set timeouts
+const timeout = time.Second * 9 // the world is a really big place
 
 // not to be confused with an app, this is a program:
 var program = components{

@@ -15,7 +15,7 @@ import (
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/walletapi"
-	"github.com/ybbus/jsonrpc"
+	"github.com/ybbus/jsonrpc/v3"
 )
 
 // simple way to truncate hashes/address
@@ -69,7 +69,8 @@ func isLoggedIn() {
 	}
 }
 func notificationNewEntry() {
-	ticker := time.NewTicker(time.Second * 1) // we are going to be a little aggressive here
+	// we are going to be a little aggressive here
+	ticker := time.NewTicker(time.Second)
 	// and because we aren't doing any fancy websocket stuff...
 	var old_len int
 	for range ticker.C { // range that ticker
@@ -227,6 +228,8 @@ func buildAssetHashList() {
 }
 
 func isRegistered(s string) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 	// make a new client
 	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
 
@@ -243,7 +246,7 @@ func isRegistered(s string) bool {
 	}
 
 	// if we have an error here..
-	if err := rpcClient.CallFor(&result, method, params); err != nil {
+	if err := rpcClient.CallFor(ctx, &result, method, params); err != nil {
 		return false
 	}
 	if result.Registration == 0 {
@@ -264,9 +267,7 @@ func testConnection(s string) error {
 	}
 
 	// set a timeout context
-	ctx, cancel := context.WithTimeout(req.Context(),
-		time.Second*3, // the world is a big place
-	)
+	ctx, cancel := context.WithTimeout(req.Context(), timeout)
 
 	// defer the cancel of the request
 	defer cancel()
@@ -284,6 +285,8 @@ func testConnection(s string) error {
 	if err != nil {
 		// return the error
 		if strings.Contains(err.Error(), "connect: connection refused") {
+			return err
+		} else if strings.Contains(err.Error(), "context deadline exceeded") {
 			return err
 		} else {
 			// show these errors in the terminal just because
@@ -316,7 +319,33 @@ func makeCenteredWrappedLabel(s string) *widget.Label {
 	return label
 }
 
+func getDaemonInfo() rpc.GetInfo_Result {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	// get a client for the daemon's rpc
+	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
+
+	// here is our results bucket
+	var info rpc.GetInfo_Result
+
+	// here is the method we are going to use
+	var method = "DERO.GetInfo"
+
+	// call for the contract
+	if err := rpcClient.CallFor(ctx, &info, method); err != nil {
+		fmt.Println(err)
+		return rpc.GetInfo_Result{}
+	}
+	// the code needs to be present
+	if info.TopoHeight == 0 {
+		return rpc.GetInfo_Result{}
+	}
+
+	return info
+}
 func getSCCode(scid string) rpc.GetSC_Result {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
 	// get a client for the daemon's rpc
 	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
@@ -336,7 +365,7 @@ func getSCCode(scid string) rpc.GetSC_Result {
 	}
 
 	// call for the contract
-	if err := rpcClient.CallFor(&sc, method, scParam); err != nil {
+	if err := rpcClient.CallFor(ctx, &sc, method, scParam); err != nil {
 		return rpc.GetSC_Result{}
 	}
 	// the code needs to be present
