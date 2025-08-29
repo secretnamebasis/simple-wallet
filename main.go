@@ -2,15 +2,11 @@ package main
 
 import (
 	"crypto/rand"
-	"errors"
 	"fmt"
 	"os"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/deroproject/derohe/walletapi"
@@ -168,34 +164,8 @@ func initialize() {
 	program.hyperlinks.logout.Hide()
 
 	// here is a simple lockscreen
-	program.hyperlinks.lockscreen.OnTapped = func() {
-		content := container.NewVBox(
-			layout.NewSpacer(),
-			program.entries.pass,
-			program.hyperlinks.unlock,
-			layout.NewSpacer(),
-		)
-		lockscreen := dialog.NewCustomWithoutButtons("locked screen", content, program.window)
+	program.hyperlinks.lockscreen.OnTapped = lockScreen
 
-		program.hyperlinks.unlock.Alignment = fyne.TextAlignCenter
-		program.hyperlinks.unlock.OnTapped = func() {
-			// get the password
-			pass := program.entries.pass.Text
-
-			// dump password
-			program.entries.pass.SetText("")
-
-			if !program.wallet.Check_Password(pass) {
-				showError(errors.New("wrong password"))
-				return
-			}
-
-			lockscreen.Dismiss()
-		}
-		lockscreen.Resize(program.size)
-		lockscreen.Show()
-
-	}
 	// and let's hide these for a moment
 	program.hyperlinks.lockscreen.Hide()
 

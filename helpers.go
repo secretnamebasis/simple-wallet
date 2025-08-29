@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
@@ -383,3 +385,41 @@ func showInfo(t, m string) { dialog.ShowInformation(t, m, program.window) }
 
 // simple way to go home
 func setContentAsHome() { program.window.SetContent(program.containers.home) }
+
+func lockScreen() {
+
+	content := container.NewVBox(
+		layout.NewSpacer(),
+		program.entries.pass,
+		program.hyperlinks.unlock,
+		layout.NewSpacer(),
+	)
+
+	lockscreen := dialog.NewCustomWithoutButtons("locked screen", content, program.window)
+
+	program.hyperlinks.unlock.Alignment = fyne.TextAlignCenter
+
+	submit := func() {
+		// get the password
+		pass := program.entries.pass.Text
+
+		// dump password
+		program.entries.pass.SetText("")
+
+		if !program.wallet.Check_Password(pass) {
+			showError(errors.New("wrong password"))
+			return
+		}
+
+		lockscreen.Dismiss()
+	}
+
+	program.entries.pass.OnSubmitted = func(s string) {
+		submit()
+	}
+
+	program.hyperlinks.unlock.OnTapped = submit
+
+	lockscreen.Resize(program.size)
+	lockscreen.Show()
+}
