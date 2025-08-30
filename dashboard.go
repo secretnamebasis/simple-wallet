@@ -1,13 +1,27 @@
 package main
 
 import (
+	"context"
+	"encoding/hex"
 	"errors"
+	"fmt"
+	"image"
+	"net/http"
+	"sort"
+	"strconv"
 	"strings"
 
+	"golang.org/x/image/draw"
+
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/storage"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
 )
 
@@ -176,149 +190,316 @@ func txList() {
 	txs.Resize(program.size)
 	txs.Show()
 }
+func hashesLength() int { return len(program.caches.assets) }
+func createLabel() fyne.CanvasObject {
+	return container.NewAdaptiveGrid(3,
+		widget.NewLabel(""),
+		widget.NewLabel(""),
+		widget.NewLabel(""),
+	)
+}
 func assetsList() {
 
 	// let's just refresh the hash cache
-	buildAssetHashList()
+	// buildAssetHashList()
 
-	// let's use the length of the hash cache for the number of objects to make
-	program.lists.asset_list.Length = func() int { return len(program.caches.hashes) }
+	var scroll *container.Scroll
 
-	// and here is the widget we'll use for each item in the list
-	program.lists.asset_list.CreateItem = func() fyne.CanvasObject { return widget.NewLabel("") }
+	if hashesLength() == 0 {
+		scroll = container.NewVScroll(container.NewVBox(
+			layout.NewSpacer(),
+			program.buttons.token_add,
+			layout.NewSpacer(),
+		))
+	} else {
 
-	// and now here is how we want each item updated
-	program.lists.asset_list.UpdateItem = func(lii widget.ListItemID, co fyne.CanvasObject) {
+		program.lists.asset_list.HideSeparators = true
 
-		// here is the asset details
-		asset := program.caches.hashes[lii]
+		// let's use the length of the hash cache for the number of objects to make
+		program.lists.asset_list.Length = hashesLength
 
-		// now we'll check the balance of the asset against the address
-		bal, _ := program.wallet.Get_Balance_scid(asset)
+		// and here is the widget we'll use for each item in the list
+		program.lists.asset_list.CreateItem = createLabel
 
-		// here is the label for the list
-		label := truncator(asset.String()) + " " + rpc.FormatMoney(bal)
-		co.(*widget.Label).SetText(label)
-	}
+		// and now here is how we want each item updated
+		program.lists.asset_list.UpdateItem = func(lii widget.ListItemID, co fyne.CanvasObject) {
 
-	// when we select an item from the list, here's what we are going to do
-	program.lists.asset_list.OnSelected = func(id widget.ListItemID) {
+			// here is the asset details
+			asset := program.caches.assets[lii]
 
-		program.lists.asset_list.Unselect(id)
+			// here is the label for the list
+			container := co.(*fyne.Container)
+			text := asset.name
+			label := container.Objects[0].(*widget.Label)
+			label.Alignment = fyne.TextAlignCenter
+			label.SetText(text)
+
+			text = truncator(asset.hash)
+			label = container.Objects[1].(*widget.Label)
+			label.Alignment = fyne.TextAlignCenter
+			label.SetText(text)
+
+			// now we'll check the balance of the asset against the address
+			bal, _ := program.wallet.Get_Balance_scid(
+				crypto.HashHexToHash(asset.hash),
+			)
+			text = rpc.FormatMoney(bal)
+			label = container.Objects[2].(*widget.Label)
+			label.Alignment = fyne.TextAlignCenter
+			label.SetText(text)
+		}
+
+		// when we select an item from the list, here's what we are going to do
+		program.lists.asset_list.OnSelected = func(id widget.ListItemID) {
+
+			program.lists.asset_list.Unselect(id)
 
 			// here is the asset hash
 			asset := program.caches.assets[id]
 
-		// let's get the entries
-		entries := program.wallet.GetAccount().EntriesNative[asset]
+			// let's get the entries
+			entries := program.wallet.GetAccount().EntriesNative[crypto.HashHexToHash(asset.hash)]
 
 			// now let's get the scid as a string
 			scid := asset.hash
 
-		// again, let's make a list
-		entries_list := new(widget.List)
+			// again, let's make a list
+			entries_list := new(widget.List)
 
-		// set the length based on entries
-		entries_list.Length = func() int { return len(entries) }
+			// set the length based on entries
+			entries_list.Length = func() int { return len(entries) }
 
-		// we'll use a label for the list item
-		entries_list.CreateItem = func() fyne.CanvasObject { return widget.NewLabel("") }
+			// we'll use a label for the list item
+			entries_list.CreateItem = func() fyne.CanvasObject { return widget.NewLabel("") }
 
-		// here is how we'll update the item to look
-		entries_list.UpdateItem = func(lii widget.ListItemID, co fyne.CanvasObject) {
+			// here is how we'll update the item to look
+			entries_list.UpdateItem = func(lii widget.ListItemID, co fyne.CanvasObject) {
 
-			// let's make sure the entry is bodied
-			entries[lii].ProcessPayload()
+				// let's make sure the entry is bodied
+				entries[lii].ProcessPayload()
 
-			// let's split the entry up
-			parts := strings.Split(entries[lii].String(), "\n")
+				// let's split the entry up
+				parts := strings.Split(entries[lii].String(), "\n")
 
-			// get the tx type from the header
-			tx_type := parts[0]
+				// get the tx type from the header
+				tx_type := parts[0]
 
-			// make a timestamp string in local format
-			time_stamp := entries[lii].Time.Local().Format("2006-01-02 15:04")
+				// make a timestamp string in local format
+				time_stamp := entries[lii].Time.Local().Format("2006-01-02 15:04")
 
-			// here's the simple label
-			label := time_stamp + " " + tx_type
+				// here's the simple label
+				text := time_stamp + " " + tx_type
 
-			// and let's set the text for it
-			co.(*widget.Label).SetText(label)
-		}
+				label := co.(*widget.Label)
 
-		// so now, when we select an entry on the list we'll show the transfer details
-		entries_list.OnSelected = func(id widget.ListItemID) {
-			entries_list.Unselect(id)
+				// and let's set the text for it
+				label.SetText(text)
+			}
 
-			lines := strings.SplitSeq(entries[id].String(), "\n")
-			asset_details := container.NewVBox()
-			scid_label := widget.NewLabel("SCID")
-			scid_hyperlink := widget.NewHyperlink(truncator(scid), nil)
+			// so now, when we select an entry on the list we'll show the transfer details
+			entries_list.OnSelected = func(id widget.ListItemID) {
+				entries_list.Unselect(id)
+
+				lines := strings.SplitSeq(entries[id].String(), "\n")
+				asset_details := container.NewVBox()
+				scid_label := widget.NewLabel("SCID")
+				scid_hyperlink := widget.NewHyperlink(truncator(scid), nil)
+				scid_hyperlink.OnTapped = func() {
+					program.application.Clipboard().SetContent(scid)
+					showInfo("", scid+" copied to clipboard")
+				}
+				asset_details.Add(container.NewAdaptiveGrid(2, scid_label, scid_hyperlink))
+				for line := range lines {
+					if line == "" {
+						continue
+					}
+					pair := strings.Split(line, ": ")
+					key := pair[0]
+					value := pair[1]
+					var v string = value
+					if key != "Time" {
+						if len(value) > 16 {
+							v = truncator(value)
+						}
+					}
+					value_hyperlink := widget.NewHyperlink(v, nil)
+					value_hyperlink.OnTapped = func() {
+						program.application.Clipboard().SetContent(value)
+						showInfo("", value+" copied to clipboard")
+					}
+					asset_details.Add(
+						container.NewAdaptiveGrid(2,
+							widget.NewLabel(key),
+							value_hyperlink,
+						),
+					)
+				}
+
+				// we'll truncate the scid for the title
+				title := truncator(scid)
+
+				details := container.NewScroll(asset_details)
+
+				// now set it, resize it and show it
+				entry := dialog.NewCustom(title, dismiss, details, program.window)
+				entry.Resize(program.size)
+				entry.Show()
+			}
+			var smart_contract_details *dialog.CustomDialog
+
+			// we'll use the truncated scid as the header for the transfers
+			title := truncator(scid)
+
+			scid_hyperlink := widget.NewHyperlink(scid, nil)
 			scid_hyperlink.OnTapped = func() {
 				program.application.Clipboard().SetContent(scid)
 				showInfo("", scid+" copied to clipboard")
 			}
-			asset_details.Add(container.NewAdaptiveGrid(2, scid_label, scid_hyperlink))
-			for line := range lines {
-				if line == "" {
-					continue
-				}
-				pair := strings.Split(line, ": ")
-				key := pair[0]
-				value := pair[1]
-				var v string = value
-				if key != "Time" {
-					if len(value) > 16 {
-						v = truncator(value)
+
+			text := asset.name
+
+			image_thumbnail := container.NewVBox()
+
+			for k, v := range getSCValues(scid).VariableStringKeys {
+				if strings.Contains(k, "image") ||
+					strings.Contains(k, "icon") {
+					b, e := hex.DecodeString(v.(string))
+					if e != nil {
+						fmt.Println(v, e)
+						continue
+					}
+					value := string(b)
+					fmt.Println(value)
+					uri, err := storage.ParseURI(value)
+					if err != nil {
+						image := canvas.NewImageFromResource(theme.BrokenImageIcon())
+						image_thumbnail.Add(image)
+						return
+					} else {
+						ctx, cancel := context.WithTimeout(context.Background(), timeout)
+						defer cancel()
+
+						req, err := http.NewRequestWithContext(ctx, "GET", uri.String(), nil)
+						if err != nil {
+							fmt.Println(err)
+							return
+						}
+						client := http.DefaultClient
+						resp, err := client.Do(req)
+						if err != nil || resp.StatusCode != http.StatusOK {
+							image := canvas.NewImageFromResource(theme.BrokenImageIcon())
+							image.FillMode = canvas.ImageFillOriginal
+							image_thumbnail.Add(image)
+						} else {
+							defer resp.Body.Close()
+							i, _, err := image.Decode(resp.Body)
+							if err != nil {
+								image := canvas.NewImageFromResource(theme.BrokenImageIcon())
+								image.FillMode = canvas.ImageFillOriginal
+								image_thumbnail.Add(image)
+							} else {
+								h, w := 100, 100
+								thumb := image.NewNRGBA(image.Rect(0, 0, h, w))
+								draw.ApproxBiLinear.Scale(thumb, thumb.Bounds(), i, i.Bounds(), draw.Over, nil)
+								image := canvas.NewImageFromImage(thumb)
+								image.FillMode = canvas.ImageFillOriginal
+								image_thumbnail.Add(container.NewCenter(image))
+							}
+						}
 					}
 				}
-				value_hyperlink := widget.NewHyperlink(v, nil)
-				value_hyperlink.OnTapped = func() {
-					program.application.Clipboard().SetContent(value)
-					showInfo("", value+" copied to clipboard")
-				}
-				asset_details.Add(
-					container.NewAdaptiveGrid(2,
-						widget.NewLabel(key),
-						value_hyperlink,
-					),
-				)
 			}
 
-			// we'll truncate the scid for the title
-			title := truncator(scid)
+			stuff := container.NewAdaptiveGrid(1,
+				image_thumbnail,
+				container.NewCenter(widget.NewLabel(text)),
+				container.NewCenter(scid_hyperlink),
+			)
+			key_value_pairs := []struct {
+				key   string
+				value any
+			}{}
 
-			details := container.NewScroll(asset_details)
+			for k, v := range getSCValues(scid).VariableStringKeys {
+				if k == "C" {
+					continue
+				}
+				key_value_pairs = append(key_value_pairs, struct {
+					key   string
+					value any
+				}{
+					key:   k,
+					value: v,
+				})
+			}
 
-			// now set it, resize it and show it
-			entry := dialog.NewCustom(title, dismiss, details, program.window)
-			entry.Resize(program.size)
-			entry.Show()
+			sort.Slice(key_value_pairs, func(i, j int) bool {
+				return key_value_pairs[i].key < key_value_pairs[j].key
+			})
+
+			variables := container.NewVBox()
+
+			for _, pair := range key_value_pairs {
+				var value string
+				switch v := pair.value.(type) {
+				case string:
+					b, e := hex.DecodeString(v)
+					if e != nil {
+						continue
+					}
+					value = string(b)
+				case uint64:
+					value = strconv.Itoa(int(v))
+				case float64:
+					value = strconv.FormatFloat(v, 'f', 0, 64)
+				}
+				variables.Add(container.NewAdaptiveGrid(2,
+					widget.NewLabel(pair.key),
+					widget.NewLabel(value),
+				))
+			}
+			confirm := widget.NewHyperlink("Are You Sure?", nil)
+			confirm.OnTapped = func() {
+				// for good measure, we'll refresh the list
+				delete(program.wallet.GetAccount().EntriesNative, crypto.HashHexToHash(scid))
+				buildAssetHashList()
+				program.lists.asset_list.Refresh()
+				smart_contract_details.Dismiss()
+			}
+			tabs := container.NewAppTabs(
+				container.NewTabItem("Details",
+					stuff,
+				),
+				container.NewTabItem("Code",
+					container.NewScroll(
+						widget.NewRichTextWithText(getSCCode(scid).Code),
+					),
+				),
+				container.NewTabItem("Variables",
+					container.NewScroll(
+						variables,
+					),
+				),
+				container.NewTabItem("Activity",
+					entries_list,
+				),
+				container.NewTabItem("Remove",
+					container.NewCenter(confirm),
+				),
+			)
+			tabs.SetTabLocation(container.TabLocationLeading)
+			// set the entries in the dialog, resize and show
+			smart_contract_details = dialog.NewCustom(title, dismiss, tabs, program.window)
+			smart_contract_details.Resize(program.size)
+			smart_contract_details.Show()
 		}
 
-		// we'll use the truncated scid as the header for the transfers
-		title := truncator(scid) + "\ntransfer history"
+		// for good measure, we'll refresh the list
+		program.lists.asset_list.Refresh()
 
-		scid_hyperlink := widget.NewHyperlink(scid, nil)
-		scid_hyperlink.OnTapped = func() {
-			program.application.Clipboard().SetContent(scid)
-			showInfo("", scid+" copied to clipboard")
-		}
-
-		content := container.NewAdaptiveGrid(1,
-			container.NewCenter(scid_hyperlink), entries_list)
-
-		// set the entries in the dialog, resize and show
-		transfers := dialog.NewCustom(title, dismiss, content, program.window)
-		transfers.Resize(program.size)
-		transfers.Show()
+		// let's set the asset list into a new scroll
+		scroll = container.NewScroll(program.lists.asset_list)
 	}
-
-	// for good measure, we'll refresh the list
-	program.lists.asset_list.Refresh()
-
-	// let's set the asset list into a new scroll
-	scroll := container.NewScroll(program.lists.asset_list)
 
 	// and we'll set the scroll into a new dialog, resize and show
 	collection := dialog.NewCustom("Collectibles", dismiss, scroll, program.window)
