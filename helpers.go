@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -395,6 +397,38 @@ func getSCCode(scid string) rpc.GetSC_Result {
 	}
 	// the code needs to be present
 	if sc.Code == "" {
+		return rpc.GetSC_Result{}
+	}
+
+	return sc
+}
+func getSCValues(scid string) rpc.GetSC_Result {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	// get a client for the daemon's rpc
+	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
+
+	// here is our results bucket
+	var sc rpc.GetSC_Result
+
+	// here is the method we are going to use
+	var method = "DERO.GetSC"
+
+	// now for some parameters
+	var scParam = rpc.GetSC_Params{
+		SCID:       scid,
+		Code:       false,
+		Variables:  true,
+		TopoHeight: walletapi.Get_Daemon_Height(), // get the latest copy
+	}
+
+	// call for the contract
+	if err := rpcClient.CallFor(ctx, &sc, method, scParam); err != nil {
+		return rpc.GetSC_Result{}
+	}
+	// the code needs to be present
+	if sc.VariableStringKeys == nil {
 		return rpc.GetSC_Result{}
 	}
 
