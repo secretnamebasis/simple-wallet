@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -215,7 +217,7 @@ func allTransfers() []rpc.Entry {
 // simple way to update all assets
 func buildAssetHashList() {
 	// clear out the cache
-	program.caches.hashes = []crypto.Hash{}
+	program.caches.assets = []asset{}
 
 	// range over any pre-existing entries in the account
 	for hash := range program.wallet.GetAccount().EntriesNative {
@@ -224,11 +226,34 @@ func buildAssetHashList() {
 		if !hash.IsZero() {
 
 			// load each has into the cache
-			program.caches.hashes = append(program.caches.hashes, hash)
+			program.caches.assets = append(program.caches.assets, asset{
+				name: getSCNameFromVars(hash.String()),
+				hash: hash.String(),
+			})
 		}
 	}
+	// now sort them for consistency
+	sort.Slice(program.caches.assets, func(i, j int) bool {
+		return program.caches.assets[i].name > program.caches.assets[j].name
+	})
 }
-
+func getSCNameFromVars(scid string) string {
+	var text string
+	for k, v := range getSCValues(scid).VariableStringKeys {
+		if !strings.Contains(k, "name") {
+			continue
+		}
+		b, e := hex.DecodeString(v.(string))
+		if e != nil {
+			continue // what else can we do ?
+		}
+		text = string(b)
+	}
+	if text == "" {
+		text = "N/A"
+	}
+	return text
+}
 func isRegistered(s string) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -372,6 +397,38 @@ func getSCCode(scid string) rpc.GetSC_Result {
 	}
 	// the code needs to be present
 	if sc.Code == "" {
+		return rpc.GetSC_Result{}
+	}
+
+	return sc
+}
+func getSCValues(scid string) rpc.GetSC_Result {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	// get a client for the daemon's rpc
+	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
+
+	// here is our results bucket
+	var sc rpc.GetSC_Result
+
+	// here is the method we are going to use
+	var method = "DERO.GetSC"
+
+	// now for some parameters
+	var scParam = rpc.GetSC_Params{
+		SCID:       scid,
+		Code:       false,
+		Variables:  true,
+		TopoHeight: walletapi.Get_Daemon_Height(), // get the latest copy
+	}
+
+	// call for the contract
+	if err := rpcClient.CallFor(ctx, &sc, method, scParam); err != nil {
+		return rpc.GetSC_Result{}
+	}
+	// the code needs to be present
+	if sc.VariableStringKeys == nil {
 		return rpc.GetSC_Result{}
 	}
 

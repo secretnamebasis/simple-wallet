@@ -953,12 +953,14 @@ func balance_rescan() {
 					return
 				} else {
 					// now range through each token in the cache one at a time
-					for _, scid := range program.caches.hashes {
+					for _, asset := range program.caches.assets {
 						// assume there could be an error
 						var err error
 
 						// then add each scid back to the map
-						if err = program.wallet.TokenAdd(scid); err != nil {
+						if err = program.wallet.TokenAdd(
+							crypto.HashHexToHash(asset.hash),
+						); err != nil {
 							// if err, show it
 							showError(err)
 							// but don't stop, just continue the loop
@@ -966,7 +968,9 @@ func balance_rescan() {
 						}
 
 						// and then sync scid internally with the daemon
-						if err = program.wallet.Sync_Wallet_Memory_With_Daemon_internal(scid); err != nil {
+						if err = program.wallet.Sync_Wallet_Memory_With_Daemon_internal(
+							crypto.HashHexToHash(asset.hash),
+						); err != nil {
 							// if err, show it
 							showError(err)
 							// but don't stop, just continue the loop
@@ -1715,52 +1719,49 @@ func add_token() {
 	// set the place holder
 	t.SetPlaceHolder("SCID TOKEN ADDRESS")
 
-	// walk the user through adding a token
-	add := dialog.NewCustomConfirm("Add Token", confirm, dismiss,
-		container.NewVBox(
+	token_add := func(b bool) {
+		// if they cancel
+		if !b {
+			return
+		}
+		// so if the map is nil, make one
+		if program.wallet.GetAccount().EntriesNative == nil {
+			program.wallet.GetAccount().EntriesNative = make(map[crypto.Hash][]rpc.Entry)
+		}
+
+		//get the hash
+		hash := crypto.HashHexToHash(t.Text)
+		// start a sync activity widget
+		syncing := widget.NewActivity()
+		syncing.Start()
+		notice := makeCenteredWrappedLabel("syncing")
+		content := container.NewVBox(
 			layout.NewSpacer(),
-			t,
+			syncing,
+			notice,
 			layout.NewSpacer(),
-		),
-		func(b bool) {
-			// if they cancel
-			if !b {
+		)
+
+		// set it to a splash screen
+		sync := dialog.NewCustomWithoutButtons("syncing", content, program.window)
+
+		// resize and show
+		sync.Resize(program.size)
+		sync.Show()
+		go func() {
+
+			// add the token
+			if err := program.wallet.TokenAdd(hash); err != nil {
+
+				// show err if one
+				fyne.DoAndWait(func() {
+
+					showError(err)
+					sync.Dismiss()
+				})
 				return
-			}
-			// so if the map is nil, make one
-			if program.wallet.GetAccount().EntriesNative == nil {
-				program.wallet.GetAccount().EntriesNative = make(map[crypto.Hash][]rpc.Entry)
-			}
-
-			//get the hash
-			hash := crypto.HashHexToHash(t.Text)
-			// start a sync activity widget
-			syncing := widget.NewActivity()
-			syncing.Start()
-			notice := makeCenteredWrappedLabel("syncing")
-
-			// set it to a splash screen
-			sync := dialog.NewCustomWithoutButtons("syncing",
-				container.NewVBox(layout.NewSpacer(), syncing, notice, layout.NewSpacer()),
-				program.window)
-
-			// resize and show
-			sync.Resize(program.size)
-			sync.Show()
-			go func() {
-
-				// add the token
-				if err := program.wallet.TokenAdd(hash); err != nil {
-
-					// show err if one
-					fyne.DoAndWait(func() {
-
-						showError(err)
-						sync.Dismiss()
-					})
-					return
-				} else {
-
+			} else {
+				go func() {
 					// sync the token now for good measure
 					if err := program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
 						fyne.DoAndWait(func() {
@@ -1770,20 +1771,33 @@ func add_token() {
 						})
 						return
 					}
+				}()
 
-					//make a notice
-					notice := truncator(hash.String()) + "has been added to your collection"
+				//make a notice
+				notice := truncator(hash.String()) + "has been added to your collection"
 
-					// give notice to the user
-					fyne.DoAndWait(func() {
+				// give notice to the user
+				fyne.DoAndWait(func() {
 
-						showInfo("Token Add", notice)
-						sync.Dismiss()
-					})
-				}
-			}()
+					showInfo("Token Add", notice)
+					sync.Dismiss()
+				})
+			}
+		}()
+	}
+	// walk the user through adding a token
+	add := dialog.NewCustomConfirm("Add Token", confirm, dismiss,
+		container.NewVBox(
+			layout.NewSpacer(),
+			t,
+			layout.NewSpacer(),
+		),
+		token_add, program.window)
 
-		}, program.window)
+	t.OnSubmitted = func(s string) {
+		token_add(true)
+		add.Dismiss()
+	}
 
 	// resize and show
 	add.Resize(program.size)
