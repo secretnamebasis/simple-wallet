@@ -288,7 +288,8 @@ func rpc_server() {
 	// when they toggle the options
 	program.toggles.server.OnChanged = func(s string) {
 		// if on...
-		if s == "on" {
+		switch s {
+		case "on":
 			// let's assume an error
 			var err error
 
@@ -317,7 +318,7 @@ func rpc_server() {
 			// and change the label
 			program.labels.rpc_server.SetText("RPC: 🟢")
 
-		} else if s == "off" { // but if the rpc server toggle is off
+		case "off": // but if the rpc server toggle is off
 
 			// make sure it is off
 			program.toggles.server.SetSelected("off")
