@@ -36,6 +36,9 @@ func configs() *fyne.Container {
 		layout.NewSpacer(),
 		container.NewVBox(program.buttons.connections),
 		container.NewVBox(program.buttons.rpc_server),
+		// container.NewVBox(program.buttons.password),
+		// container.NewVBox(program.buttons.tx_priority),
+		// container.NewVBox(program.buttons.ringsize	),
 		layout.NewSpacer(),
 		program.containers.bottombar,
 	)
