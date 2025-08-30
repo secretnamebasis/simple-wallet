@@ -279,20 +279,22 @@ func sendForm() {
 	buildAssetHashList()
 
 	// iterate over the hash list for each
-	for _, hash := range program.caches.hashes {
+	for _, asset := range program.caches.assets {
 
 		// dynamically obtain the asset balance for each hash
 		asset_balance := func() string {
 
 			// obtain the balance of the hash
-			bal, _ := program.wallet.Get_Balance_scid(hash)
+			bal, _ := program.wallet.Get_Balance_scid(
+				crypto.HashHexToHash(asset.hash),
+			)
 
 			// return a formatted string of the balance
 			return rpc.FormatMoney(bal)
 		}
 
 		// build a label for each hash with its balance
-		label := truncator(hash.String()) + " " + asset_balance()
+		label := truncator(asset.hash) + " " + asset_balance()
 
 		// append them to the scids
 		scids = append(scids, label)
@@ -508,10 +510,10 @@ func conductTransfer() {
 
 			if isAsset {
 				// thusly, well get the asset from the cache
-				asset := program.caches.hashes[index]
+				asset := program.caches.assets[index]
 
 				// and now the scid is the asset
-				scid = asset
+				scid = crypto.HashHexToHash(asset.hash)
 			}
 
 			// now, let's build the payload

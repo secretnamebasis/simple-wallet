@@ -215,7 +215,7 @@ func allTransfers() []rpc.Entry {
 // simple way to update all assets
 func buildAssetHashList() {
 	// clear out the cache
-	program.caches.hashes = []crypto.Hash{}
+	program.caches.assets = []asset{}
 
 	// range over any pre-existing entries in the account
 	for hash := range program.wallet.GetAccount().EntriesNative {
@@ -224,11 +224,34 @@ func buildAssetHashList() {
 		if !hash.IsZero() {
 
 			// load each has into the cache
-			program.caches.hashes = append(program.caches.hashes, hash)
+			program.caches.assets = append(program.caches.assets, asset{
+				name: getSCNameFromVars(hash.String()),
+				hash: hash.String(),
+			})
 		}
 	}
+	// now sort them for consistency
+	sort.Slice(program.caches.assets, func(i, j int) bool {
+		return program.caches.assets[i].name > program.caches.assets[j].name
+	})
 }
-
+func getSCNameFromVars(scid string) string {
+	var text string
+	for k, v := range getSCValues(scid).VariableStringKeys {
+		if !strings.Contains(k, "name") {
+			continue
+		}
+		b, e := hex.DecodeString(v.(string))
+		if e != nil {
+			continue // what else can we do ?
+		}
+		text = string(b)
+	}
+	if text == "" {
+		text = "N/A"
+	}
+	return text
+}
 func isRegistered(s string) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()

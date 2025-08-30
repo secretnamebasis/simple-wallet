@@ -4,7 +4,6 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
-	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/deroproject/derohe/walletapi/rpcserver"
 )
@@ -44,9 +43,12 @@ type (
 		}
 		current string
 	}
-
+	asset struct {
+		name string
+		hash string
+	}
 	caches struct {
-		hashes []crypto.Hash
+		assets []asset
 	}
 
 	dialogues struct {

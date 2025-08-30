@@ -206,14 +206,14 @@ func assetsList() {
 
 		program.lists.asset_list.Unselect(id)
 
-		// here is the asset hash
-		asset := program.caches.hashes[id]
+			// here is the asset hash
+			asset := program.caches.assets[id]
 
 		// let's get the entries
 		entries := program.wallet.GetAccount().EntriesNative[asset]
 
-		// now let's get the scid as a string
-		scid := program.caches.hashes[id].String()
+			// now let's get the scid as a string
+			scid := asset.hash
 
 		// again, let's make a list
 		entries_list := new(widget.List)

@@ -79,10 +79,12 @@ func loggedIn() {
 	go program.wallet.SyncHistory(crypto.ZEROHASH)
 
 	// and sync asset histories
-	for _, asset := range program.caches.hashes {
-		if asset != crypto.ZEROHASH {
+	for _, asset := range program.caches.assets {
+		if asset.hash != crypto.ZEROHASH.String() {
 			// separate go routine for each asset
-			go program.wallet.SyncHistory(asset)
+			go program.wallet.SyncHistory(
+				crypto.HashHexToHash(asset.hash),
+			)
 		}
 	}
 
