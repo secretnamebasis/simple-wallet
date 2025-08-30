@@ -40,19 +40,6 @@ func loggedIn() {
 	program.wallet.SetNetwork(true)
 	program.wallet.SetOnlineMode()
 
-	go func() { // catch up with the network
-
-		// while in the go routine...
-		fyne.DoAndWait(func() {
-
-			// be sure to turn off the syncing widget
-			syncing.Stop()
-
-			// and be sure to dismiss the splash
-			splash.Dismiss()
-		})
-	}()
-
 	// make the address copiable
 	address := program.wallet.GetAddress().String()
 	program.hyperlinks.address.SetText(truncator(address))
@@ -70,8 +57,17 @@ func loggedIn() {
 	go updateBalance()
 
 	// build the cache
-	go buildAssetHashList()
+	go func() {
 
+		buildAssetHashList()
+		fyne.DoAndWait(func() {
+			// be sure to turn off the syncing widget
+			syncing.Stop()
+
+			// and be sure to dismiss the splash
+			splash.Dismiss()
+		})
+	}()
 	// save wallet every second
 	go isLoggedIn()
 
