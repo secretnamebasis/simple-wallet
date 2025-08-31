@@ -1761,6 +1761,10 @@ func add_token() {
 				})
 				return
 			} else {
+				// immediately rebuild the assets
+				buildAssetHashList()
+
+				// spin up a background goroutine
 				go func() {
 					// sync the token now for good measure
 					if err := program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
@@ -1772,13 +1776,11 @@ func add_token() {
 						return
 					}
 				}()
-
 				//make a notice
 				notice := truncator(hash.String()) + "has been added to your collection"
 
 				// give notice to the user
 				fyne.DoAndWait(func() {
-
 					showInfo("Token Add", notice)
 					sync.Dismiss()
 				})

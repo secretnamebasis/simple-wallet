@@ -1,25 +1,13 @@
 package main
 
 import (
-	"context"
-	"encoding/hex"
 	"errors"
-	"fmt"
-	"image"
-	"net/http"
-	"sort"
-	"strconv"
 	"strings"
 
-	"golang.org/x/image/draw"
-
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
-	"fyne.io/fyne/v2/storage"
-	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
@@ -356,116 +344,27 @@ func assetsList() {
 				showInfo("", scid+" copied to clipboard")
 			}
 
-			text := asset.name
-
-			image_thumbnail := container.NewVBox()
-
-			for k, v := range getSCValues(scid).VariableStringKeys {
-				if strings.Contains(k, "image") ||
-					strings.Contains(k, "icon") {
-					b, e := hex.DecodeString(v.(string))
-					if e != nil {
-						fmt.Println(v, e)
-						continue
-					}
-					value := string(b)
-					fmt.Println(value)
-					uri, err := storage.ParseURI(value)
-					if err != nil {
-						image := canvas.NewImageFromResource(theme.BrokenImageIcon())
-						image_thumbnail.Add(image)
-						return
-					} else {
-						ctx, cancel := context.WithTimeout(context.Background(), timeout)
-						defer cancel()
-
-						req, err := http.NewRequestWithContext(ctx, "GET", uri.String(), nil)
-						if err != nil {
-							fmt.Println(err)
-							return
-						}
-						client := http.DefaultClient
-						resp, err := client.Do(req)
-						if err != nil || resp.StatusCode != http.StatusOK {
-							image := canvas.NewImageFromResource(theme.BrokenImageIcon())
-							image.FillMode = canvas.ImageFillOriginal
-							image_thumbnail.Add(image)
-						} else {
-							defer resp.Body.Close()
-							i, _, err := image.Decode(resp.Body)
-							if err != nil {
-								image := canvas.NewImageFromResource(theme.BrokenImageIcon())
-								image.FillMode = canvas.ImageFillOriginal
-								image_thumbnail.Add(image)
-							} else {
-								h, w := 100, 100
-								thumb := image.NewNRGBA(image.Rect(0, 0, h, w))
-								draw.ApproxBiLinear.Scale(thumb, thumb.Bounds(), i, i.Bounds(), draw.Over, nil)
-								image := canvas.NewImageFromImage(thumb)
-								image.FillMode = canvas.ImageFillOriginal
-								image_thumbnail.Add(container.NewCenter(image))
-							}
-						}
-					}
-				}
-			}
-
 			stuff := container.NewAdaptiveGrid(1,
-				image_thumbnail,
-				container.NewCenter(widget.NewLabel(text)),
+				getSCIDImageThumbnailContainer(scid),
+				container.NewCenter(widget.NewLabel(asset.name)),
 				container.NewCenter(scid_hyperlink),
 			)
-			key_value_pairs := []struct {
-				key   string
-				value any
-			}{}
 
-			for k, v := range getSCValues(scid).VariableStringKeys {
-				if k == "C" {
-					continue
-				}
-				key_value_pairs = append(key_value_pairs, struct {
-					key   string
-					value any
-				}{
-					key:   k,
-					value: v,
-				})
-			}
-
-			sort.Slice(key_value_pairs, func(i, j int) bool {
-				return key_value_pairs[i].key < key_value_pairs[j].key
-			})
-
-			variables := container.NewVBox()
-
-			for _, pair := range key_value_pairs {
-				var value string
-				switch v := pair.value.(type) {
-				case string:
-					b, e := hex.DecodeString(v)
-					if e != nil {
-						continue
-					}
-					value = string(b)
-				case uint64:
-					value = strconv.Itoa(int(v))
-				case float64:
-					value = strconv.FormatFloat(v, 'f', 0, 64)
-				}
-				variables.Add(container.NewAdaptiveGrid(2,
-					widget.NewLabel(pair.key),
-					widget.NewLabel(value),
-				))
-			}
 			confirm := widget.NewHyperlink("Are You Sure?", nil)
 			confirm.OnTapped = func() {
-				// for good measure, we'll refresh the list
+
+				// delete the item from the EntriesNative Map
 				delete(program.wallet.GetAccount().EntriesNative, crypto.HashHexToHash(scid))
+
+				// rebuild the asset cache
 				buildAssetHashList()
+
+				// for good measure, we'll refresh the list
 				program.lists.asset_list.Refresh()
 				smart_contract_details.Dismiss()
 			}
+
+			// let's make some tabs
 			tabs := container.NewAppTabs(
 				container.NewTabItem("Details",
 					stuff,
@@ -475,19 +374,32 @@ func assetsList() {
 						widget.NewRichTextWithText(getSCCode(scid).Code),
 					),
 				),
-				container.NewTabItem("Variables",
+				container.NewTabItem("Balances",
 					container.NewScroll(
-						variables,
+						getSCIDBalancesContainer(scid),
 					),
 				),
-				container.NewTabItem("Activity",
+				container.NewTabItem("String Variables",
+					container.NewScroll(
+						getSCIDStringVarsContainer(scid),
+					),
+				),
+				container.NewTabItem("Uint64 Variables",
+					container.NewScroll(
+						getSCIDUint64VarsContainer(scid),
+					),
+				),
+				container.NewTabItem("Entries",
 					entries_list,
 				),
 				container.NewTabItem("Remove",
 					container.NewCenter(confirm),
 				),
 			)
+
+			// kind of looks nice on the side
 			tabs.SetTabLocation(container.TabLocationLeading)
+
 			// set the entries in the dialog, resize and show
 			smart_contract_details = dialog.NewCustom(title, dismiss, tabs, program.window)
 			smart_contract_details.Resize(program.size)
