@@ -5,21 +5,27 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"image"
 	"io"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/storage"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/ybbus/jsonrpc/v3"
+	"golang.org/x/image/draw"
 )
 
 // simple way to truncate hashes/address
@@ -239,6 +245,9 @@ func buildAssetHashList() {
 }
 func getSCNameFromVars(scid string) string {
 	var text string
+	if crypto.HashHexToHash(scid).IsZero() {
+		return "DERO"
+	}
 	for k, v := range getSCValues(scid).VariableStringKeys {
 		if !strings.Contains(k, "name") {
 			continue
@@ -250,7 +259,7 @@ func getSCNameFromVars(scid string) string {
 		text = string(b)
 	}
 	if text == "" {
-		text = "N/A"
+		return "N/A"
 	}
 	return text
 }
@@ -433,6 +442,188 @@ func getSCValues(scid string) rpc.GetSC_Result {
 	}
 
 	return sc
+}
+func getSCIDImageThumbnailContainer(scid string) *fyne.Container {
+	image_thumbnail := container.NewVBox()
+
+	for k, v := range getSCValues(scid).VariableStringKeys {
+		if strings.Contains(k, "image") ||
+			strings.Contains(k, "icon") {
+			b, e := hex.DecodeString(v.(string))
+			if e != nil {
+				fmt.Println(v, e)
+				continue
+			}
+			value := string(b)
+			fmt.Println(value)
+			uri, err := storage.ParseURI(value)
+			if err != nil {
+				image := canvas.NewImageFromResource(theme.BrokenImageIcon())
+				image_thumbnail.Add(image)
+				return image_thumbnail
+			} else {
+				ctx, cancel := context.WithTimeout(context.Background(), timeout/3)
+				defer cancel()
+
+				req, err := http.NewRequestWithContext(ctx, "GET", uri.String(), nil)
+				if err != nil {
+					fmt.Println(err)
+					return image_thumbnail
+				}
+				client := http.DefaultClient
+				resp, err := client.Do(req)
+				if err != nil || resp.StatusCode != http.StatusOK {
+					image := canvas.NewImageFromResource(theme.BrokenImageIcon())
+					image.FillMode = canvas.ImageFillOriginal
+					image_thumbnail.Add(image)
+				} else {
+					defer resp.Body.Close()
+					i, _, err := image.Decode(resp.Body)
+					if err != nil {
+						image := canvas.NewImageFromResource(theme.BrokenImageIcon())
+						image.FillMode = canvas.ImageFillOriginal
+						image_thumbnail.Add(image)
+					} else {
+						h, w := 100, 100
+						thumb := image.NewNRGBA(image.Rect(0, 0, h, w))
+						draw.ApproxBiLinear.Scale(thumb, thumb.Bounds(), i, i.Bounds(), draw.Over, nil)
+						image := canvas.NewImageFromImage(thumb)
+						image.FillMode = canvas.ImageFillOriginal
+						image_thumbnail.Add(container.NewCenter(image))
+					}
+				}
+			}
+		}
+	}
+	return image_thumbnail
+}
+func getSCIDBalancesContainer(scid string) *fyne.Container {
+	balances := container.NewVBox()
+	balance_pairs := []struct {
+		key   string
+		value uint64
+	}{}
+	for k, v := range getSCValues(scid).Balances {
+		balance_pairs = append(balance_pairs, struct {
+			key   string
+			value uint64
+		}{
+			key:   k,
+			value: v,
+		})
+	}
+	sort.Slice(balance_pairs, func(i, j int) bool {
+		return balance_pairs[i].key < balance_pairs[j].key
+	})
+	for _, pair := range balance_pairs {
+
+		balances.Add(container.NewAdaptiveGrid(5,
+			layout.NewSpacer(),
+			widget.NewLabel(getSCNameFromVars(pair.key)),
+			widget.NewLabel(truncator(pair.key)),
+			widget.NewLabel(rpc.FormatMoney(pair.value)),
+			layout.NewSpacer(),
+		))
+	}
+	return balances
+}
+
+func getSCIDStringVarsContainer(scid string) *fyne.Container {
+	string_vars := container.NewVBox()
+
+	if len(getSCValues(scid).VariableStringKeys) != 0 {
+		string_pairs := []struct {
+			key   string
+			value any
+		}{}
+
+		for k, v := range getSCValues(scid).VariableStringKeys {
+			if k == "C" {
+				continue
+			}
+			string_pairs = append(string_pairs, struct {
+				key   string
+				value any
+			}{
+				key:   k,
+				value: v,
+			})
+		}
+
+		sort.Slice(string_pairs, func(i, j int) bool {
+			return string_pairs[i].key < string_pairs[j].key
+		})
+
+		for _, pair := range string_pairs {
+			var value string
+			switch v := pair.value.(type) {
+			case string:
+				b, e := hex.DecodeString(v)
+				if e != nil {
+					continue
+				}
+				value = string(b)
+			case uint64:
+				value = strconv.Itoa(int(v))
+			case float64:
+				value = strconv.FormatFloat(v, 'f', 0, 64)
+			}
+			string_vars.Add(container.NewAdaptiveGrid(2,
+				widget.NewLabel(pair.key),
+				widget.NewLabel(value),
+			))
+		}
+	} else {
+		string_vars.Add(widget.NewLabel("N/A"))
+	}
+	return string_vars
+}
+
+func getSCIDUint64VarsContainer(scid string) *fyne.Container {
+	uint64_vars := container.NewVBox()
+
+	if len(getSCValues(scid).VariableUint64Keys) != 0 {
+		uint64_pairs := []struct {
+			key   uint64
+			value any
+		}{}
+		for k, v := range getSCValues(scid).VariableUint64Keys {
+
+			uint64_pairs = append(uint64_pairs, struct {
+				key   uint64
+				value any
+			}{
+				key:   k,
+				value: v,
+			})
+		}
+		sort.Slice(uint64_pairs, func(i, j int) bool {
+			return uint64_pairs[i].key < uint64_pairs[j].key
+		})
+
+		for _, pair := range uint64_pairs {
+			var value string
+			switch v := pair.value.(type) {
+			case string:
+				b, e := hex.DecodeString(v)
+				if e != nil {
+					continue
+				}
+				value = string(b)
+			case uint64:
+				value = strconv.Itoa(int(v))
+			case float64:
+				value = strconv.FormatFloat(v, 'f', 0, 64)
+			}
+			uint64_vars.Add(container.NewAdaptiveGrid(2,
+				widget.NewLabel(strconv.Itoa(int(pair.key))),
+				widget.NewLabel(value),
+			))
+		}
+	} else {
+		uint64_vars.Add(widget.NewLabel("N/A"))
+	}
+	return uint64_vars
 }
 
 // simple way to show error
