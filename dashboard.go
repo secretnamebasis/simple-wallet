@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"sort"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -93,48 +94,46 @@ func keys() {
 	program.entries.pass.SetText("")
 }
 func txList() {
-	// here are all the entries
-	entries := allTransfers()
+	// here are all the sent entries
+	s_entries := getSentTransfers()
+
+	sort.Slice(s_entries, func(i, j int) bool {
+		return s_entries[i].Height > s_entries[j].Height
+	})
 
 	// let's make a list of transactions
-	program.lists.transactions = new(widget.List)
+	sent := new(widget.List)
 
 	// we'll use the length of entries for the count of widget's to return
-	program.lists.transactions.Length = func() int { return len(entries) }
+	sent.Length = func() int { return len(s_entries) }
 
 	// here is the widget that we are going to use for each item of the list
-	program.lists.transactions.CreateItem = func() fyne.CanvasObject { return widget.NewLabel("") }
-
+	sent.CreateItem = createLabel
 	// then let's update the item to contain the content
-	program.lists.transactions.UpdateItem = func(lii widget.ListItemID, co fyne.CanvasObject) {
+	sent.UpdateItem = func(lii widget.ListItemID, co fyne.CanvasObject) {
+
 		// let's make sure the entry is bodied
-		entries[lii].ProcessPayload()
-
-		// let's split the entry up
-		parts := strings.Split(entries[lii].String(), "\n")
-
-		// get the tx type from the header
-		tx_type := parts[0]
+		s_entries[lii].ProcessPayload()
 
 		// make a timestamp string in local format
-		time_stamp := entries[lii].Time.Local().Format("2006-01-02 15:04")
-
-		// here's the simple label
-		label := time_stamp + " " + tx_type
-
-		// and let's set the text for it
-		co.(*widget.Label).SetText(label)
+		time_stamp := s_entries[lii].Time.Local().Format("2006-01-02 15:04")
+		txid := truncator(s_entries[lii].TXID)
+		amount := s_entries[lii].Amount
+		container := co.(*fyne.Container)
+		container.Objects[0].(*widget.Label).SetText(time_stamp)
+		container.Objects[1].(*widget.Label).SetText(txid)
+		container.Objects[2].(*widget.Label).SetText(rpc.FormatMoney(amount))
 	}
 
 	// then when we select one of them, let' open it up!
-	program.lists.transactions.OnSelected = func(id widget.ListItemID) {
+	sent.OnSelected = func(id widget.ListItemID) {
 
-		program.lists.transactions.Unselect(id)
+		sent.Unselect(id)
 
 		// body the entries
-		entries[id].ProcessPayload()
+		s_entries[id].ProcessPayload()
 
-		e := entries[id]
+		e := s_entries[id]
 
 		lines := strings.SplitSeq(e.String(), "\n")
 		tx_details := container.NewVBox()
@@ -173,8 +172,169 @@ func txList() {
 		txs.Resize(program.size)
 		txs.Show()
 	}
+	// here are all the entries
+	r_entries := getReceivedTransfers()
 
-	txs := dialog.NewCustom("transactions", dismiss, program.lists.transactions, program.window)
+	sort.Slice(r_entries, func(i, j int) bool {
+		return r_entries[i].Height > r_entries[j].Height
+	})
+
+	// let's make a list of received transactions
+	received := new(widget.List)
+
+	// we'll use the length of entries for the count of widget's to return
+	received.Length = func() int { return len(r_entries) }
+
+	// here is the widget that we are going to use for each item of the list
+	received.CreateItem = createLabel
+	// then let's update the item to contain the content
+	received.UpdateItem = func(lii widget.ListItemID, co fyne.CanvasObject) {
+
+		// let's make sure the entry is bodied
+		r_entries[lii].ProcessPayload()
+
+		// make a timestamp string in local format
+		time_stamp := r_entries[lii].Time.Local().Format("2006-01-02 15:04")
+		txid := truncator(r_entries[lii].TXID)
+		amount := r_entries[lii].Amount
+		container := co.(*fyne.Container)
+		container.Objects[0].(*widget.Label).SetText(time_stamp)
+		container.Objects[1].(*widget.Label).SetText(txid)
+		container.Objects[2].(*widget.Label).SetText(rpc.FormatMoney(amount))
+	}
+
+	// then when we select one of them, let' open it up!
+	received.OnSelected = func(id widget.ListItemID) {
+
+		received.Unselect(id)
+
+		// body the entries
+		r_entries[id].ProcessPayload()
+
+		e := r_entries[id]
+
+		lines := strings.SplitSeq(e.String(), "\n")
+		tx_details := container.NewVBox()
+
+		for line := range lines {
+			if line == "" {
+				continue
+			}
+			pair := strings.Split(line, ": ")
+			key := pair[0]
+			key_entry := widget.NewLabel(key)
+			value := pair[1]
+			var v string = value
+			if key != "Time" {
+				if len(value) > 16 {
+					v = truncator(value)
+				}
+			}
+			value_hyperlink := widget.NewHyperlink(v, nil)
+			value_hyperlink.OnTapped = func() {
+				program.application.Clipboard().SetContent(value)
+				showInfo("", value+" copied to clipboard")
+			}
+			tx_details.Add(container.NewAdaptiveGrid(2, key_entry, value_hyperlink))
+		}
+
+		// make a simple details scrolling container
+		details := container.NewScroll(tx_details)
+
+		// load up dialog with the container
+		txs := dialog.NewCustom(
+			"Transaction Detail", dismiss,
+			details, program.window,
+		)
+
+		txs.Resize(program.size)
+		txs.Show()
+	}
+	// here are all the coinbase entries
+	coins := getCoinbaseTransfers()
+
+	sort.Slice(coins, func(i, j int) bool {
+		return coins[i].Height > coins[j].Height
+	})
+
+	// let's make a list of transactions
+	coinbase := new(widget.List)
+
+	// we'll use the length of entries for the count of widget's to return
+	coinbase.Length = func() int { return len(coins) }
+
+	// here is the widget that we are going to use for each item of the list
+	coinbase.CreateItem = createLabel
+	// then let's update the item to contain the content
+	coinbase.UpdateItem = func(lii widget.ListItemID, co fyne.CanvasObject) {
+
+		// let's make sure the entry is bodied
+		coins[lii].ProcessPayload()
+
+		// make a timestamp string in local format
+		time_stamp := coins[lii].Time.Local().Format("2006-01-02 15:04")
+		txid := truncator(coins[lii].BlockHash)
+		amount := coins[lii].Amount
+		container := co.(*fyne.Container)
+		container.Objects[0].(*widget.Label).SetText(time_stamp)
+		container.Objects[1].(*widget.Label).SetText(txid)
+		container.Objects[2].(*widget.Label).SetText(rpc.FormatMoney(amount))
+	}
+
+	// then when we select one of them, let' open it up!
+	coinbase.OnSelected = func(id widget.ListItemID) {
+
+		coinbase.Unselect(id)
+
+		// body the entries
+		coins[id].ProcessPayload()
+
+		e := coins[id]
+
+		lines := strings.SplitSeq(e.String(), "\n")
+		tx_details := container.NewVBox()
+
+		for line := range lines {
+			if line == "" {
+				continue
+			}
+			pair := strings.Split(line, ": ")
+			key := pair[0]
+			key_entry := widget.NewLabel(key)
+			value := pair[1]
+			var v string = value
+			if key != "Time" {
+				if len(value) > 16 {
+					v = truncator(value)
+				}
+			}
+			value_hyperlink := widget.NewHyperlink(v, nil)
+			value_hyperlink.OnTapped = func() {
+				program.application.Clipboard().SetContent(value)
+				showInfo("", value+" copied to clipboard")
+			}
+			tx_details.Add(container.NewAdaptiveGrid(2, key_entry, value_hyperlink))
+		}
+
+		// make a simple details scrolling container
+		details := container.NewScroll(tx_details)
+
+		// load up dialog with the container
+		txs := dialog.NewCustom(
+			"Transaction Detail", dismiss,
+			details, program.window,
+		)
+
+		txs.Resize(program.size)
+		txs.Show()
+	}
+	tabs := container.NewAppTabs(
+		container.NewTabItem("Sent", sent),
+		container.NewTabItem("Received", received),
+		container.NewTabItem("Coinbase", coinbase),
+	)
+	tabs.SetTabLocation(container.TabLocationLeading)
+	txs := dialog.NewCustom("transactions", dismiss, tabs, program.window)
 	txs.Resize(program.size)
 	txs.Show()
 }
