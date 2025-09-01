@@ -100,7 +100,7 @@ func notificationNewEntry() {
 		// go get the transfers
 		var current_transfers []rpc.Entry
 		if program.wallet != nil { // expressly validate this
-			current_transfers = allTransfers()
+			current_transfers = getAllTransfers()
 		} else {
 			continue
 		}
@@ -210,14 +210,34 @@ func updateBalance() {
 }
 
 // simple way to get all transfers
-func allTransfers() []rpc.Entry {
+func getTransfers(coin, in, out bool) []rpc.Entry {
 	return program.wallet.Show_Transfers(
 		crypto.ZEROHASH,
-		true, true, true,
+		coin, in, out,
 		0, uint64(walletapi.Get_Daemon_Height()),
 		"", "",
 		0, 0,
 	)
+}
+
+// simple way to get all transfers
+func getAllTransfers() []rpc.Entry {
+	return getTransfers(true, true, true)
+}
+
+// simple way to get all transfers
+func getCoinbaseTransfers() []rpc.Entry {
+	return getTransfers(true, false, false)
+}
+
+// simple way to get all transfers
+func getReceivedTransfers() []rpc.Entry {
+	return getTransfers(false, true, false)
+}
+
+// simple way to get all transfers
+func getSentTransfers() []rpc.Entry {
+	return getTransfers(false, false, true)
 }
 
 // simple way to update all assets

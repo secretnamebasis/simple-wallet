@@ -927,7 +927,7 @@ func balance_rescan() {
 							break
 						}
 
-						transfers := allTransfers()
+						transfers := getAllTransfers()
 						current := len(transfers)
 						if current == old {
 							continue
