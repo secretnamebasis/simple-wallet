@@ -83,73 +83,79 @@ func filesign() {
 	sign := widget.NewHyperlink("filesign", nil)
 
 	// and when the user taps it
-	sign.OnTapped = func() {
+	onTapped := func() {
 		var fs *dialog.FormDialog
 		program.entries.pass.OnSubmitted = func(s string) {
 			fs.Submit()
 			fs.Dismiss()
 		}
-		fs = dialog.NewForm("Sign File?", confirm, dismiss,
-			[]*widget.FormItem{widget.NewFormItem("", program.entries.pass)},
-			func(b bool) {
-				// if they cancel
-				if !b {
+		// create a callback function
+		callback := func(b bool) {
+			// if they cancel
+			if !b {
+				return
+			}
+
+			// copy the password
+			pass := program.entries.pass.Text
+
+			// dump the text
+			program.entries.pass.SetText("")
+
+			// check the password first
+			if !program.wallet.Check_Password(pass) {
+
+				// let them know if they were wrong
+				showError(errors.New("wrong password"))
+
+				// dump the filepath
+				program.entries.file.entry.SetText("")
+				return
+			} else {
+				// get the filename
+				filename := program.entries.file.entry.Text
+
+				//dump the entry
+				program.entries.file.entry.SetText("")
+
+				// read the file
+				file, err := os.ReadFile(filename)
+				if err != nil {
+					showError(err)
 					return
 				}
 
-				// copy the password
-				pass := program.entries.pass.Text
+				// sign the file into bytes
+				data := program.wallet.SignData(file)
 
-				// dump the text
-				program.entries.pass.SetText("")
-
-				// check the password first
-				if !program.wallet.Check_Password(pass) {
-
-					// let them know if they were wrong
-					showError(errors.New("wrong password"))
-
-					// dump the filepath
-					program.entries.file.entry.SetText("")
-					return
-				} else {
-					// get the filename
-					filename := program.entries.file.entry.Text
-
-					//dump the entry
-					program.entries.file.entry.SetText("")
-
-					// read the file
-					file, err := os.ReadFile(filename)
-					if err != nil {
-						showError(err)
-						return
-					}
-
-					// sign the file into bytes
-					data := program.wallet.SignData(file)
-
-					// it is possible to sign data as an unregistered user
-					if !isRegistered(program.wallet.GetAddress().String()) {
-						notice := "you have signed a file as an unregistered user"
-						// notify the user, but continue anyway
-						showInfo("NOTICE", notice)
-					}
-
-					// make a filename
-					save_path := filename + ".signed"
-
-					// write the file to disc
-					os.WriteFile(save_path, data, default_file_permissions)
-
-					// notify the user
-					showInfo("Filesign", "File successfully signed")
-
+				// it is possible to sign data as an unregistered user
+				if !isRegistered(program.wallet.GetAddress().String()) {
+					notice := "you have signed a file as an unregistered user"
+					// notify the user, but continue anyway
+					showInfo("NOTICE", notice)
 				}
-				// display to main window
-			}, program.window)
+
+				// make a filename
+				save_path := filename + ".signed"
+
+				// write the file to disc
+				os.WriteFile(save_path, data, default_file_permissions)
+
+				// notify the user
+				showInfo("Filesign", "File successfully signed")
+
+			}
+		}
+		// now create a simple form
+		content := []*widget.FormItem{widget.NewFormItem("", program.entries.pass)}
+
+		// set the content and the callback
+		fs = dialog.NewForm("Sign File?", confirm, dismiss, content, callback, program.window)
 		fs.Show()
 	}
+
+	// now set the on tapped
+	sign.OnTapped = onTapped
 
 	// we are going to do the same thing, but the reverse direction
 
@@ -157,98 +163,106 @@ func filesign() {
 	verify := widget.NewHyperlink("fileverify", nil)
 
 	// when they click the link
-	verify.OnTapped = func() {
+	onTapped = func() {
 		var v *dialog.FormDialog
 		program.entries.pass.OnSubmitted = func(s string) {
 			v.Submit()
 			v.Dismiss()
 		}
-		v = dialog.NewForm("Verify File?", confirm, dismiss,
-			[]*widget.FormItem{widget.NewFormItem("", program.entries.pass)},
-			func(b bool) {
-				// if they cancel
-				if !b {
+
+		// create a callback
+		callback := func(b bool) {
+			// if they cancel
+			if !b {
+				return
+			}
+
+			// copy the password
+			pass := program.entries.pass.Text
+
+			// dump the text
+			program.entries.pass.SetText("")
+
+			// check the password, every time
+			if !program.wallet.Check_Password(pass) {
+
+				// show and error when wrong
+				showError(errors.New("wrong password"))
+
+				//dump entry
+				program.entries.file.entry.SetText("")
+
+			} else {
+				// get the filename
+				filename := program.entries.file.entry.Text
+				program.entries.file.entry.SetText("")
+
+				// check if the file is a .signed file
+				if !strings.HasSuffix(filename, ".signed") {
+
+					// display error
+					showError(errors.New("not a .signed file"))
+
 					return
 				}
 
-				// copy the password
-				pass := program.entries.pass.Text
-
-				// dump the text
-				program.entries.pass.SetText("")
-
-				// check the password, every time
-				if !program.wallet.Check_Password(pass) {
-
-					// show and error when wrong
-					showError(errors.New("wrong password"))
-
-					//dump entry
-					program.entries.file.entry.SetText("")
-
-				} else {
-					// get the filename
-					filename := program.entries.file.entry.Text
-					program.entries.file.entry.SetText("")
-
-					// check if the file is a .signed file
-					if !strings.HasSuffix(filename, ".signed") {
-
-						// display error
-						showError(errors.New("not a .signed file"))
-
-						return
-					}
-
-					// if everything is good so far, read the files
-					file, err := os.ReadFile(filename)
-					if err != nil {
-						showError(err)
-						return
-					}
-
-					// now parse the file to get the details
-					sign, // this is the signer
-						contents, // this is the contents
-						err :=    // as well as an error
-						program.wallet.CheckSignature(file)
-
-					// if there is an error
-					if err != nil {
-
-						// show the user
-						showError(err)
-						return
-					}
-
-					// it is possible to sign data as an unregistered user
-					if !isRegistered(sign.String()) {
-						notice := "an unregistered user has signed this data"
-						// notify the user, but continue
-						showInfo("NOTICE", notice)
-					}
-
-					// now trim the .signed from the filename
-					save_path := strings.TrimSuffix(filename, ".signed")
-
-					// write the contents to disk
-					os.WriteFile(save_path, contents, default_file_permissions)
-
-					// notify the user
-					notice := "File successfully verified\n" +
-						"Signed by: " + truncator(sign.String()) + "\n" +
-						"Message saved as " + save_path
-
-					// load the notice into the dialog
-					fv := dialog.NewInformation("FileVerify", notice, program.window)
-					fv.Show()
+				// if everything is good so far, read the files
+				file, err := os.ReadFile(filename)
+				if err != nil {
+					showError(err)
 					return
 				}
 
-				// load it into the main window
-			}, program.window)
+				// now parse the file to get the details
+				sign, // this is the signer
+					contents, // this is the contents
+					err :=    // as well as an error
+					program.wallet.CheckSignature(file)
+
+				// if there is an error
+				if err != nil {
+
+					// show the user
+					showError(err)
+					return
+				}
+
+				// it is possible to sign data as an unregistered user
+				if !isRegistered(sign.String()) {
+					notice := "an unregistered user has signed this data"
+					// notify the user, but continue
+					showInfo("NOTICE", notice)
+				}
+
+				// now trim the .signed from the filename
+				save_path := strings.TrimSuffix(filename, ".signed")
+
+				// write the contents to disk
+				os.WriteFile(save_path, contents, default_file_permissions)
+
+				// notify the user
+				notice := "File successfully verified\n" +
+					"Signed by: " + truncator(sign.String()) + "\n" +
+					"Message saved as " + save_path
+
+				// load the notice into the dialog
+				fv := dialog.NewInformation("FileVerify", notice, program.window)
+				fv.Show()
+				return
+			}
+
+		}
+
+		// create a simple form
+		content := []*widget.FormItem{widget.NewFormItem("", program.entries.pass)}
+
+		// set the content and the callback
+		v = dialog.NewForm("Verify File?", confirm, dismiss, content, callback, program.window)
 		v.Show()
 	}
+
+	// set on tapped
+	verify.OnTapped = onTapped
 
 	// now let's make another notice
 	notice := "filesign and fileverify are novel DERO features. "
@@ -259,17 +273,18 @@ func filesign() {
 	label := makeCenteredWrappedLabel(notice)
 
 	// let's load all the widgets into a container inside a dialog
-	file := dialog.NewCustom("filesign/fileverify", dismiss,
-		container.NewVBox(
-			layout.NewSpacer(),
-			container.NewVBox(program.entries.file),
-			container.NewAdaptiveGrid(2,
-				container.NewCenter(sign),
-				container.NewCenter(verify),
-			),
-			label,
-			layout.NewSpacer(),
-		), program.window)
+	content := container.NewVBox(
+		layout.NewSpacer(),
+		container.NewVBox(program.entries.file),
+		container.NewAdaptiveGrid(2,
+			container.NewCenter(sign),
+			container.NewCenter(verify),
+		),
+		label,
+		layout.NewSpacer(),
+	)
+
+	file := dialog.NewCustom("filesign/fileverify", dismiss, content, program.window)
 
 	//resize and show
 	file.Resize(program.size)
@@ -283,158 +298,172 @@ func self_crypt() {
 	encrypt := widget.NewHyperlink("encrypt", nil)
 
 	// when the user clicks here...
-	encrypt.OnTapped = func() {
+	onTapped := func() {
 		var e *dialog.FormDialog
 		program.entries.pass.OnSubmitted = func(s string) {
 			e.Submit()
 			e.Dismiss()
 		}
-		e = dialog.NewForm("Encrypt File?", confirm, dismiss,
-			[]*widget.FormItem{widget.NewFormItem("", program.entries.pass)}, func(b bool) {
-				// if they cancel
-				if !b {
+		// create a callback function
+		callback := func(b bool) {
+			// if they cancel
+			if !b {
+				return
+			}
+			// let's get the password
+			pass := program.entries.pass.Text
+
+			//dump the entry
+			program.entries.pass.SetText("")
+
+			// check the password
+			if !program.wallet.Check_Password(pass) {
+				// notify them when wrong
+				showError(errors.New("wrong password"))
+
+				// dump the entry
+				program.entries.file.entry.SetText("")
+			} else {
+
+				// get the filename
+				filename := program.entries.file.entry.Text
+
+				// dump the entry
+				program.entries.file.entry.SetText("")
+
+				// read the file
+				file, err := os.ReadFile(filename)
+				if err != nil {
+					// display error if there is one
+					showError(err)
 					return
 				}
-				// let's get the password
-				pass := program.entries.pass.Text
 
-				//dump the entry
-				program.entries.pass.SetText("")
-
-				// check the password
-				if !program.wallet.Check_Password(pass) {
-					// notify them when wrong
-					showError(errors.New("wrong password"))
-
-					// dump the entry
-					program.entries.file.entry.SetText("")
-				} else {
-
-					// get the filename
-					filename := program.entries.file.entry.Text
-
-					// dump the entry
-					program.entries.file.entry.SetText("")
-
-					// read the file
-					file, err := os.ReadFile(filename)
-					if err != nil {
-						// display error if there is one
-						showError(err)
-						return
-					}
-
-					// encrypt the data
-					data, err := program.wallet.Encrypt(file)
-					if err != nil {
-						showError(err)
-						return
-					}
-
-					// made a save path
-					save_path := filename + ".enc"
-
-					// write file to disk
-					os.WriteFile(save_path, data, default_file_permissions)
-
-					// make a success notice
-					notice := "File successfully encrypted\n" +
-						"Message saved as " + save_path
-
-					// load it , and show it
-					e := dialog.NewInformation("Encrypt", notice, program.window)
-					e.Resize(program.size)
-					e.Show()
+				// encrypt the data
+				data, err := program.wallet.Encrypt(file)
+				if err != nil {
+					showError(err)
 					return
-
 				}
-			}, program.window)
+
+				// made a save path
+				save_path := filename + ".enc"
+
+				// write file to disk
+				os.WriteFile(save_path, data, default_file_permissions)
+
+				// make a success notice
+				notice := "File successfully encrypted\n" +
+					"Message saved as " + save_path
+
+				// load it , and show it
+				e := dialog.NewInformation("Encrypt", notice, program.window)
+				e.Resize(program.size)
+				e.Show()
+				return
+
+			}
+		}
+
+		// create a simple form
+		content := []*widget.FormItem{widget.NewFormItem("", program.entries.pass)}
+
+		// set the content and the callback
+		e = dialog.NewForm("Encrypt File?", confirm, dismiss, content, callback, program.window)
 		e.Show()
 	}
+	// now set the on tapped
+	encrypt.OnTapped = onTapped
 
 	// now let's decrypt
 	decrypt := widget.NewHyperlink("decrypt", nil)
 
 	// here's what we are going to do
-	decrypt.OnTapped = func() {
+	onTapped = func() {
 		var d *dialog.FormDialog
 		program.entries.pass.OnSubmitted = func(s string) {
 			d.Submit()
 			d.Dismiss()
 		}
+		// create a callback function
+		callback := func(b bool) {
+			// if they cancel
+			if !b {
+				return
+			}
+			// get the password
+			pass := program.entries.pass.Text
 
-		d = dialog.NewForm("Decrypt File?", confirm, dismiss,
-			[]*widget.FormItem{widget.NewFormItem("", program.entries.pass)},
-			func(b bool) {
-				// if they cancel
-				if !b {
-					return
-				}
-				// get the password
-				pass := program.entries.pass.Text
+			// dump the password
+			program.entries.pass.SetText("")
 
-				// dump the password
-				program.entries.pass.SetText("")
+			// check the password
+			if !program.wallet.Check_Password(pass) {
 
-				// check the password
-				if !program.wallet.Check_Password(pass) {
+				// notify the user
+				showError(errors.New("wrong password"))
+
+				// dump the file path
+				program.entries.file.entry.SetText("")
+
+			} else {
+
+				// get the file name
+				filename := program.entries.file.entry.Text
+
+				// dump the entry
+				program.entries.file.entry.SetText("")
+
+				// check if this is an .enc file
+				if !strings.HasSuffix(filename, ".enc") {
 
 					// notify the user
-					showError(errors.New("wrong password"))
-
-					// dump the file path
-					program.entries.file.entry.SetText("")
-
-				} else {
-
-					// get the file name
-					filename := program.entries.file.entry.Text
-
-					// dump the entry
-					program.entries.file.entry.SetText("")
-
-					// check if this is an .enc file
-					if !strings.HasSuffix(filename, ".enc") {
-
-						// notify the user
-						showError(errors.New("not a .enc file"))
-						return
-					}
-
-					// read the file
-					file, err := os.ReadFile(filename)
-					if err != nil {
-						showError(err)
-						return
-					}
-
-					// decrypt the file
-					data, err := program.wallet.Decrypt(file)
-					if err != nil {
-						showError(err)
-						return
-					}
-
-					// trim the suffix off
-					save_path := strings.TrimSuffix(filename, ".enc")
-
-					// write the decrypted file
-					os.WriteFile(save_path, data, default_file_permissions)
-
-					// build a notice
-					notice := "File successfully decrypted\n" +
-						"Message saved as " + save_path
-
-					// load the notice and show it
-					d := dialog.NewInformation("Decrypt", notice, program.window)
-					d.Resize(program.size)
-					d.Show()
+					showError(errors.New("not a .enc file"))
 					return
 				}
-				// show decrypt in the window
-			}, program.window)
+
+				// read the file
+				file, err := os.ReadFile(filename)
+				if err != nil {
+					showError(err)
+					return
+				}
+
+				// decrypt the file
+				data, err := program.wallet.Decrypt(file)
+				if err != nil {
+					showError(err)
+					return
+				}
+
+				// trim the suffix off
+				save_path := strings.TrimSuffix(filename, ".enc")
+
+				// write the decrypted file
+				os.WriteFile(save_path, data, default_file_permissions)
+
+				// build a notice
+				notice := "File successfully decrypted\n" +
+					"Message saved as " + save_path
+
+				// load the notice and show it
+				d := dialog.NewInformation("Decrypt", notice, program.window)
+				d.Resize(program.size)
+				d.Show()
+				return
+			}
+		}
+
+		// create a simple form
+		content := []*widget.FormItem{widget.NewFormItem("", program.entries.pass)}
+
+		// set the content and the callback
+		d = dialog.NewForm("Decrypt File?", confirm, dismiss, content, callback, program.window)
 		d.Show()
 	}
+
+	// set the callback for on tapped
+	decrypt.OnTapped = onTapped
 
 	// let's make another notice
 	notice := "DERO wallets allow users to symmetrically encrypt/decrypt information. "
@@ -443,20 +472,19 @@ func self_crypt() {
 	// create a label widget
 	label := makeCenteredWrappedLabel(notice)
 
-	// load the widgets and dialog
-	self_crypt := dialog.NewCustom("Self Encrypt/Decrypt", dismiss,
-		container.NewVBox(
-			layout.NewSpacer(),
-			container.NewVBox(program.entries.file),
-			container.NewAdaptiveGrid(2,
-				container.NewCenter(encrypt),
-				container.NewCenter(decrypt),
-			),
-			label,
-			layout.NewSpacer(),
+	content := container.NewVBox(
+		layout.NewSpacer(),
+		container.NewVBox(program.entries.file),
+		container.NewAdaptiveGrid(2,
+			container.NewCenter(encrypt),
+			container.NewCenter(decrypt),
 		),
-		// load it in the main window
-		program.window)
+		label,
+		layout.NewSpacer(),
+	)
+
+	// load the widgets and dialog
+	self_crypt := dialog.NewCustom("Self Encrypt/Decrypt", dismiss, content, program.window)
 
 	// resize and show
 	self_crypt.Resize(program.size)
@@ -469,187 +497,205 @@ func recipient_crypt() {
 
 	// now we are going to encrypt a file
 	encrypt := widget.NewHyperlink("encrypt", nil)
-	encrypt.OnTapped = func() {
+
+	// create an onTapped function
+	onTapped := func() {
 		var e *dialog.FormDialog
 		program.entries.pass.OnSubmitted = func(s string) {
 			e.Submit()
 			e.Dismiss()
 		}
-		e = dialog.NewForm("Encrypt File?", confirm, dismiss,
-			[]*widget.FormItem{widget.NewFormItem("", program.entries.pass)},
-			func(b bool) {
-				// if they cancel
-				if !b {
-					return
-				}
-				// let's validate the address real quick
-				if err := program.entries.counterparty.Validate(); err != nil {
-					showError(err)
-					return
-				}
+		callback := func(b bool) {
+			// if they cancel
+			if !b {
+				return
+			}
+			// let's validate the address real quick
+			if err := program.entries.counterparty.Validate(); err != nil {
+				showError(err)
+				return
+			}
 
-				// get the pass
-				pass := program.entries.pass.Text
+			// get the pass
+			pass := program.entries.pass.Text
+
+			// dump the entry
+			program.entries.pass.SetText("")
+
+			// check the password
+			if !program.wallet.Check_Password(pass) {
+				showError(errors.New("wrong password"))
+				program.entries.counterparty.SetText("")
+				program.entries.file.entry.SetText("")
+			} else {
+
+				//get the filename
+				filename := program.entries.file.entry.Text
 
 				// dump the entry
-				program.entries.pass.SetText("")
+				program.entries.file.entry.SetText("")
 
-				// check the password
-				if !program.wallet.Check_Password(pass) {
-					showError(errors.New("wrong password"))
+				// read the file
+				file, err := os.ReadFile(filename)
+				if err != nil {
+					showError(err)
 					program.entries.counterparty.SetText("")
-					program.entries.file.entry.SetText("")
-				} else {
-
-					//get the filename
-					filename := program.entries.file.entry.Text
-
-					// dump the entry
-					program.entries.file.entry.SetText("")
-
-					// read the file
-					file, err := os.ReadFile(filename)
-					if err != nil {
-						showError(err)
-						program.entries.counterparty.SetText("")
-						return
-					}
-
-					// let's check the receiver
-					addr, err := rpc.NewAddress(program.receiver)
-					if err != nil {
-						// show the user the error
-						showError(err)
-						program.entries.counterparty.SetText("")
-						return
-					}
-
-					// get your secret as big int
-					secret_key := program.wallet.Get_Keys().Secret.BigInt()
-
-					// get the recipient pub key
-					reciever_pub_key := addr.PublicKey.G1()
-
-					// make a shared key
-					shared_key := crypto.GenerateSharedSecret(secret_key, reciever_pub_key)
-
-					// encrypt the file using the shared key
-					crypto.EncryptDecryptUserData(shared_key, file)
-
-					// use the .enc suffix
-					save_path := filename + ".enc"
-
-					// write the file to disk
-					os.WriteFile(save_path, file, default_file_permissions)
-
-					// build a notice
-					notice := "File successfully encrypted\n" +
-						"Message saved as " + save_path
-
-					// load it into the dialog
-					e := dialog.NewInformation("Encrypt", notice, program.window)
-
-					// resize and show
-					e.Resize(program.size)
-					e.Show()
 					return
-
 				}
-				// use the main window for the encrypt
-			}, program.window)
+
+				// let's check the receiver
+				addr, err := rpc.NewAddress(program.receiver)
+				if err != nil {
+					// show the user the error
+					showError(err)
+					program.entries.counterparty.SetText("")
+					return
+				}
+
+				// get your secret as big int
+				secret_key := program.wallet.Get_Keys().Secret.BigInt()
+
+				// get the recipient pub key
+				reciever_pub_key := addr.PublicKey.G1()
+
+				// make a shared key
+				shared_key := crypto.GenerateSharedSecret(secret_key, reciever_pub_key)
+
+				// encrypt the file using the shared key
+				crypto.EncryptDecryptUserData(shared_key, file)
+
+				// use the .enc suffix
+				save_path := filename + ".enc"
+
+				// write the file to disk
+				os.WriteFile(save_path, file, default_file_permissions)
+
+				// build a notice
+				notice := "File successfully encrypted\n" +
+					"Message saved as " + save_path
+
+				// load it into the dialog
+				e := dialog.NewInformation("Encrypt", notice, program.window)
+
+				// resize and show
+				e.Resize(program.size)
+				e.Show()
+				return
+
+			}
+			// use the main window for the encrypt
+		}
+
+		// create a simple form
+		content := []*widget.FormItem{widget.NewFormItem("", program.entries.pass)}
+
+		// set the content and the callback
+		e = dialog.NewForm("Encrypt File?", confirm, dismiss, content, callback, program.window)
 		e.Show()
 	}
+	// set the function
+	encrypt.OnTapped = onTapped
 
 	// let's decrypt a file
 	decrypt := widget.NewHyperlink("decrypt", nil)
-	decrypt.OnTapped = func() {
+
+	// reassign the on tapped
+	onTapped = func() {
 		var d *dialog.FormDialog
 		program.entries.pass.OnSubmitted = func(s string) {
 			d.Submit()
 			d.Dismiss()
 		}
-		d = dialog.NewForm("Decrypt File?", confirm, dismiss,
-			[]*widget.FormItem{widget.NewFormItem("", program.entries.pass)},
-			func(b bool) {
-				// if they cancel
-				if !b {
+
+		callback := func(b bool) {
+			// if they cancel
+			if !b {
+				return
+			}
+			// let's validate the address real quick
+			if err := program.entries.counterparty.Validate(); err != nil {
+				showError(err)
+				return
+			}
+			// get the pass
+			pass := program.entries.pass.Text
+
+			// dump the password
+			program.entries.pass.SetText("")
+
+			// check the password
+			if !program.wallet.Check_Password(pass) {
+				showError(errors.New("wrong password"))
+				program.entries.file.entry.SetText("")
+			} else {
+
+				// get the filename
+				filename := program.entries.file.entry.Text
+
+				// check if it is an .enc file
+				if !strings.HasSuffix(filename, ".enc") {
+					showError(errors.New("not a .enc file"))
 					return
 				}
-				// let's validate the address real quick
-				if err := program.entries.counterparty.Validate(); err != nil {
+
+				// read the file
+				file, err := os.ReadFile(filename)
+				if err != nil {
 					showError(err)
 					return
 				}
-				// get the pass
-				pass := program.entries.pass.Text
 
-				// dump the password
-				program.entries.pass.SetText("")
-
-				// check the password
-				if !program.wallet.Check_Password(pass) {
-					showError(errors.New("wrong password"))
-					program.entries.file.entry.SetText("")
-				} else {
-
-					// get the filename
-					filename := program.entries.file.entry.Text
-
-					// check if it is an .enc file
-					if !strings.HasSuffix(filename, ".enc") {
-						showError(errors.New("not a .enc file"))
-						return
-					}
-
-					// read the file
-					file, err := os.ReadFile(filename)
-					if err != nil {
-						showError(err)
-						return
-					}
-
-					// check the receiver address
-					addr, err := rpc.NewAddress(program.receiver)
-					if err != nil {
-						showError(err)
-						return
-					}
-
-					// get the wallet's secret key as a big int
-					secret_key := program.wallet.Get_Keys().Secret.BigInt()
-
-					// use the reciever pub key
-					reciever_pub_key := addr.PublicKey.G1()
-
-					// create a shared key
-					shared_key := crypto.GenerateSharedSecret(secret_key, reciever_pub_key)
-
-					// decrypt the file with the key
-					crypto.EncryptDecryptUserData(shared_key, file)
-
-					// trim the .enc suffix
-					save_path := strings.TrimSuffix(filename, ".enc")
-
-					// write the file to disk
-					os.WriteFile(save_path, file, default_file_permissions)
-
-					// let's make another notice
-					notice := "File successfully decrypted\n" +
-						"Message saved as " + save_path
-
-					// load the notice in the dialog
-					e := dialog.NewInformation("Decrypt",
-						notice,
-						program.window)
-
-					//resize and show
-					e.Resize(program.size)
-					e.Show()
+				// check the receiver address
+				addr, err := rpc.NewAddress(program.receiver)
+				if err != nil {
+					showError(err)
 					return
 				}
-			}, program.window)
+
+				// get the wallet's secret key as a big int
+				secret_key := program.wallet.Get_Keys().Secret.BigInt()
+
+				// use the reciever pub key
+				reciever_pub_key := addr.PublicKey.G1()
+
+				// create a shared key
+				shared_key := crypto.GenerateSharedSecret(secret_key, reciever_pub_key)
+
+				// decrypt the file with the key
+				crypto.EncryptDecryptUserData(shared_key, file)
+
+				// trim the .enc suffix
+				save_path := strings.TrimSuffix(filename, ".enc")
+
+				// write the file to disk
+				os.WriteFile(save_path, file, default_file_permissions)
+
+				// let's make another notice
+				notice := "File successfully decrypted\n" +
+					"Message saved as " + save_path
+
+				// load the notice in the dialog
+				e := dialog.NewInformation("Decrypt",
+					notice,
+					program.window)
+
+				//resize and show
+				e.Resize(program.size)
+				e.Show()
+				return
+			}
+		}
+
+		// use a simple form
+		content := []*widget.FormItem{widget.NewFormItem("", program.entries.pass)}
+
+		// set callback and content
+		d = dialog.NewForm("Decrypt File?", confirm, dismiss, content, callback, program.window)
 		d.Show()
 	}
+
+	// set the onTapped callback
+	decrypt.OnTapped = onTapped
 
 	// let's make sure that we validate the address we use
 	program.entries.counterparty.Validator = addressValidator
@@ -661,19 +707,19 @@ func recipient_crypt() {
 	// make the label
 	label := makeCenteredWrappedLabel(notice)
 
-	// let's make a nice spash screen
-	recipient_crypt := dialog.NewCustom("Recipient Encrypt/Decrypt", dismiss,
-		container.NewVBox(
-			layout.NewSpacer(),
-			container.NewVBox(program.entries.file),
-			program.entries.counterparty,
-			container.NewAdaptiveGrid(2,
-				container.NewCenter(encrypt),
-				container.NewCenter(decrypt),
-			),
-			label,
-			layout.NewSpacer(),
-		), program.window)
+	// let's make a nice content screen
+	content := container.NewVBox(
+		layout.NewSpacer(),
+		container.NewVBox(program.entries.file),
+		program.entries.counterparty,
+		container.NewAdaptiveGrid(2,
+			container.NewCenter(encrypt),
+			container.NewCenter(decrypt),
+		),
+		label,
+		layout.NewSpacer(),
+	)
+	recipient_crypt := dialog.NewCustom("Recipient Encrypt/Decrypt", dismiss, content, program.window)
 
 	// resize it and show it
 	recipient_crypt.Resize(program.size)
@@ -691,7 +737,7 @@ func integrated_address_generator() {
 	dst.SetPlaceHolder("destination port: 123456789012345678")
 
 	// let's validate the destination port
-	dst.Validator = func(s string) error {
+	validate_string := func(s string) error {
 		if s == "" {
 			return nil
 		}
@@ -718,6 +764,7 @@ func integrated_address_generator() {
 		})
 		return nil
 	}
+	dst.Validator = validate_string
 
 	// let's get a value from the user
 	value := widget.NewEntry()
@@ -726,7 +773,7 @@ func integrated_address_generator() {
 	value.SetPlaceHolder("value: 816.80085")
 
 	// and now let's parse it
-	value.Validator = func(s string) error {
+	validate_string = func(s string) error {
 		if s == "" {
 			return nil
 		}
@@ -757,6 +804,7 @@ func integrated_address_generator() {
 		})
 		return nil
 	}
+	value.Validator = validate_string
 
 	// let's see if there is a comment
 	comment := widget.NewEntry()
@@ -765,7 +813,7 @@ func integrated_address_generator() {
 	comment.SetPlaceHolder("send comment with transaction: barking-mad-war-dogs")
 
 	// validate the comment
-	comment.Validator = func(s string) error {
+	validate_string = func(s string) error {
 		if s == "" {
 			return nil
 		}
@@ -782,6 +830,7 @@ func integrated_address_generator() {
 		})
 		return nil
 	}
+	comment.Validator = validate_string
 
 	// now if a reply back is necessary
 	needs_replyback := widget.NewCheck("Needs Replyback Address?", func(b bool) {
@@ -888,132 +937,135 @@ func balance_rescan() {
 			"Some txs may not be available at your node connection. " +
 			"For full history, and privacy, run a full node starting at block 0 upto current topoheight. " +
 			"This operation could take a long time with many token assets and transfers. "
-	// here is the rescan dialog
-	rescan := dialog.NewConfirm("Balance Rescan", big_notice,
-		func(b bool) {
-			// if they cancel
-			if !b {
-				return
-			}
 
-			// start a sync activity widget
-			syncing := widget.NewActivity()
-			syncing.Start()
-			notice := makeCenteredWrappedLabel("Beginning Scan")
-			content := container.NewVBox(
-				layout.NewSpacer(),
-				syncing,
-				notice,
-				layout.NewSpacer(),
-			)
-			// set it to a splash screen
-			sync := dialog.NewCustomWithoutButtons("syncing", content, program.window)
+	// create a callback function
+	callback := func(b bool) {
+		// if they cancel
+		if !b {
+			return
+		}
 
-			// resize and show
-			sync.Resize(program.size)
-			sync.Show()
+		// start a sync activity widget
+		syncing := widget.NewActivity()
+		syncing.Start()
+		notice := makeCenteredWrappedLabel("Beginning Scan")
+		content := container.NewVBox(
+			layout.NewSpacer(),
+			syncing,
+			notice,
+			layout.NewSpacer(),
+		)
+		// set it to a splash screen
+		sync := dialog.NewCustomWithoutButtons("syncing", content, program.window)
 
-			// rebuild the hash list
-			buildAssetHashList()
+		// resize and show
+		sync.Resize(program.size)
+		sync.Show()
 
-			// as a go routine
+		// rebuild the hash list
+		buildAssetHashList()
+
+		// as a go routine
+		go func() {
+
+			// clean the wallet
+			program.wallet.Clean()
+
+			// it will be helpful to know when we are done
+			var done bool
+
+			// as a go routine...
 			go func() {
 
-				// clean the wallet
-				program.wallet.Clean()
+				// keep track of the old_len
+				var old_len int
 
-				// it will be helpful to know when we are done
-				var done bool
+				// now we are going to have this spin every second
+				ticker := time.NewTicker(time.Second)
+				for range ticker.C {
 
-				// as a go routine...
-				go func() {
+					// if we are done, break this loop
+					if done {
+						break
+					}
 
-					// keep track of the old_len
-					var old_len int
+					// get ALL transfers
+					transfers := getAllTransfers()
 
-					// now we are going to have this spin every second
-					ticker := time.NewTicker(time.Second)
-					for range ticker.C {
+					// measure them
+					current_len := len(transfers)
 
-						// if we are done, break this loop
-						if done {
-							break
-						}
+					// continue if the same as the old
+					if current_len == old_len {
+						continue
+					}
 
-						// get ALL transfers
-						transfers := getAllTransfers()
+					// get the difference
+					diff := current_len - old_len
 
-						// measure them
-						current_len := len(transfers)
+					// set the old length
+					old_len = current_len
 
-						// continue if the same as the old
-						if current_len == old_len {
-							continue
-						}
+					// now spin through the transfers at the point of difference
+					for _, each := range transfers[diff:] {
 
-						// get the difference
-						diff := current_len - old_len
-
-						// set the old length
-						old_len = current_len
-
-						// now spin through the transfers at the point of difference
-						for _, each := range transfers[diff:] {
-
-							// update the notice
-							fyne.DoAndWait(func() {
-								notice.SetText("BlockHash: " + truncator(each.BlockHash))
-							})
-
-							// take a small breather between updates
-							time.Sleep(time.Millisecond * 300)
-						}
-
-						// set notice to a default
+						// update the notice
 						fyne.DoAndWait(func() {
-							notice.SetText("Retrieving more txs")
+							notice.SetText("BlockHash: " + truncator(each.BlockHash))
 						})
+
+						// take a small breather between updates
+						time.Sleep(time.Millisecond * 300)
 					}
-				}()
 
-				// then sync the wallet for DERO
-				if err := program.wallet.Sync_Wallet_Memory_With_Daemon(); err != nil {
-					// if there is an error, notify the user
-					showError(err)
-					return
-				} else {
-					// now range through each token in the cache one at a time
-					for _, asset := range program.caches.assets {
-						// assume there could be an error
-						var err error
-
-						// then add each scid back to the map
-						hash := crypto.HashHexToHash(asset.hash)
-						if err = program.wallet.TokenAdd(hash); err != nil {
-							// if err, show it
-							showError(err)
-							// but don't stop, just continue the loop
-							continue
-						}
-
-						// and then sync scid internally with the daemon
-						if err = program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
-							// if err, show it
-							showError(err)
-							// but don't stop, just continue the loop
-							continue
-						}
-					}
+					// set notice to a default
+					fyne.DoAndWait(func() {
+						notice.SetText("Retrieving more txs")
+					})
 				}
-				// when done, shut down the sync status in the go routine
-				fyne.DoAndWait(func() {
-					done = true
-					syncing.Stop()
-					sync.Dismiss()
-				})
 			}()
 
-		}, program.window) // set to the main window
+			// then sync the wallet for DERO
+			if err := program.wallet.Sync_Wallet_Memory_With_Daemon(); err != nil {
+				// if there is an error, notify the user
+				showError(err)
+				return
+			} else {
+				// now range through each token in the cache one at a time
+				for _, asset := range program.caches.assets {
+					// assume there could be an error
+					var err error
+
+					// then add each scid back to the map
+					hash := crypto.HashHexToHash(asset.hash)
+					if err = program.wallet.TokenAdd(hash); err != nil {
+						// if err, show it
+						showError(err)
+						// but don't stop, just continue the loop
+						continue
+					}
+
+					// and then sync scid internally with the daemon
+					if err = program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
+						// if err, show it
+						showError(err)
+						// but don't stop, just continue the loop
+						continue
+					}
+				}
+			}
+			// when done, shut down the sync status in the go routine
+			fyne.DoAndWait(func() {
+				done = true
+				syncing.Stop()
+				sync.Dismiss()
+			})
+		}()
+
+	}
+
+	// here is the rescan dialog
+	rescan := dialog.NewConfirm("Balance Rescan", big_notice, callback, program.window) // set to the main window
 
 	// resize and show
 	rescan.Resize(program.size)
@@ -1022,7 +1074,7 @@ func balance_rescan() {
 func installer() {
 
 	// let's validate that file, shall we?
-	program.entries.file.entry.Validator = func(s string) error {
+	validate_string := func(s string) error {
 		// read the file
 		b, err := os.ReadFile(s)
 
@@ -1042,6 +1094,9 @@ func installer() {
 		return nil
 	}
 
+	// and set it
+	program.entries.file.entry.Validator = validate_string
+
 	// we just use this because simplicity
 	ringsize := uint64(2)
 
@@ -1055,8 +1110,8 @@ func installer() {
 	// see, notice
 	notice := makeCenteredWrappedLabel("anonymous installs might effect intended SC functionality")
 
-	// let's make a splash screen
-	splash := container.NewVBox(
+	// let's make some content
+	content := container.NewVBox(
 		layout.NewSpacer(),
 		container.NewVBox(program.entries.file),
 		isAnonymous,
@@ -1064,163 +1119,166 @@ func installer() {
 		layout.NewSpacer(),
 	)
 
-	// let's walk throught install
-	install := dialog.NewCustomConfirm("Install Contract", confirm, dismiss, splash,
-		func(b bool) {
+	// let's walk through install as a callback
+	callback := func(b bool) {
+		// if they cnacel
+		if !b {
+			return
+		}
+
+		var ic *dialog.ConfirmDialog
+		// if they press enter, we assume it means confirm
+		program.entries.pass.OnSubmitted = func(s string) {
+			ic.Confirm()
+			ic.Dismiss()
+		}
+
+		// create a callback
+		callback := func(b bool) {
 			// if they cnacel
 			if !b {
 				return
 			}
+			// get the password
+			pass := program.entries.pass.Text
 
-			var ic *dialog.ConfirmDialog
-			// if they press enter, we assume it means confirm
-			program.entries.pass.OnSubmitted = func(s string) {
-				ic.Confirm()
-				ic.Dismiss()
+			// dump the pass entry
+			program.entries.pass.SetText("")
+
+			// check the password
+			if !program.wallet.Check_Password(pass) {
+				showError(errors.New("wrong password"))
+				program.entries.file.entry.SetText("")
+				return
+			} else {
+				// get the filename
+				filename := program.entries.file.entry.Text
+
+				// dump the entry
+				program.entries.file.entry.SetText("")
+
+				// read the file
+				file, err := os.ReadFile(filename)
+				if err != nil {
+					showError(err)
+					return
+				}
+				// coerce the file into string
+				upload := string(file)
+
+				// parse the file for an error; yes, I know we validated...
+				if _, _, err = dvm.ParseSmartContract(upload); err != nil {
+
+					// show them an error if one
+					showError(err)
+					return
+				}
+
+				// let's get a list of random addresses for the install
+				randos := program.wallet.Random_ring_members(crypto.ZEROHASH)
+
+				// let's grab the first one on the list
+				rando := randos[0]
+
+				// let's make sure it isn't the wallet's address
+				if rando == program.wallet.GetAddress().String() {
+					// the liklihood that 0 && 1 are the same addr is...
+					// funny
+					rando = randos[1]
+				}
+
+				// create a payload
+				payload := []rpc.Transfer{
+					{
+						SCID:        crypto.ZEROHASH,
+						Destination: rando,
+						Amount:      0,
+					},
+				}
+
+				// no, don't transfer all; still not implemented anyway
+				transfer_all := false
+
+				// here it the sc data
+				sc_data := rpc.Arguments{
+					rpc.Argument{
+						Name:     rpc.SCACTION,
+						DataType: rpc.DataUint64,
+						Value:    uint64(1), //  eg. 'yes, it does'
+					},
+					rpc.Argument{
+						Name:     rpc.SCCODE,
+						DataType: rpc.DataString,
+						Value:    upload, // eg. the contract
+					},
+				}
+
+				// we aren't storing anything
+				gasstorage := uint64(0)
+
+				// this is not a drill!
+				dry_run := false
+
+				// let's create a transaction
+				tx, err := program.wallet.TransferPayload0(
+					payload, ringsize, transfer_all,
+					sc_data, gasstorage, dry_run,
+				)
+
+				// if it errors out...
+				if err != nil {
+
+					// notify the user
+					showError(err)
+					return
+				}
+
+				// ship the tx to the daemon
+				if err := program.wallet.SendTransaction(tx); err != nil {
+
+					// notify the user if err
+					showError(err)
+					return
+				}
+
+				// get the txid and truncate it
+				truncated_hash := truncator(tx.GetHash().String())
+
+				// attach it to a hyperlink widget
+				txid := widget.NewHyperlink(truncated_hash, nil)
+
+				// set the clipboard function to it
+				txid.OnTapped = func() {
+					program.application.Clipboard().SetContent(tx.GetHash().String())
+
+					// notify the user
+					showInfo("", "txid copied to clipboard")
+				}
+
+				// center it
+				txid.Alignment = fyne.TextAlignCenter
+
+				// walk the user through success
+				success := dialog.NewCustom("Contract Installer", "dissmiss",
+					container.NewVBox(
+						widget.NewLabel("Contract successfully installed"),
+						txid,
+					), program.window)
+
+				// resize and show
+				success.Resize(program.size)
+				success.Show()
 			}
-			ic = dialog.NewCustomConfirm("Confirm Password", confirm, dismiss, program.entries.pass,
-				func(b bool) {
-					// if they cnacel
-					if !b {
-						return
-					}
-					// get the password
-					pass := program.entries.pass.Text
 
-					// dump the pass entry
-					program.entries.pass.SetText("")
+		}
 
-					// check the password
-					if !program.wallet.Check_Password(pass) {
-						showError(errors.New("wrong password"))
-						program.entries.file.entry.SetText("")
-						return
-					} else {
-						// get the filename
-						filename := program.entries.file.entry.Text
+		// put a window in a window...
+		ic = dialog.NewCustomConfirm("Confirm Password", confirm, dismiss, program.entries.pass, callback, program.window)
+		ic.Show()
+	}
 
-						// dump the entry
-						program.entries.file.entry.SetText("")
-
-						// read the file
-						file, err := os.ReadFile(filename)
-						if err != nil {
-							showError(err)
-							return
-						}
-						// coerce the file into string
-						upload := string(file)
-
-						// parse the file for an error; yes, I know we validated...
-						if _, _, err = dvm.ParseSmartContract(upload); err != nil {
-
-							// show them an error if one
-							showError(err)
-							return
-						}
-
-						// let's get a list of random addresses for the install
-						randos := program.wallet.Random_ring_members(crypto.ZEROHASH)
-
-						// let's grab the first one on the list
-						rando := randos[0]
-
-						// let's make sure it isn't the wallet's address
-						if rando == program.wallet.GetAddress().String() {
-							// the liklihood that 0 && 1 are the same addr is...
-							// funny
-							rando = randos[1]
-						}
-
-						// create a payload
-						payload := []rpc.Transfer{
-							{
-								SCID:        crypto.ZEROHASH,
-								Destination: rando,
-								Amount:      0,
-							},
-						}
-
-						// no, don't transfer all; still not implemented anyway
-						transfer_all := false
-
-						// here it the sc data
-						sc_data := rpc.Arguments{
-							rpc.Argument{
-								Name:     rpc.SCACTION,
-								DataType: rpc.DataUint64,
-								Value:    uint64(1), //  eg. 'yes, it does'
-							},
-							rpc.Argument{
-								Name:     rpc.SCCODE,
-								DataType: rpc.DataString,
-								Value:    upload, // eg. the contract
-							},
-						}
-
-						// we aren't storing anything
-						gasstorage := uint64(0)
-
-						// this is not a drill!
-						dry_run := false
-
-						// let's create a transaction
-						tx, err := program.wallet.TransferPayload0(
-							payload, ringsize, transfer_all,
-							sc_data, gasstorage, dry_run,
-						)
-
-						// if it errors out...
-						if err != nil {
-
-							// notify the user
-							showError(err)
-							return
-						}
-
-						// ship the tx to the daemon
-						if err := program.wallet.SendTransaction(tx); err != nil {
-
-							// notify the user if err
-							showError(err)
-							return
-						}
-
-						// get the txid and truncate it
-						truncated_hash := truncator(tx.GetHash().String())
-
-						// attach it to a hyperlink widget
-						txid := widget.NewHyperlink(truncated_hash, nil)
-
-						// set the clipboard function to it
-						txid.OnTapped = func() {
-							program.application.Clipboard().SetContent(tx.GetHash().String())
-
-							// notify the user
-							showInfo("", "txid copied to clipboard")
-						}
-
-						// center it
-						txid.Alignment = fyne.TextAlignCenter
-
-						// walk the user through success
-						success := dialog.NewCustom("Contract Installer", "dissmiss",
-							container.NewVBox(
-								widget.NewLabel("Contract successfully installed"),
-								txid,
-								// I heard you like windows...
-							), program.window)
-
-						// resize and show
-						success.Resize(program.size)
-						success.Show()
-					}
-
-					// so I put a window in your window...
-				}, program.window)
-			ic.Show()
-			// so you can enjoy windows... XD
-		}, program.window)
+	// set the callback
+	install := dialog.NewCustomConfirm("Install Contract", confirm, dismiss, content, callback, program.window)
 
 	// resize and show
 	install.Resize(program.size)
@@ -1255,8 +1313,8 @@ func interaction() {
 	// now let's make a way to enter the contract
 	scid := widget.NewEntry()
 
-	// let's validate it
-	scid.Validator = func(s string) error {
+	// make a sctring validator
+	validate := func(s string) error {
 
 		// the code needs to be present
 		sc := getSCCode(s)
@@ -1303,6 +1361,10 @@ func interaction() {
 		}
 		return nil
 	}
+
+	// let's validate it
+	scid.Validator = validate
+
 	// we should assume rings size 2 for simplicty
 	ringsize := uint64(2)
 
@@ -1324,8 +1386,8 @@ func interaction() {
 		co.(*widget.Label).SetText(func_names[lii])
 	}
 
-	// let the user select the fuction
-	function_list.OnSelected = func(id widget.ListItemID) {
+	// make use of a on selected callback
+	onSelected := func(id widget.ListItemID) {
 
 		// after they do, unselect it
 		function_list.Unselect(id) // release the object
@@ -1428,283 +1490,289 @@ func interaction() {
 		// make a splash box
 		splash := container.NewVBox(widget.NewLabel(func_names[id]), notice, isAnonymous, args, entries)
 
-		// and walk the user through the argument process
-		arguments := dialog.NewCustomConfirm("Interact",
-			confirm, dismiss,
-			splash, func(b bool) {
+		// create an interaction callback function
+		callback := func(b bool) {
+			// if they cancel
+			if !b {
+				return
+			}
+
+			// parse user data to make a best guess
+			var best_guess crypto.Hash
+
+			// range over the arg objects to get the final touches
+			for i, obj := range args.Objects {
+
+				// we are making an argument
+				var arg rpc.Argument
+
+				// switch on type
+				switch functions[id].Params[i].Type {
+				case dvm.String:
+
+					// get the parameter
+					param := functions[id].Params[i].Name
+
+					// get the value from the entry
+					value := obj.(*widget.Entry).Text
+
+					arg = rpc.Argument{ // load up the goods
+						Name:     param,
+						DataType: rpc.DataString,
+						Value:    value,
+					}
+
+					// we are going to make a crazy assumption here...
+					// there is almost never a case when a contract creator would ask for ZEROHASH
+					// so we make an assumption that:
+					//  of the args objects
+					// 	of which are string
+					//  of which aren't crypto.ZEROHASH
+					//  will be our best guess
+					// 	and we will only guess once
+					hash := crypto.HashHexToHash(value)
+					if hash != crypto.ZEROHASH {
+						var once bool
+						if !once {
+							// we can best guess this scenario
+							best_guess = crypto.HashHexToHash(obj.(*widget.Entry).Text)
+							once = true
+						} else {
+							showError(errors.New("multiple token assets not implemented"))
+							return
+						}
+					}
+				case dvm.Uint64:
+					// little more straight forward
+					value := obj.(*widget.Entry).Text
+
+					// convert string to int
+					integer, err := strconv.Atoi(value)
+					if err != nil {
+
+						// show err if so
+						showError(err)
+						return
+					}
+
+					// get the param name
+					param := functions[id].Params[i].Name
+
+					// load up the arg
+					arg = rpc.Argument{
+						Name:     param,
+						DataType: rpc.DataUint64,
+						Value:    uint64(integer),
+					}
+				}
+
+				// append the applicable arg to the sc args
+				sc_args = append(sc_args, arg)
+			}
+
+		reroll:
+
+			// get some random ring members to chill with
+			randos := program.wallet.Random_ring_members(crypto.ZEROHASH)
+
+			// check your self before you wreck yourself
+			self := program.wallet.GetAddress().String()
+
+			// top three dudes, can't be self... can they?
+			if randos[0] == self && randos[1] == self && randos[2] == self {
+				fmt.Println("easter egg unlocked: do a barrel roll XD")
+				goto reroll
+			}
+
+			// anyway, iterate over the entry objects
+			for _, obj := range entries.Objects {
+
+				// this is a nifty trick
+				// grab the placeholder
+				placeholder := obj.(*widget.Entry).PlaceHolder
+
+				// if it has the 'dero value:' place holder
+				if strings.Contains(placeholder, "dero value:") {
+
+					// get the value fromt the entry
+					value := obj.(*widget.Entry).Text
+
+					// parse the float
+					float, err := strconv.ParseFloat(value, 64)
+					if err != nil {
+						showError(err)
+						return
+					}
+
+					// coerce the float to a burn value
+					burn := uint64(float) * atomic_units
+
+					// load it into the payload
+					payload = append(payload, rpc.Transfer{
+						Destination: randos[0], // rando numero uno
+						Amount:      0,         // don't send anything to them
+						Burn:        burn,      // burning the dero from crypto.ZEROHASH ledger into the SCID ledger
+					})
+				} else if strings.Contains(placeholder, "asset value:") {
+
+					// get the value
+					value := obj.(*widget.Entry).Text
+
+					// parse it
+					float, err := strconv.ParseFloat(value, 64)
+
+					// show err if so
+					if err != nil {
+						showError(err)
+						return
+					}
+
+					// coerce the float into an burnable amount
+					burn := uint64(float) * atomic_units
+
+					// now check if the best guess is ZEROHASH
+					if best_guess.IsZero() {
+
+						// if it is, this is a problem
+						showError(errors.New("please report this error to the develop"))
+						return
+					}
+
+					// and if it isn't ZEROHASH,
+					// well... load er' up
+					scid := best_guess
+
+					// and append to payload
+					payload = append(payload, rpc.Transfer{
+						Destination: randos[1],
+						SCID:        scid,
+						Amount:      0,
+						Burn:        burn,
+					})
+				}
+
+			}
+
+			// in the off chance that we don't have a payload...
+			if len(payload) < 1 {
+
+				// append one
+				payload = append(payload, rpc.Transfer{
+					Destination: randos[2],
+				})
+			}
+
+			string_args, err := sc_args.MarshalBinary()
+			if err != nil {
+				//show the err
+				showError(err)
+				// but keep going
+			}
+
+			// let's get the args for the user to review
+			sa := makeCenteredWrappedLabel(string(string_args))
+
+			// load up the splash and a password entry
+			splash := container.NewVBox(sa, program.entries.password)
+			var ci *dialog.ConfirmDialog
+			// if they press enter here, it is a confirmation
+			program.entries.pass.OnSubmitted = func(s string) {
+				ci.Confirm()
+				ci.Dismiss()
+			}
+
+			// create a callback function
+			callback := func(b bool) {
 				// if they cancel
 				if !b {
 					return
 				}
 
-				// parse user data to make a best guess
-				var best_guess crypto.Hash
+				// get the pass
+				pass := program.entries.pass.Text
 
-				// range over the arg objects to get the final touches
-				for i, obj := range args.Objects {
+				// dump the entry
+				program.entries.pass.SetText("")
 
-					// we are making an argument
-					var arg rpc.Argument
+				if !program.wallet.Check_Password(pass) {
+					showError(errors.New("wrong password"))
+					return
+				} else {
 
-					// switch on type
-					switch functions[id].Params[i].Type {
-					case dvm.String:
+					// easy to read details
+					send_all := false
+					gasstorage := uint64(0)
+					dry_run := false
 
-						// get the parameter
-						param := functions[id].Params[i].Name
+					// create the transaction
+					tx, err := program.wallet.TransferPayload0(
+						payload, ringsize, send_all,
+						sc_args, // hold on to your butts
+						gasstorage, dry_run,
+					)
 
-						// get the value from the entry
-						value := obj.(*widget.Entry).Text
-
-						arg = rpc.Argument{ // load up the goods
-							Name:     param,
-							DataType: rpc.DataString,
-							Value:    value,
-						}
-
-						// we are going to make a crazy assumption here...
-						// there is almost never a case when a contract creator would ask for ZEROHASH
-						// so we make an assumption that:
-						//  of the args objects
-						// 	of which are string
-						//  of which aren't crypto.ZEROHASH
-						//  will be our best guess
-						// 	and we will only guess once
-						hash := crypto.HashHexToHash(value)
-						if hash != crypto.ZEROHASH {
-							var once bool
-							if !once {
-								// we can best guess this scenario
-								best_guess = crypto.HashHexToHash(obj.(*widget.Entry).Text)
-								once = true
-							} else {
-								showError(errors.New("multiple token assets not implemented"))
-								return
-							}
-						}
-					case dvm.Uint64:
-						// little more straight forward
-						value := obj.(*widget.Entry).Text
-
-						// convert string to int
-						integer, err := strconv.Atoi(value)
-						if err != nil {
-
-							// show err if so
-							showError(err)
-							return
-						}
-
-						// get the param name
-						param := functions[id].Params[i].Name
-
-						// load up the arg
-						arg = rpc.Argument{
-							Name:     param,
-							DataType: rpc.DataUint64,
-							Value:    uint64(integer),
-						}
-					}
-
-					// append the applicable arg to the sc args
-					sc_args = append(sc_args, arg)
-				}
-
-			reroll:
-
-				// get some random ring members to chill with
-				randos := program.wallet.Random_ring_members(crypto.ZEROHASH)
-
-				// check your self before you wreck yourself
-				self := program.wallet.GetAddress().String()
-
-				// top three dudes, can't be self... can they?
-				if randos[0] == self && randos[1] == self && randos[2] == self {
-					fmt.Println("easter egg unlocked: do a barrel roll XD")
-					goto reroll
-				}
-
-				// anyway, iterate over the entry objects
-				for _, obj := range entries.Objects {
-
-					// this is a nifty trick
-					// grab the placeholder
-					placeholder := obj.(*widget.Entry).PlaceHolder
-
-					// if it has the 'dero value:' place holder
-					if strings.Contains(placeholder, "dero value:") {
-
-						// get the value fromt the entry
-						value := obj.(*widget.Entry).Text
-
-						// parse the float
-						float, err := strconv.ParseFloat(value, 64)
-						if err != nil {
-							showError(err)
-							return
-						}
-
-						// coerce the float to a burn value
-						burn := uint64(float) * atomic_units
-
-						// load it into the payload
-						payload = append(payload, rpc.Transfer{
-							Destination: randos[0], // rando numero uno
-							Amount:      0,         // don't send anything to them
-							Burn:        burn,      // burning the dero from crypto.ZEROHASH ledger into the SCID ledger
-						})
-					} else if strings.Contains(placeholder, "asset value:") {
-
-						// get the value
-						value := obj.(*widget.Entry).Text
-
-						// parse it
-						float, err := strconv.ParseFloat(value, 64)
-
-						// show err if so
-						if err != nil {
-							showError(err)
-							return
-						}
-
-						// coerce the float into an burnable amount
-						burn := uint64(float) * atomic_units
-
-						// now check if the best guess is ZEROHASH
-						if best_guess.IsZero() {
-
-							// if it is, this is a problem
-							showError(errors.New("please report this error to the develop"))
-							return
-						}
-
-						// and if it isn't ZEROHASH,
-						// well... load er' up
-						scid := best_guess
-
-						// and append to payload
-						payload = append(payload, rpc.Transfer{
-							Destination: randos[1],
-							SCID:        scid,
-							Amount:      0,
-							Burn:        burn,
-						})
-					}
-
-				}
-
-				// in the off chance that we don't have a payload...
-				if len(payload) < 1 {
-
-					// append one
-					payload = append(payload, rpc.Transfer{
-						Destination: randos[2],
-					})
-				}
-
-				string_args, err := sc_args.MarshalBinary()
-				if err != nil {
-					//show the err
-					showError(err)
-					// but keep going
-				}
-
-				// let's get the args for the user to review
-				sa := makeCenteredWrappedLabel(string(string_args))
-
-				// load up the splash and a password entry
-				splash := container.NewVBox(sa, program.entries.password)
-				var ci *dialog.ConfirmDialog
-				// if they press enter here, it is a confirmation
-				program.entries.pass.OnSubmitted = func(s string) {
-					ci.Confirm()
-					ci.Dismiss()
-				}
-				ci = dialog.NewCustomConfirm("Confirm Password", confirm, dismiss, splash, func(b bool) {
-					// if they cancel
-					if !b {
+					// if we have an err, show it
+					if err != nil {
+						showError(err)
 						return
 					}
 
-					// get the pass
-					pass := program.entries.pass.Text
-
-					// dump the entry
-					program.entries.pass.SetText("")
-
-					if !program.wallet.Check_Password(pass) {
-						showError(errors.New("wrong password"))
+					// submit the transfer to the daemon
+					if err := program.wallet.SendTransaction(tx); err != nil {
+						showError(err)
 						return
-					} else {
-
-						// easy to read details
-						send_all := false
-						gasstorage := uint64(0)
-						dry_run := false
-
-						// create the transaction
-						tx, err := program.wallet.TransferPayload0(
-							payload, ringsize, send_all,
-							sc_args, // hold on to your butts
-							gasstorage, dry_run,
-						)
-
-						// if we have an err, show it
-						if err != nil {
-							showError(err)
-							return
-						}
-
-						// submit the transfer to the daemon
-						if err := program.wallet.SendTransaction(tx); err != nil {
-							showError(err)
-							return
-						}
-
-						// get the hash and truncate it
-						truncated_hash := truncator(tx.GetHash().String())
-
-						// make it into a new hyperlink
-						txid := widget.NewHyperlink(truncated_hash, nil)
-
-						// align it center
-						txid.Alignment = fyne.TextAlignCenter
-
-						// make it copiable
-						txid.OnTapped = func() {
-							program.application.Clipboard().SetContent(tx.GetHash().String())
-							showInfo("", "txid copied to clipboard")
-						}
-
-						// make a nice big mesesage
-						msg := "Contract successfully interacted\n\n" +
-							"Please note: a successful interaction does not mean a successful contract operation." +
-							"Please review verify all interactions"
-
-						// attach it to a notice
-						notice := makeCenteredWrappedLabel(msg)
-
-						success := dialog.NewCustom("Contract Installer", "dissmiss",
-							container.NewVBox(
-								notice,
-								txid,
-							), program.window)
-						// resize and show
-						success.Resize(program.size)
-						success.Show()
-
 					}
-					// load it to the main window
-				}, program.window)
 
-				ci.Show()
+					// get the hash and truncate it
+					truncated_hash := truncator(tx.GetHash().String())
 
-			}, program.window)
+					// make it into a new hyperlink
+					txid := widget.NewHyperlink(truncated_hash, nil)
+
+					// align it center
+					txid.Alignment = fyne.TextAlignCenter
+
+					// make it copiable
+					txid.OnTapped = func() {
+						program.application.Clipboard().SetContent(tx.GetHash().String())
+						showInfo("", "txid copied to clipboard")
+					}
+
+					// make a nice big mesesage
+					msg := "Contract successfully interacted\n\n" +
+						"Please note: a successful interaction does not mean a successful contract operation." +
+						"Please review verify all interactions"
+
+					// attach it to a notice
+					notice := makeCenteredWrappedLabel(msg)
+
+					success := dialog.NewCustom("Contract Installer", "dissmiss",
+						container.NewVBox(
+							notice,
+							txid,
+						), program.window)
+					// resize and show
+					success.Resize(program.size)
+					success.Show()
+
+				}
+			}
+
+			// load it to the main window
+			ci = dialog.NewCustomConfirm("Confirm Password", confirm, dismiss, splash, callback, program.window)
+			ci.Show()
+		}
+
+		// and walk the user through the argument process
+		arguments := dialog.NewCustomConfirm("Interact", confirm, dismiss, splash, callback, program.window)
 
 		// resize and show
 		arguments.Resize(program.size)
 		arguments.Show()
 	}
+
+	// let the user select the fuction
+	function_list.OnSelected = onSelected
 
 	// we want users to be happy with the code before they interact with it
 	notice := "If you are satisfied with the code, "

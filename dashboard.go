@@ -52,41 +52,43 @@ func keys() {
 		k.Dismiss()
 		k.Submit()
 	}
-	k = dialog.NewForm("Display Keys?", confirm, dismiss,
-		[]*widget.FormItem{widget.NewFormItem("", program.entries.pass)},
-		func(b bool) {
-			if b {
-				// check the password for all sensitive actions
-				if !program.wallet.Check_Password(program.entries.pass.Text) {
-					// if they get is wrong, tell them
-					showError(errors.New("wrong password"))
-					return
-				} else { // if they get it right
+	callback := func(b bool) {
+		if b {
+			// check the password for all sensitive actions
+			if !program.wallet.Check_Password(program.entries.pass.Text) {
+				// if they get is wrong, tell them
+				showError(errors.New("wrong password"))
+				return
+			} else { // if they get it right
 
-					// here is a scroll window
-					scrollwindow := container.NewScroll(
-						container.NewVBox(
-							// here is the seed phrase
-							program.labels.seed, program.entries.seed,
+				// here is a scroll window
+				scrollwindow := container.NewScroll(
+					container.NewVBox(
+						// here is the seed phrase
+						program.labels.seed, program.entries.seed,
 
-							// here is the public key
-							program.labels.public, program.entries.public,
+						// here is the public key
+						program.labels.public, program.entries.public,
 
-							// here is the secret key
-							program.labels.secret, program.entries.secret,
-						),
-					)
-					// let's make a dialog window with all the keys included
-					keys := dialog.NewCustom(
-						"Keys", dismiss, scrollwindow, program.window,
-					)
+						// here is the secret key
+						program.labels.secret, program.entries.secret,
+					),
+				)
+				// let's make a dialog window with all the keys included
+				keys := dialog.NewCustom("Keys", dismiss, scrollwindow, program.window)
 
-					keys.Resize(program.size)
-					keys.Show()
-					return
-				}
+				keys.Resize(program.size)
+				keys.Show()
+				return
 			}
-		}, program.window)
+		}
+	}
+
+	// create a simple form content
+	content := []*widget.FormItem{widget.NewFormItem("", program.entries.pass)}
+
+	// set the content and callback
+	k = dialog.NewForm("Display Keys?", confirm, dismiss, content, callback, program.window)
 
 	k.Show()
 
@@ -110,7 +112,7 @@ func txList() {
 	// here is the widget that we are going to use for each item of the list
 	sent.CreateItem = createLabel
 	// then let's update the item to contain the content
-	sent.UpdateItem = func(lii widget.ListItemID, co fyne.CanvasObject) {
+	updateItem := func(lii widget.ListItemID, co fyne.CanvasObject) {
 
 		// let's make sure the entry is bodied
 		s_entries[lii].ProcessPayload()
@@ -124,9 +126,11 @@ func txList() {
 		container.Objects[1].(*widget.Label).SetText(txid)
 		container.Objects[2].(*widget.Label).SetText(rpc.FormatMoney(amount))
 	}
+	// set the update item
+	sent.UpdateItem = updateItem
 
 	// then when we select one of them, let' open it up!
-	sent.OnSelected = func(id widget.ListItemID) {
+	onSelected := func(id widget.ListItemID) {
 
 		sent.Unselect(id)
 
@@ -172,6 +176,7 @@ func txList() {
 		txs.Resize(program.size)
 		txs.Show()
 	}
+	sent.OnSelected = onSelected
 	// here are all the entries
 	r_entries := getReceivedTransfers()
 
@@ -187,8 +192,9 @@ func txList() {
 
 	// here is the widget that we are going to use for each item of the list
 	received.CreateItem = createLabel
+
 	// then let's update the item to contain the content
-	received.UpdateItem = func(lii widget.ListItemID, co fyne.CanvasObject) {
+	updateItem = func(lii widget.ListItemID, co fyne.CanvasObject) {
 
 		// let's make sure the entry is bodied
 		r_entries[lii].ProcessPayload()
@@ -203,8 +209,11 @@ func txList() {
 		container.Objects[2].(*widget.Label).SetText(rpc.FormatMoney(amount))
 	}
 
+	// set the update item field
+	received.UpdateItem = updateItem
+
 	// then when we select one of them, let' open it up!
-	received.OnSelected = func(id widget.ListItemID) {
+	onSelected = func(id widget.ListItemID) {
 
 		received.Unselect(id)
 
@@ -250,6 +259,10 @@ func txList() {
 		txs.Resize(program.size)
 		txs.Show()
 	}
+
+	// set the on selected field
+	received.OnSelected = onSelected
+
 	// here are all the coinbase entries
 	coins := getCoinbaseTransfers()
 
@@ -265,8 +278,9 @@ func txList() {
 
 	// here is the widget that we are going to use for each item of the list
 	coinbase.CreateItem = createLabel
+
 	// then let's update the item to contain the content
-	coinbase.UpdateItem = func(lii widget.ListItemID, co fyne.CanvasObject) {
+	updateItem = func(lii widget.ListItemID, co fyne.CanvasObject) {
 
 		// let's make sure the entry is bodied
 		coins[lii].ProcessPayload()
@@ -280,9 +294,11 @@ func txList() {
 		container.Objects[1].(*widget.Label).SetText(txid)
 		container.Objects[2].(*widget.Label).SetText(rpc.FormatMoney(amount))
 	}
+	// set the update item
+	coinbase.UpdateItem = updateItem
 
 	// then when we select one of them, let' open it up!
-	coinbase.OnSelected = func(id widget.ListItemID) {
+	onSelected = func(id widget.ListItemID) {
 
 		coinbase.Unselect(id)
 
@@ -328,6 +344,9 @@ func txList() {
 		txs.Resize(program.size)
 		txs.Show()
 	}
+	// set the field
+	coinbase.OnSelected = onSelected
+
 	tabs := container.NewAppTabs(
 		container.NewTabItem("Sent", sent),
 		container.NewTabItem("Received", received),

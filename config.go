@@ -37,7 +37,7 @@ func configs() *fyne.Container {
 	// let's start off by hiding it
 	program.buttons.update_password.Hide()
 
-	return container.New(layout.NewVBoxLayout(),
+	return container.NewVBox(
 		program.containers.topbar,
 		layout.NewSpacer(),
 		container.NewVBox(program.buttons.connections),
@@ -207,7 +207,7 @@ func connections() {
 	set.Alignment = fyne.TextAlignCenter
 
 	// so when they tap on it
-	set.OnTapped = func() {
+	onTapped := func() {
 
 		// obviously...
 		if form_entry.Text == "" {
@@ -244,6 +244,9 @@ func connections() {
 		// set the walletapi endpoint for the maintain_connection function
 		walletapi.Daemon_Endpoint = program.node.current
 	}
+
+	// set the on tapped function
+	set.OnTapped = onTapped
 
 	// let's show off a list
 	var list string
@@ -295,7 +298,7 @@ func rpc_server() {
 	}
 
 	// when they toggle the options
-	program.toggles.server.OnChanged = func(s string) {
+	onChanged := func(s string) {
 		// if on...
 		switch s {
 		case "on":
@@ -354,6 +357,8 @@ func rpc_server() {
 			}
 		}
 	}
+	// set the on changed function
+	program.toggles.server.OnChanged = onChanged
 
 	// if there isn't anything toggled, set to off
 	if program.toggles.server.Selected == "" {
@@ -466,8 +471,11 @@ func passwordUpdate() {
 
 	}
 
+	// create a simple form
+	content := widget.NewForm(widget.NewFormItem("", program.entries.pass))
+
 	// set the dialog with a pass entry field and the callback
-	pass_confirm = dialog.NewCustomConfirm("Confirm Password", confirm, dismiss, program.entries.pass, callback, program.window)
+	pass_confirm = dialog.NewCustomConfirm("Confirm Password", confirm, dismiss, content, callback, program.window)
 
 	// and show it
 	pass_confirm.Show()

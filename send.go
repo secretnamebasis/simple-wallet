@@ -306,46 +306,49 @@ func sendForm() {
 	// create a placeholder that makes sense
 	program.selections.assets.PlaceHolder = "DERO by default, or select asset"
 
-	// create a optionals dialog
-	send := dialog.NewForm("Send DERO", "Send", "Cancel",
-		[]*widget.FormItem{
+	// create callback function
+	callback := func(b bool) {
 
-			// show them who they are sending to
-			widget.NewFormItem("Recipient", widget.NewLabel(truncator(program.receiver))),
-
-			// let them make a way to enter an amount
-			widget.NewFormItem("Amount", program.entries.amount),
-
-			// now use an accordion for the "advanced" options
-			widget.NewFormItem("", widget.NewAccordion(
-				widget.NewAccordionItem("Options", container.NewVBox(
-					program.selections.assets,
-					program.entries.dst,
-					program.entries.comment,
-					program.checks.replyback,
-				)),
-			)),
-		}, func(b bool) {
-
-			if !b { // if they choose to send
-				program.entries.amount.SetText("")
-				program.entries.dst.SetText("")
-				program.entries.comment.SetText("")
-				program.selections.assets.SetSelectedIndex(-1)
-				// clear recipient on send action
-				program.entries.recipient.SetText("")
-				program.checks.replyback.SetChecked(false)
-				enableOptionals()
-
-				return
-			}
-			conductTransfer() // ride it to the end
-
-			// now let's make sure each of these are re-enabled
+		if !b { // if they choose to send
+			program.entries.amount.SetText("")
+			program.entries.dst.SetText("")
+			program.entries.comment.SetText("")
+			program.selections.assets.SetSelectedIndex(-1)
+			// clear recipient on send action
+			program.entries.recipient.SetText("")
+			program.checks.replyback.SetChecked(false)
 			enableOptionals()
 
-			// fit it into the window
-		}, program.window)
+			return
+		}
+		conductTransfer() // ride it to the end
+
+		// now let's make sure each of these are re-enabled
+		enableOptionals()
+
+		// fit it into the window
+	}
+	// create a content container
+	content := []*widget.FormItem{
+
+		// show them who they are sending to
+		widget.NewFormItem("Recipient", widget.NewLabel(truncator(program.receiver))),
+
+		// let them make a way to enter an amount
+		widget.NewFormItem("Amount", program.entries.amount),
+
+		// now use an accordion for the "advanced" options
+		widget.NewFormItem("", widget.NewAccordion(
+			widget.NewAccordionItem("Options", container.NewVBox(
+				program.selections.assets,
+				program.entries.dst,
+				program.entries.comment,
+				program.checks.replyback,
+			)),
+		)),
+	}
+	// create a optionals dialog
+	send := dialog.NewForm("Send DERO", "Send", "Cancel", content, callback, program.window)
 
 	// resize and show
 	send.Resize(program.size)
@@ -358,252 +361,252 @@ func conductTransfer() {
 		t.Submit()
 		t.Dismiss()
 	}
-	// make them confirm with password
-	t = dialog.NewForm("Password Confirmation", confirm, "Cancel",
-		[]*widget.FormItem{
-			widget.NewFormItem("", program.entries.pass),
-		},
-		func(b bool) {
+	callback := func(b bool) {
 
-			// get the pass
-			pass := program.entries.pass.Text
+		// get the pass
+		pass := program.entries.pass.Text
 
-			// dump the pass
-			program.entries.pass.SetText("")
+		// dump the pass
+		program.entries.pass.SetText("")
 
-			passed := program.wallet.Check_Password(pass)
+		passed := program.wallet.Check_Password(pass)
 
-			// if they get the password wrong
-			// in case they cancel
-			if !b {
+		// if they get the password wrong
+		// in case they cancel
+		if !b {
 
-				// clear recipient on send action
-				program.entries.recipient.SetText("")
-				// dump all the data of the transfer, and reset
+			// clear recipient on send action
+			program.entries.recipient.SetText("")
+			// dump all the data of the transfer, and reset
 
-				program.entries.amount.SetText("")
-				program.entries.dst.SetText("")
-				program.entries.comment.SetText("")
-				program.selections.assets.SetSelectedIndex(-1)
-
-				return
-			} else if !passed {
-				// show them that
-				showError(errors.New("wrong password"))
-				return
-			}
-
-			// let's start with a set of arguments
-			args := rpc.Arguments{}
-
-			// and let's get that amount
-			amnt := program.entries.amount.Text
-
-			// dump the amount text
 			program.entries.amount.SetText("")
+			program.entries.dst.SetText("")
+			program.entries.comment.SetText("")
+			program.selections.assets.SetSelectedIndex(-1)
 
-			// let's parse that amount so that we can work with it
-			flo, err := strconv.ParseFloat(amnt, 64)
+			return
+		} else if !passed {
+			// show them that
+			showError(errors.New("wrong password"))
+			return
+		}
+
+		// let's start with a set of arguments
+		args := rpc.Arguments{}
+
+		// and let's get that amount
+		amnt := program.entries.amount.Text
+
+		// dump the amount text
+		program.entries.amount.SetText("")
+
+		// let's parse that amount so that we can work with it
+		flo, err := strconv.ParseFloat(amnt, 64)
+		if err != nil {
+			showError(err)
+		}
+
+		// now let's coerce it into a dero atomic units
+		value := uint64(flo * atomic_units) // atomic
+
+		// now let's go get the destination port
+		dst := program.entries.dst.Text
+
+		// now dump the text
+		program.entries.dst.SetText("")
+
+		// if it is not empty...
+		if dst != "" {
+
+			// parse the string to uint
+			dst_uint, err := strconv.ParseUint(dst, 10, 64)
 			if err != nil {
 				showError(err)
 			}
 
-			// now let's coerce it into a dero atomic units
-			value := uint64(flo * atomic_units) // atomic
+			// and let's append the dst as uint64 to our arguments
+			args = append(args, rpc.Argument{
+				Name:     rpc.RPC_DESTINATION_PORT,
+				DataType: rpc.DataUint64,
+				Value:    dst_uint,
+			})
+		}
 
-			// now let's go get the destination port
-			dst := program.entries.dst.Text
+		// again, with the copy the comment
+		comment := program.entries.comment.Text
 
-			// now dump the text
-			program.entries.dst.SetText("")
+		// dump the text from memory
+		program.entries.comment.SetText("")
 
-			// if it is not empty...
-			if dst != "" {
+		// if it isn't empty...
+		if comment != "" {
+			// append the comment onto the arguments
+			args = append(args, rpc.Argument{
+				Name:     rpc.RPC_COMMENT,
+				DataType: rpc.DataString,
+				Value:    comment,
+			})
+		}
 
-				// parse the string to uint
-				dst_uint, err := strconv.ParseUint(dst, 10, 64)
-				if err != nil {
-					showError(err)
-				}
+		reply := program.checks.replyback.Checked
+		program.checks.replyback.SetChecked(false)
 
-				// and let's append the dst as uint64 to our arguments
-				args = append(args, rpc.Argument{
-					Name:     rpc.RPC_DESTINATION_PORT,
-					DataType: rpc.DataUint64,
-					Value:    dst_uint,
-				})
-			}
+		// then...
+		if reply {
 
-			// again, with the copy the comment
-			comment := program.entries.comment.Text
+			// append the wallet address to the arguments
+			args = append(args, rpc.Argument{
+				Name:     rpc.RPC_REPLYBACK_ADDRESS,
+				DataType: rpc.DataAddress,
+				Value:    program.wallet.GetAddress(),
+			})
+		}
 
-			// dump the text from memory
-			program.entries.comment.SetText("")
+		// before we ship it, check the pack to make sure it can go
+		if _, err := args.CheckPack(transaction.PAYLOAD0_LIMIT); err != nil {
 
-			// if it isn't empty...
-			if comment != "" {
-				// append the comment onto the arguments
-				args = append(args, rpc.Argument{
-					Name:     rpc.RPC_COMMENT,
-					DataType: rpc.DataString,
-					Value:    comment,
-				})
-			}
+			// show error if it can't
+			showError(err)
+			return
+		}
 
-			reply := program.checks.replyback.Checked
-			program.checks.replyback.SetChecked(false)
+		// let's get the reciever
+		destination := program.receiver
 
-			// then...
-			if reply {
+		// dump the receiver
+		// clear recipient on send action
+		program.entries.recipient.SetText("")
 
-				// append the wallet address to the arguments
-				args = append(args, rpc.Argument{
-					Name:     rpc.RPC_REPLYBACK_ADDRESS,
-					DataType: rpc.DataAddress,
-					Value:    program.wallet.GetAddress(),
-				})
-			}
+		// we are going to get the current default ringsize
+		rings := uint64(program.wallet.GetRingSize())
 
-			// before we ship it, check the pack to make sure it can go
-			if _, err := args.CheckPack(transaction.PAYLOAD0_LIMIT); err != nil {
+		// we are NOT sending all, which is not implemented
+		send_all := false
 
-				// show error if it can't
+		// we are not doing a sc call
+		scdata := rpc.Arguments{}
+
+		// there is no gasstorage in this call
+		gasstorage := uint64(0)
+
+		// and we are not going to dry run to get data from the transfer
+		dry_run := false
+
+		// the scid is defaulted to DERO
+		scid := crypto.ZEROHASH
+
+		// let's check if they selected another asset to send
+
+		// first let's get the current selected index
+		index := program.selections.assets.SelectedIndex()
+
+		// dump the selection
+		program.selections.assets.SetSelectedIndex(-1)
+
+		// If they selected something, it is an asset
+		isAsset := index > -1
+
+		if isAsset {
+			// thusly, well get the asset from the cache
+			asset := program.caches.assets[index]
+
+			// and now the scid is the asset
+			scid = crypto.HashHexToHash(asset.hash)
+		}
+
+		// now, let's build the payload
+		payload := []rpc.Transfer{
+			{
+				SCID:        scid,
+				Destination: destination,
+				Amount:      value,
+				Payload_RPC: args, // if any
+			},
+		}
+
+		notice := makeCenteredWrappedLabel("dispatching transfer.... should recieve txid soon")
+		sync := widget.NewActivity()
+
+		sync.Start()
+		// create content container
+		content := container.NewVBox(notice, container.NewCenter(sync))
+		// set it to a new dialog screen and show
+		transaction := dialog.NewCustomWithoutButtons("Transaction Dispatched", content, program.window)
+		transaction.Resize(program.size)
+		transaction.Show()
+		var retries int
+		go func() {
+		try_again:
+			// and let's build a transaction
+			tx, err := program.wallet.TransferPayload0(
+				payload, rings, send_all,
+				scdata, gasstorage, dry_run,
+			)
+			// if this explodes...
+			if err != nil {
+
+				// show the error
 				showError(err)
+				// now let's make sure each of these are re-enabled
+
+				return
+			}
+			if !program.preferences.Bool("loggedIn") {
 				return
 			}
 
-			// let's get the reciever
-			destination := program.receiver
+			// let's send this to the node for processing
+			if err := program.wallet.SendTransaction(tx); err != nil {
 
-			// dump the receiver
-			// clear recipient on send action
-			program.entries.recipient.SetText("")
-
-			// we are going to get the current default ringsize
-			rings := uint64(program.wallet.GetRingSize())
-
-			// we are NOT sending all, which is not implemented
-			send_all := false
-
-			// we are not doing a sc call
-			scdata := rpc.Arguments{}
-
-			// there is no gasstorage in this call
-			gasstorage := uint64(0)
-
-			// and we are not going to dry run to get data from the transfer
-			dry_run := false
-
-			// the scid is defaulted to DERO
-			scid := crypto.ZEROHASH
-
-			// let's check if they selected another asset to send
-
-			// first let's get the current selected index
-			index := program.selections.assets.SelectedIndex()
-
-			// dump the selection
-			program.selections.assets.SetSelectedIndex(-1)
-
-			// If they selected something, it is an asset
-			isAsset := index > -1
-
-			if isAsset {
-				// thusly, well get the asset from the cache
-				asset := program.caches.assets[index]
-
-				// and now the scid is the asset
-				scid = crypto.HashHexToHash(asset.hash)
-			}
-
-			// now, let's build the payload
-			payload := []rpc.Transfer{
-				{
-					SCID:        scid,
-					Destination: destination,
-					Amount:      value,
-					Payload_RPC: args, // if any
-				},
-			}
-
-			notice := makeCenteredWrappedLabel("dispatching transfer.... should recieve txid soon")
-			sync := widget.NewActivity()
-
-			sync.Start()
-			// set it to a new dialog screen and show
-			transaction := dialog.NewCustomWithoutButtons(
-				"Transaction Dispatched",
-				container.NewVBox(notice, container.NewCenter(sync)), program.window,
-			)
-			transaction.Resize(program.size)
-			transaction.Show()
-			var retries int
-			go func() {
-			try_again:
-				// and let's build a transaction
-				tx, err := program.wallet.TransferPayload0(
-					payload, rings, send_all,
-					scdata, gasstorage, dry_run,
-				)
-				// if this explodes...
-				if err != nil {
-
-					// show the error
-					showError(err)
-					// now let's make sure each of these are re-enabled
-
-					return
-				}
-				if !program.preferences.Bool("loggedIn") {
-					return
-				}
-
-				// let's send this to the node for processing
-				if err := program.wallet.SendTransaction(tx); err != nil {
-
-					if retries < 4 {
-						retries++
-						goto try_again
-					} else {
-						fyne.DoAndWait(func() {
-							// if it errors out, show the err
-							showError(err)
-							sync.Stop()
-							transaction.Dismiss()
-						})
-					}
-					// and return
-
-				} else { // if we have success
-
-					// let's make a link
-					link := truncator(tx.GetHash().String())
-
-					// set it into a new widget -> consider launching your own explorer
-					txid := widget.NewHyperlink(link, nil)
-
-					// align it center
-					txid.Alignment = fyne.TextAlignCenter
-
-					// when tapped, copy to clipboard
-					txid.OnTapped = func() {
-						program.application.Clipboard().SetContent(tx.GetHash().String())
-						showInfo("", "txid copied to clipboard")
-					}
+				if retries < 4 {
+					retries++
+					goto try_again
+				} else {
 					fyne.DoAndWait(func() {
+						// if it errors out, show the err
+						showError(err)
 						sync.Stop()
 						transaction.Dismiss()
-						// set it to a new dialog screen and show
-						dialog.ShowCustom(
-							"Transaction Dispatched", "dismissed",
-							container.NewVBox(txid), program.window,
-						)
 					})
 				}
-			}()
+				// and return
 
-			// and now fit it into the window
-		}, program.window)
+			} else { // if we have success
+
+				// let's make a link
+				link := truncator(tx.GetHash().String())
+
+				// set it into a new widget -> consider launching your own explorer
+				txid := widget.NewHyperlink(link, nil)
+
+				// align it center
+				txid.Alignment = fyne.TextAlignCenter
+
+				// when tapped, copy to clipboard
+				txid.OnTapped = func() {
+					program.application.Clipboard().SetContent(tx.GetHash().String())
+					showInfo("", "txid copied to clipboard")
+				}
+				fyne.DoAndWait(func() {
+					sync.Stop()
+					transaction.Dismiss()
+					// set it to a new dialog screen and show
+					dialog.ShowCustom(
+						"Transaction Dispatched", "dismissed",
+						container.NewVBox(txid), program.window,
+					)
+				})
+			}
+		}()
+
+		// and now fit it into the window
+	}
+
+	// make a simple form
+	content := []*widget.FormItem{widget.NewFormItem("", program.entries.pass)}
+
+	// make them confirm with password
+	t = dialog.NewForm("Password Confirmation", confirm, "Cancel", content, callback, program.window)
 
 	// resize and show
 	t.Resize(program.size)
