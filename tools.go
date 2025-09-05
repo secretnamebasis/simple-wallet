@@ -921,32 +921,58 @@ func balance_rescan() {
 
 				// clean the wallet
 				program.wallet.Clean()
+
+				// it will be helpful to know when we are done
 				var done bool
+
+				// as a go routine...
 				go func() {
 
-					var old int
+					// keep track of the old_len
+					var old_len int
+
+					// now we are going to have this spin every second
 					ticker := time.NewTicker(time.Second)
 					for range ticker.C {
+
+						// if we are done, break this loop
 						if done {
 							break
 						}
 
+						// get ALL transfers
 						transfers := getAllTransfers()
-						current := len(transfers)
-						if current == old {
+
+						// measure them
+						current_len := len(transfers)
+
+						// continue if the same as the old
+						if current_len == old_len {
 							continue
 						}
-						diff := current - old
-						old = current
+
+						// get the difference
+						diff := current_len - old_len
+
+						// set the old length
+						old_len = current_len
+
+						// now spin through the transfers at the point of difference
 						for _, each := range transfers[diff:] {
+
+							// update the notice
 							fyne.DoAndWait(func() {
-								notice.SetText("BlockHash: " + each.BlockHash)
+								notice.SetText("BlockHash: " + truncator(each.BlockHash))
 							})
-							time.Sleep(time.Second)
-							fyne.DoAndWait(func() {
-								notice.SetText("Retrieving more txs")
-							})
+
+							// take a small breather between updates
+							time.Sleep(time.Millisecond * 300)
 						}
+
+						// set notice to a default
+						fyne.DoAndWait(func() {
+							notice.SetText("Retrieving more txs")
+						})
 					}
 				}()
 
