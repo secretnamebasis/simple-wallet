@@ -35,16 +35,17 @@ func restore() {
 	// here is a simple way do a wallet restoration
 	restore.OnTapped = restoration
 
+	// make some content
+	content := container.NewVBox(
+		program.entries.seed,
+		widget.NewLabel("OR"),
+		program.entries.secret,
+		widget.NewLabel("New Password"),
+		program.entries.pass,
+		restore,
+	)
 	// let's have our selves a restore wallet dialog
-	restore_wallet = dialog.NewCustom("Restore Wallet", dismiss,
-		container.NewVBox(
-			program.entries.seed,
-			widget.NewLabel("OR"),
-			program.entries.secret,
-			widget.NewLabel("New Password"),
-			program.entries.pass,
-			restore,
-		), program.window)
+	restore_wallet = dialog.NewCustom("Restore Wallet", dismiss, content, program.window)
 
 	// if they press enter... it's as if they clicked restore
 	program.entries.pass.OnSubmitted = func(s string) {

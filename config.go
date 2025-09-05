@@ -31,12 +31,18 @@ func configs() *fyne.Container {
 	// let's start off by hiding it
 	program.buttons.rpc_server.Hide()
 
-	return container.New(layout.NewVBoxLayout(),
+	// let's make a simple way to manage the rpc server
+	program.buttons.update_password.OnTapped = passwordUpdate
+
+	// let's start off by hiding it
+	program.buttons.update_password.Hide()
+
+	return container.NewVBox(
 		program.containers.topbar,
 		layout.NewSpacer(),
 		container.NewVBox(program.buttons.connections),
 		container.NewVBox(program.buttons.rpc_server),
-		// container.NewVBox(program.buttons.password),
+		container.NewVBox(program.buttons.update_password),
 		// container.NewVBox(program.buttons.tx_priority),
 		// container.NewVBox(program.buttons.ringsize	),
 		layout.NewSpacer(),
@@ -201,7 +207,7 @@ func connections() {
 	set.Alignment = fyne.TextAlignCenter
 
 	// so when they tap on it
-	set.OnTapped = func() {
+	onTapped := func() {
 
 		// obviously...
 		if form_entry.Text == "" {
@@ -238,6 +244,9 @@ func connections() {
 		// set the walletapi endpoint for the maintain_connection function
 		walletapi.Daemon_Endpoint = program.node.current
 	}
+
+	// set the on tapped function
+	set.OnTapped = onTapped
 
 	// let's show off a list
 	var list string
@@ -289,7 +298,7 @@ func rpc_server() {
 	}
 
 	// when they toggle the options
-	program.toggles.server.OnChanged = func(s string) {
+	onChanged := func(s string) {
 		// if on...
 		switch s {
 		case "on":
@@ -348,6 +357,8 @@ func rpc_server() {
 			}
 		}
 	}
+	// set the on changed function
+	program.toggles.server.OnChanged = onChanged
 
 	// if there isn't anything toggled, set to off
 	if program.toggles.server.Selected == "" {
@@ -374,4 +385,98 @@ RPC server runs at http://127.0.0.1:10103
 	rpc := dialog.NewCustom("rpc server", dismiss, content, program.window)
 	rpc.Resize(program.size)
 	rpc.Show()
+}
+
+func passwordUpdate() {
+	// let's get some confirmation
+	var pass_confirm *dialog.ConfirmDialog
+
+	// allow press ENTER/RETURN passthrough
+	program.entries.pass.OnSubmitted = func(s string) {
+		pass_confirm.Confirm()
+	}
+
+	// get password callback function
+	callback := func(b bool) {
+		if !b { // in case of cancellation
+			return
+		}
+
+		// copy the password
+		password := program.entries.pass.Text
+
+		// dump the entry
+		program.entries.pass.SetText("")
+
+		// check the password
+		if ok := program.wallet.Check_Password(password); !ok {
+			showError(errors.New("wrong password"))
+			return
+		}
+
+		// now run the update dialog
+		var update *dialog.CustomDialog
+
+		// show them a new placeholder
+		program.entries.password.SetPlaceHolder("n3w-w41137-p@55w0rd")
+
+		// make sure it is a password entry widget
+		program.entries.password.Password = true
+
+		// here's what we are going to do...
+		change_password := func() {
+
+			// get the new password
+			new_pass := program.entries.password.Text
+
+			// dump the entry
+			program.entries.password.SetText("")
+
+			// now check for an err on the set password
+			err := program.wallet.Set_Encrypted_Wallet_Password(new_pass)
+
+			// if there is an error
+			if err != nil {
+				showError(err)
+				return
+			} else { // otherwise
+				update.Dismiss() // close the password dialog
+				// and notify the user of update
+				showInfo("UPDATE PASSWORD", "Password has been successfully updated")
+			}
+		}
+
+		// allow press ENTER/RETURN passthrough
+		program.entries.password.OnSubmitted = func(s string) {
+			change_password()
+		}
+
+		// in case they want to just click the button instead
+		program.hyperlinks.save.OnTapped = change_password
+
+		// set the content
+		content := container.NewVBox(
+			layout.NewSpacer(),
+			program.entries.password,
+			container.NewCenter(program.hyperlinks.save),
+			layout.NewSpacer(),
+		)
+
+		// fill the dialog
+		update = dialog.NewCustom("update password", dismiss, content, program.window)
+
+		// resize and show it
+		update.Resize(program.size)
+		update.Show()
+
+	}
+
+	// create a simple form
+	content := widget.NewForm(widget.NewFormItem("", program.entries.pass))
+
+	// set the dialog with a pass entry field and the callback
+	pass_confirm = dialog.NewCustomConfirm("Confirm Password", confirm, dismiss, content, callback, program.window)
+
+	// and show it
+	pass_confirm.Show()
 }

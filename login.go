@@ -131,6 +131,7 @@ func loggedIn() {
 	program.buttons.rpc_server.Show()
 	program.buttons.assets.Show()
 	program.buttons.send.Show()
+	program.buttons.update_password.Show()
 
 	// show containers
 	program.containers.toolbox.Show()
@@ -148,20 +149,18 @@ func loggedIn() {
 }
 
 func loginOpenFile() {
-	file := dialog.NewFileOpen(
-		func(reader fyne.URIReadCloser, err error) {
-			if err != nil {
-				showError(err)
-				return
-			}
-			if reader == nil {
-				return
-			}
-			defer reader.Close()
-			program.entries.wallet.entry.SetText(reader.URI().Path())
-		},
-		program.window,
-	)
+	callback := func(reader fyne.URIReadCloser, err error) {
+		if err != nil {
+			showError(err)
+			return
+		}
+		if reader == nil {
+			return
+		}
+		defer reader.Close()
+		program.entries.wallet.entry.SetText(reader.URI().Path())
+	}
+	file := dialog.NewFileOpen(callback, program.window)
 	file.Resize(program.size)
 	file.Show()
 }
