@@ -988,9 +988,8 @@ func balance_rescan() {
 						var err error
 
 						// then add each scid back to the map
-						if err = program.wallet.TokenAdd(
-							crypto.HashHexToHash(asset.hash),
-						); err != nil {
+						hash := crypto.HashHexToHash(asset.hash)
+						if err = program.wallet.TokenAdd(hash); err != nil {
 							// if err, show it
 							showError(err)
 							// but don't stop, just continue the loop
@@ -998,9 +997,7 @@ func balance_rescan() {
 						}
 
 						// and then sync scid internally with the daemon
-						if err = program.wallet.Sync_Wallet_Memory_With_Daemon_internal(
-							crypto.HashHexToHash(asset.hash),
-						); err != nil {
+						if err = program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
 							// if err, show it
 							showError(err)
 							// but don't stop, just continue the loop
