@@ -92,6 +92,7 @@ func logout() {
 
 	// hide buttons
 	program.buttons.rpc_server.Hide()
+	program.buttons.update_password.Hide()
 	program.buttons.assets.Hide()
 
 	// show labels

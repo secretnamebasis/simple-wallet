@@ -48,6 +48,7 @@ var program = components{
 		keys:                      widget.NewButton("KEYS", nil),
 		transactions:              widget.NewButton("TRANSACTIONS", nil),
 		rpc_server:                widget.NewButton("RPC SERVER", nil),
+		update_password:           widget.NewButton("UPDATE PASSWORD", nil),
 		contract_installer:        widget.NewButton("CONTRACT INSTALLER", nil),
 		contract_interactor:       widget.NewButton("CONTRACT INTERACTOR", nil),
 		connections:               widget.NewButton("CONNECTIONS", nil),

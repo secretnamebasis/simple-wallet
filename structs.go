@@ -98,6 +98,7 @@ type (
 		send,
 		connections,
 		rpc_server,
+		update_password,
 		filesign,
 		fileverify,
 		self_encrypt_decrypt,

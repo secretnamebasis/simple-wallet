@@ -131,6 +131,7 @@ func loggedIn() {
 	program.buttons.rpc_server.Show()
 	program.buttons.assets.Show()
 	program.buttons.send.Show()
+	program.buttons.update_password.Show()
 
 	// show containers
 	program.containers.toolbox.Show()
