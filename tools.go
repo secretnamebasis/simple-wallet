@@ -1004,13 +1004,13 @@ func balance_rescan() {
 							continue
 						}
 					}
-					// when done, shut down the sync status in the go routine
-					fyne.DoAndWait(func() {
-						done = true
-						syncing.Stop()
-						sync.Dismiss()
-					})
 				}
+				// when done, shut down the sync status in the go routine
+				fyne.DoAndWait(func() {
+					done = true
+					syncing.Stop()
+					sync.Dismiss()
+				})
 			}()
 
 		}, program.window) // set to the main window
