@@ -900,10 +900,14 @@ func balance_rescan() {
 			syncing := widget.NewActivity()
 			syncing.Start()
 			notice := makeCenteredWrappedLabel("Beginning Scan")
+			content := container.NewVBox(
+				layout.NewSpacer(),
+				syncing,
+				notice,
+				layout.NewSpacer(),
+			)
 			// set it to a splash screen
-			sync := dialog.NewCustomWithoutButtons("syncing",
-				container.NewVBox(layout.NewSpacer(), syncing, notice, layout.NewSpacer()),
-				program.window)
+			sync := dialog.NewCustomWithoutButtons("syncing", content, program.window)
 
 			// resize and show
 			sync.Resize(program.size)
