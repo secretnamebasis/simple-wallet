@@ -28,6 +28,8 @@ import (
 	"golang.org/x/image/draw"
 )
 
+// needs to be better organized, possibly squirreled into new .go files
+
 // simple way to truncate hashes/address
 func truncator(a string) string { return a[:6] + "......." + a[len(a)-6:] }
 
@@ -366,6 +368,15 @@ func testConnection(s string) error {
 		return errors.New("body does not contain DERO")
 	}
 	return nil
+}
+func hashesLength() int { return len(program.caches.assets) }
+
+func createLabel() fyne.CanvasObject {
+	return container.NewAdaptiveGrid(3,
+		widget.NewLabel(""),
+		widget.NewLabel(""),
+		widget.NewLabel(""),
+	)
 }
 
 func makeCenteredWrappedLabel(s string) *widget.Label {

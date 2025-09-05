@@ -357,14 +357,7 @@ func txList() {
 	txs.Resize(program.size)
 	txs.Show()
 }
-func hashesLength() int { return len(program.caches.assets) }
-func createLabel() fyne.CanvasObject {
-	return container.NewAdaptiveGrid(3,
-		widget.NewLabel(""),
-		widget.NewLabel(""),
-		widget.NewLabel(""),
-	)
-}
+
 func assetsList() {
 
 	// let's just refresh the hash cache
