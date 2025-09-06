@@ -368,7 +368,7 @@ func assetsList() {
 	if hashesLength() == 0 {
 		scroll = container.NewVScroll(container.NewVBox(
 			layout.NewSpacer(),
-			program.buttons.token_add,
+			makeCenteredWrappedLabel("Please visit tools, and Add SCID to your collection"),
 			layout.NewSpacer(),
 		))
 	} else {
@@ -381,8 +381,7 @@ func assetsList() {
 		// and here is the widget we'll use for each item in the list
 		program.lists.asset_list.CreateItem = createLabel
 
-		// and now here is how we want each item updated
-		program.lists.asset_list.UpdateItem = func(lii widget.ListItemID, co fyne.CanvasObject) {
+		updateItem := func(lii widget.ListItemID, co fyne.CanvasObject) {
 
 			// here is the asset details
 			asset := program.caches.assets[lii]
@@ -409,8 +408,11 @@ func assetsList() {
 			label.SetText(text)
 		}
 
-		// when we select an item from the list, here's what we are going to do
-		program.lists.asset_list.OnSelected = func(id widget.ListItemID) {
+		// and now here is how we want each item updated
+		program.lists.asset_list.UpdateItem = updateItem
+
+		//
+		onSelected := func(id widget.ListItemID) {
 
 			program.lists.asset_list.Unselect(id)
 
@@ -432,8 +434,7 @@ func assetsList() {
 			// we'll use a label for the list item
 			entries_list.CreateItem = func() fyne.CanvasObject { return widget.NewLabel("") }
 
-			// here is how we'll update the item to look
-			entries_list.UpdateItem = func(lii widget.ListItemID, co fyne.CanvasObject) {
+			updateItem := func(lii widget.ListItemID, co fyne.CanvasObject) {
 
 				// let's make sure the entry is bodied
 				entries[lii].ProcessPayload()
@@ -455,10 +456,15 @@ func assetsList() {
 				// and let's set the text for it
 				label.SetText(text)
 			}
+			// here is how we'll update the item to look
+			entries_list.UpdateItem = updateItem
 
 			// so now, when we select an entry on the list we'll show the transfer details
-			entries_list.OnSelected = func(id widget.ListItemID) {
+			onSelected := func(id widget.ListItemID) {
 				entries_list.Unselect(id)
+				sort.Slice(entries, func(i, j int) bool {
+					return entries[i].Time.After(entries[j].Time)
+				})
 
 				lines := strings.SplitSeq(entries[id].String(), "\n")
 				asset_details := container.NewVBox()
@@ -505,6 +511,8 @@ func assetsList() {
 				entry.Resize(program.size)
 				entry.Show()
 			}
+			entries_list.OnSelected = onSelected
+
 			var smart_contract_details *dialog.CustomDialog
 
 			// we'll use the truncated scid as the header for the transfers
@@ -516,14 +524,15 @@ func assetsList() {
 				showInfo("", scid+" copied to clipboard")
 			}
 
-			stuff := container.NewAdaptiveGrid(1,
-				getSCIDImageThumbnailContainer(scid),
+			content := container.NewAdaptiveGrid(1,
+				asset.image,
 				container.NewCenter(widget.NewLabel(asset.name)),
 				container.NewCenter(scid_hyperlink),
 			)
 
 			confirm := widget.NewHyperlink("Are You Sure?", nil)
-			confirm.OnTapped = func() {
+
+			onTapped := func() {
 
 				// delete the item from the EntriesNative Map
 				delete(program.wallet.GetAccount().EntriesNative, crypto.HashHexToHash(scid))
@@ -535,11 +544,12 @@ func assetsList() {
 				program.lists.asset_list.Refresh()
 				smart_contract_details.Dismiss()
 			}
+			confirm.OnTapped = onTapped
 
 			// let's make some tabs
 			tabs := container.NewAppTabs(
 				container.NewTabItem("Details",
-					stuff,
+					content,
 				),
 				container.NewTabItem("Code",
 					container.NewScroll(
@@ -577,6 +587,8 @@ func assetsList() {
 			smart_contract_details.Resize(program.size)
 			smart_contract_details.Show()
 		}
+
+		program.lists.asset_list.OnSelected = onSelected
 
 		// for good measure, we'll refresh the list
 		program.lists.asset_list.Refresh()
