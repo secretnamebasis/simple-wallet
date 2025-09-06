@@ -1075,6 +1075,10 @@ func installer() {
 
 	// let's validate that file, shall we?
 	validate_string := func(s string) error {
+
+		if s == "" {
+			return errors.New("cannot be empty")
+		}
 		// read the file
 		b, err := os.ReadFile(s)
 
@@ -1847,10 +1851,8 @@ func add_token() {
 
 			// add the token
 			if err := program.wallet.TokenAdd(hash); err != nil {
-
 				// show err if one
 				fyne.DoAndWait(func() {
-
 					showError(err)
 					sync.Dismiss()
 				})
@@ -1859,18 +1861,15 @@ func add_token() {
 				// immediately rebuild the assets
 				buildAssetHashList()
 
-				// spin up a background goroutine
-				go func() {
-					// sync the token now for good measure
-					if err := program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
-						fyne.DoAndWait(func() {
+				// sync the token now for good measure
+				if err := program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
+					fyne.DoAndWait(func() {
+						showError(err)
+						sync.Dismiss()
+					})
+					return
+				}
 
-							showError(err)
-							sync.Dismiss()
-						})
-						return
-					}
-				}()
 				//make a notice
 				notice := truncator(hash.String()) + "has been added to your collection"
 
@@ -1882,14 +1881,14 @@ func add_token() {
 			}
 		}()
 	}
+
+	content := container.NewVBox(
+		layout.NewSpacer(),
+		t,
+		layout.NewSpacer(),
+	)
 	// walk the user through adding a token
-	add := dialog.NewCustomConfirm("Add Token", confirm, dismiss,
-		container.NewVBox(
-			layout.NewSpacer(),
-			t,
-			layout.NewSpacer(),
-		),
-		token_add, program.window)
+	add := dialog.NewCustomConfirm("Add Token", confirm, dismiss, content, token_add, program.window)
 
 	t.OnSubmitted = func(s string) {
 		token_add(true)
