@@ -57,17 +57,15 @@ func maintain_connection() {
 	var retries int
 	// track the height
 	var height int64
-	var old_height int64
 	// the purpose of this function is to obtain topo height every second
 	ticker := time.NewTicker(time.Second)
-	// assuming the localhost connection works
-	walletapi.Daemon_Endpoint = program.node.current
 	// this is an infinite loop
 	for range ticker.C {
+		// assuming the localhost connection works
+		walletapi.Daemon_Endpoint = program.node.current
+
 		// get the height directly from the daemon
-		if getDaemonInfo().TopoHeight == 0 ||
-			// and make the connection right now
-			walletapi.Connect(walletapi.Daemon_Endpoint) != nil {
+		if getDaemonInfo().TopoHeight == 0 || walletapi.Connect(walletapi.Daemon_Endpoint) != nil {
 
 			// update the label and show 0s
 			fyne.DoAndWait(func() {
@@ -80,33 +78,37 @@ func maintain_connection() {
 					program.activities.registration.Hide()
 				}
 			})
-			// now we need to range and connect
-			var fastest int64 = 10000 // we assume 10 second
 
-			// now range through the nodes in the list
-			for _, node := range program.node.list {
+			if program.toggles.network.Selected == "mainnet" {
+				// now we need to range and connect
+				var fastest int64 = 10000 // we assume 10 second
 
-				// make a start time for determining how fast this goes
-				start := time.Now()
-				// here is a helper
-				if err := testConnection(node.ip); err != nil {
-					continue
+				// now range through the nodes in the list
+				for _, node := range program.node.list {
+
+					// make a start time for determining how fast this goes
+					start := time.Now()
+					// here is a helper
+					if err := testConnection(node.ip); err != nil {
+						continue
+					}
+					// now that the connection has been tested, get the time
+					result := time.Now().UnixMilli() - start.UnixMilli()
+
+					// if the result is faster than fastest
+					if result < fastest {
+
+						// it is now the new fastest
+						fastest = result
+
+						// and it is now the current node
+						program.node.current = node.ip
+					}
 				}
-				// now that the connection has been tested, get the time
-				result := time.Now().UnixMilli() - start.UnixMilli()
-
-				// if the result is faster than fastest
-				if result < fastest {
-
-					// it is now the new fastest
-					fastest = result
-
-					// and it is now the current node
-					program.node.current = node.ip
-				}
+				// assuming the fastest connection works
+				walletapi.Daemon_Endpoint = program.node.current
 			}
-			// assuming the fastest connection works
-			walletapi.Daemon_Endpoint = program.node.current
+
 			// re-test the connection
 			if err := walletapi.Connect(walletapi.Daemon_Endpoint); err != nil {
 				// show why?
@@ -121,10 +123,7 @@ func maintain_connection() {
 					fyne.DoAndWait(func() {
 
 						// then notify the user
-						showError(
-							errors.New("autoconnect is not working as expected.\n" +
-								"Please set custom endpoint"),
-						)
+						showError(err)
 						// update the label
 						program.labels.connection.SetText("NODE: 🔴")
 						program.labels.height.SetText("BLOCK: 0000000")
@@ -146,7 +145,9 @@ func maintain_connection() {
 				retries++
 				fmt.Println("connection retry attempt", retries)
 			}
-		} else { // the connection should be working
+		} else {
+
+			// the connection should be working
 			height = getDaemonInfo().TopoHeight
 			// now if they are able to connect...
 			// update the height and node label
@@ -169,8 +170,7 @@ func maintain_connection() {
 			retries = 0
 
 			// simple way to see if height has changed
-			if height > old_height {
-				old_height = height
+			if height > 0 {
 				fyne.DoAndWait(func() {
 					program.labels.height.SetText(
 						"BLOCK: " + strconv.Itoa(int(walletapi.Get_Daemon_Height())),
@@ -194,13 +194,84 @@ func maintain_connection() {
 }
 
 func connections() {
-
+	var msg string = "Auto-connects to localhost"
 	// post up the current node
-	current_node := widget.NewLabel("Current Node: " + program.node.current)
+	current_node := widget.NewLabel("")
+	current_node.SetText("Current Node: " + program.node.current)
 
 	// make a way for them to enter and address
 	form_entry := widget.NewEntry()
-	form_entry.PlaceHolder = "127.0.0.1:10102"
+
+	// build a pleasing and simple list
+	label := widget.NewRichTextFromMarkdown("") // wrap it
+	label.Wrapping = fyne.TextWrapWord
+	set_label := func() {
+		var opts string
+		if program.toggles.network.Selected == "mainnet" {
+			form_entry.PlaceHolder = "127.0.0.1:10102"
+			// let's show off a list
+			var list string
+
+			// here are the hard coded nodes
+			for _, node := range program.node.list {
+				list += "- " + node.ip + " " + node.name + "\n\n"
+			}
+			opts = ", or fastest public node:\n\n" + list
+		}
+
+		label.ParseMarkdown(msg + opts)
+	}
+	set_label()
+	changed := func(s string) {
+		switch s {
+		case "mainnet":
+			program.toggles.network.SetSelected("mainnet")
+			globals.Arguments["--testnet"] = false
+			globals.Arguments["--simulator"] = false
+			program.preferences.SetBool("mainnet", true)
+			program.node.current = "127.0.0.1:10102"
+			form_entry.PlaceHolder = "127.0.0.1:10102"
+			current_node.SetText("Current Node: " + program.node.current)
+			set_label()
+			form_entry.Refresh()
+			globals.InitNetwork()
+		case "testnet":
+			program.toggles.network.SetSelected("testnet")
+			globals.Arguments["--testnet"] = true
+			globals.Arguments["--simulator"] = false
+			program.preferences.SetBool("mainnet", false)
+			program.node.current = "127.0.0.1:40402"
+			form_entry.PlaceHolder = program.node.current
+			current_node.SetText("Current Node: " + program.node.current)
+			label.ParseMarkdown(msg)
+			form_entry.Refresh()
+			globals.InitNetwork()
+		case "simulator":
+			program.toggles.network.SetSelected("simulator")
+			globals.Arguments["--testnet"] = true
+			globals.Arguments["--simulator"] = true
+			program.preferences.SetBool("mainnet", false)
+			program.node.current = "127.0.0.1:20000"
+			form_entry.PlaceHolder = program.node.current
+			current_node.SetText("Current Node: " + program.node.current)
+			form_entry.Refresh()
+			label.ParseMarkdown(msg)
+			globals.InitNetwork()
+		}
+	}
+	options := []string{"mainnet", "testnet", "simulator"}
+	program.toggles.network.Options = options
+	program.toggles.network.OnChanged = changed
+	if program.toggles.network.Selected == "" {
+		program.toggles.network.SetSelected("mainnet")
+	}
+	program.toggles.network.Horizontal = true
+
+	if program.preferences.Bool("loggedIn") {
+		program.toggles.network.Disable()
+	} else {
+		program.toggles.network.Enable()
+	}
 
 	// make a way for them to set the node endpoint
 	set := widget.NewHyperlink("set connection", nil)
@@ -248,33 +319,22 @@ func connections() {
 	// set the on tapped function
 	set.OnTapped = onTapped
 
-	// let's show off a list
-	var list string
-
-	// here are the hard coded nodes
-	for _, node := range program.node.list {
-		list += "- " + node.ip + " " + node.name + "\n\n"
+	form_entry.OnSubmitted = func(s string) {
+		onTapped()
 	}
 
-	// build a pleasing and simple list
-	msg := widget.NewRichTextFromMarkdown(
-		fmt.Sprintf(
-			"%s\n\n%s", "Auto-connects to localhost first, or fastest public node:", list,
-		),
-	) // wrap it
-	msg.Wrapping = fyne.TextWrapWord
-
 	// walk the user through the process
-	connect := dialog.NewCustom("Custom Node Connection", dismiss,
-		container.New(layout.NewVBoxLayout(),
-			layout.NewSpacer(),
-			form_entry,
-			set,
-			current_node,
-			msg,
-			layout.NewSpacer(),
-		), program.window,
+	content := container.New(layout.NewVBoxLayout(),
+		layout.NewSpacer(),
+		container.NewCenter(program.toggles.network),
+		form_entry,
+		set,
+		current_node,
+		label,
+		layout.NewSpacer(),
 	)
+
+	connect := dialog.NewCustom("Custom Node Connection", dismiss, content, program.window)
 
 	// resize and show
 	connect.Resize(program.size)

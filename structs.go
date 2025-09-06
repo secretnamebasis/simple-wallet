@@ -44,8 +44,9 @@ type (
 		current string
 	}
 	asset struct {
-		name string
-		hash string
+		name  string
+		hash  string
+		image *fyne.Container
 	}
 	caches struct {
 		assets []asset
@@ -60,7 +61,8 @@ type (
 	}
 
 	toggles struct {
-		server *widget.RadioGroup
+		server  *widget.RadioGroup
+		network *widget.RadioGroup
 	}
 	containers struct {
 		topbar,

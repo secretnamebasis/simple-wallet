@@ -113,8 +113,11 @@ func restoration() {
 
 	} else if isSecret { // in the event that they use a secret hex key
 
-		// the base network is 0
-		network := "0"
+		var network string
+		if program.toggles.network.Selected == "mainnet" {
+			// use the base network
+			network = "0"
+		}
 
 		// get the secret
 		secret := program.entries.secret.Text
@@ -173,8 +176,11 @@ func restoration() {
 			return
 		}
 
-		// use the base network
-		network := "0"
+		var network string
+		if program.toggles.network.Selected == "mainnet" {
+			// use the base network
+			network = "0"
+		}
 
 		// get the secret hex key
 		secret := program.entries.secret.Text

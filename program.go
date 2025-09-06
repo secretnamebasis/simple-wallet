@@ -34,7 +34,8 @@ var program = components{
 		asset_list:   new(widget.List),
 	},
 	toggles: toggles{
-		server: widget.NewRadioGroup([]string{}, nil),
+		server:  widget.NewRadioGroup([]string{}, nil),
+		network: widget.NewRadioGroup([]string{}, nil),
 	},
 	checks: checks{
 		replyback: widget.NewCheck("replyback?", nil),
