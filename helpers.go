@@ -255,8 +255,9 @@ func buildAssetHashList() {
 
 			// load each has into the cache
 			program.caches.assets = append(program.caches.assets, asset{
-				name: getSCNameFromVars(hash.String()),
-				hash: hash.String(),
+				name:  getSCNameFromVars(hash.String()),
+				hash:  hash.String(),
+				image: getSCIDImageThumbnailContainer(hash.String()),
 			})
 		}
 	}
@@ -486,7 +487,6 @@ func getSCIDImageThumbnailContainer(scid string) *fyne.Container {
 				continue
 			}
 			value := string(b)
-			fmt.Println(value)
 			uri, err := storage.ParseURI(value)
 			if err != nil {
 				image := canvas.NewImageFromResource(theme.BrokenImageIcon())

@@ -1,11 +1,14 @@
 package main
 
 import (
+	"sync"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
+
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/walletapi"
 )
@@ -24,7 +27,7 @@ func loggedIn() {
 	notice := makeCenteredWrappedLabel("Wallet is syncing with network\n\nPls hodl")
 
 	// set the widgets to a container
-	sync := container.NewVBox(
+	syncro := container.NewVBox(
 		layout.NewSpacer(),
 		container.NewCenter(syncing),
 		notice,
@@ -32,12 +35,13 @@ func loggedIn() {
 	)
 
 	// set the sync into a splash dialog
-	splash := dialog.NewCustomWithoutButtons("Opening Wallet", sync, program.window)
+	splash := dialog.NewCustomWithoutButtons("Opening Wallet", syncro, program.window)
 	splash.Resize(program.size)
 	splash.Show()
 
 	// turn network on
-	program.wallet.SetNetwork(true)
+	program.wallet.SetNetwork(program.preferences.Bool("mainnet"))
+
 	program.wallet.SetOnlineMode()
 
 	// make the address copiable
@@ -57,8 +61,10 @@ func loggedIn() {
 	go updateBalance()
 
 	// build the cache
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
-
+		defer wg.Done()
 		buildAssetHashList()
 		fyne.DoAndWait(func() {
 			// be sure to turn off the syncing widget
@@ -73,7 +79,6 @@ func loggedIn() {
 
 	// start sync with DERO history
 	go program.wallet.SyncHistory(crypto.ZEROHASH)
-
 	// and sync asset histories
 	for _, asset := range program.caches.assets {
 		if asset.hash != crypto.ZEROHASH.String() {

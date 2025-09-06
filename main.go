@@ -158,6 +158,9 @@ func initialize() {
 	// some simple configs for the time being
 	program.containers.configs = configs()
 
+	// here is a simple way to get started
+	program.toggles.network.SetSelected("mainnet")
+
 	// and simple place for logging out
 	program.hyperlinks.logout.OnTapped = logout
 	// let's hide this for a minute
