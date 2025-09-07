@@ -48,7 +48,9 @@ func send() *fyne.Container {
 	// build out simple options for the send action
 	program.buttons.send.SetIcon(theme.MailSendIcon())
 	program.buttons.send.OnTapped = sendForm
-
+	program.entries.recipient.OnSubmitted = func(s string) {
+		sendForm()
+	}
 	return container.New(&twoThirds{},
 		program.entries.recipient,
 		program.buttons.send,
