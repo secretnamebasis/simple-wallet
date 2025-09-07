@@ -1076,11 +1076,12 @@ func installer() {
 	program.entries.file.entry.SetPlaceHolder("/path/to/contract.bas")
 
 	// let's validate that file, shall we?
-	validate_string := func(s string) error {
+	validate_path := func(s string) error {
 
 		if s == "" {
-			return errors.New("cannot be empty")
+			return nil
 		}
+
 		// read the file
 		b, err := os.ReadFile(s)
 
@@ -1101,7 +1102,29 @@ func installer() {
 	}
 
 	// and set it
-	program.entries.file.entry.Validator = validate_string
+	program.entries.file.entry.Validator = validate_path
+
+	// let's make it easy write a contract on the fly
+	entry := widget.NewEntry()
+	entry.SetPlaceHolder("...or free write contract here")
+	entry.MultiLine = true
+	validate_string := func(s string) error {
+
+		if s == "" {
+			return nil
+		}
+
+		// if it is a parsable smart contract, green light it
+		if _, _, err := dvm.ParseSmartContract(s); err != nil {
+
+			// otherwise, return err
+			return err
+		}
+
+		// validated
+		return nil
+	}
+	entry.Validator = validate_string
 
 	// we just use this because simplicity
 	ringsize := uint64(2)
@@ -1119,8 +1142,11 @@ func installer() {
 	// let's make some content
 	content := container.NewVBox(
 		layout.NewSpacer(),
-		container.NewVBox(program.entries.file),
-		isAnonymous,
+		widget.NewForm(
+			widget.NewFormItem("", program.entries.file),
+			widget.NewFormItem("", container.NewCenter(widget.NewLabel("or"))),
+			widget.NewFormItem("", entry)),
+		container.NewCenter(isAnonymous),
 		notice,
 		layout.NewSpacer(),
 	)
@@ -1159,21 +1185,28 @@ func installer() {
 			} else {
 				// get the filename
 				filename := program.entries.file.entry.Text
-
 				// dump the entry
 				program.entries.file.entry.SetText("")
 
-				// read the file
-				file, err := os.ReadFile(filename)
-				if err != nil {
-					showError(err)
+				var upload string
+				if filename == "" && entry.Text == "" {
 					return
+				} else if filename != "" && entry.Text == "" {
+					// read the file
+					file, err := os.ReadFile(filename)
+					if err != nil {
+						showError(err)
+						return
+					}
+
+					// coerce the file into string
+					upload = string(file)
+				} else if filename == "" && entry.Text != "" {
+					upload = entry.Text
 				}
-				// coerce the file into string
-				upload := string(file)
 
 				// parse the file for an error; yes, I know we validated...
-				if _, _, err = dvm.ParseSmartContract(upload); err != nil {
+				if _, _, err := dvm.ParseSmartContract(upload); err != nil {
 
 					// show them an error if one
 					showError(err)
