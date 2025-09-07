@@ -1073,6 +1073,8 @@ func balance_rescan() {
 }
 func installer() {
 
+	program.entries.file.entry.SetPlaceHolder("/path/to/contract.bas")
+
 	// let's validate that file, shall we?
 	validate_string := func(s string) error {
 
