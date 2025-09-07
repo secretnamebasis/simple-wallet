@@ -1353,6 +1353,8 @@ func interaction() {
 	// now let's make a way to enter the contract
 	scid := widget.NewEntry()
 
+	scid.SetPlaceHolder("Submit SCID here")
+
 	// make a sctring validator
 	validate := func(s string) error {
 
