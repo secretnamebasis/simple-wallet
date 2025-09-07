@@ -1,6 +1,8 @@
 package main
 
 import (
+	"image"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
@@ -46,7 +48,7 @@ type (
 	asset struct {
 		name  string
 		hash  string
-		image *fyne.Container
+		image image.Image
 	}
 	caches struct {
 		assets []asset
