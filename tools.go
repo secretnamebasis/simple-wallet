@@ -1108,6 +1108,7 @@ func installer() {
 	entry := widget.NewEntry()
 	entry.SetPlaceHolder("...or free write contract here")
 	entry.MultiLine = true
+	entry.SetMinRowsVisible(10)
 	validate_string := func(s string) error {
 
 		if s == "" {
