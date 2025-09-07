@@ -6,9 +6,11 @@ import (
 	"strings"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
@@ -379,22 +381,34 @@ func assetsList() {
 		program.lists.asset_list.Length = hashesLength
 
 		// and here is the widget we'll use for each item in the list
-		program.lists.asset_list.CreateItem = createLabel
+		program.lists.asset_list.CreateItem = createImageLabel
 
 		updateItem := func(lii widget.ListItemID, co fyne.CanvasObject) {
-
 			// here is the asset details
 			asset := program.caches.assets[lii]
 
-			// here is the label for the list
-			container := co.(*fyne.Container)
+			// here is the container
+			contain := co.(*fyne.Container)
+			// here is the container holding the image
+			padded := contain.Objects[0].(*fyne.Container)
+
+			// here is the image object
+			img := padded.Objects[0].(*canvas.Image)
+
+			// we'll use the asset image when not nil
+			if asset.image != nil {
+				img.Image = asset.image
+			} else { // otherwise, set the resource to be the broken icon
+				img.Resource = theme.BrokenImageIcon()
+			}
+
 			text := asset.name
-			label := container.Objects[0].(*widget.Label)
+			label := contain.Objects[1].(*widget.Label)
 			label.Alignment = fyne.TextAlignCenter
 			label.SetText(text)
 
 			text = truncator(asset.hash)
-			label = container.Objects[1].(*widget.Label)
+			label = contain.Objects[2].(*widget.Label)
 			label.Alignment = fyne.TextAlignCenter
 			label.SetText(text)
 
@@ -403,7 +417,7 @@ func assetsList() {
 				crypto.HashHexToHash(asset.hash),
 			)
 			text = rpc.FormatMoney(bal)
-			label = container.Objects[2].(*widget.Label)
+			label = contain.Objects[3].(*widget.Label)
 			label.Alignment = fyne.TextAlignCenter
 			label.SetText(text)
 		}
@@ -524,8 +538,11 @@ func assetsList() {
 				showInfo("", scid+" copied to clipboard")
 			}
 
+			img := setSCIDThumbnail(asset.image, 250, 250)
+			img.FillMode = canvas.ImageFillOriginal
+			contain := container.NewPadded(img)
 			content := container.NewAdaptiveGrid(1,
-				asset.image,
+				contain,
 				container.NewCenter(widget.NewLabel(asset.name)),
 				container.NewCenter(scid_hyperlink),
 			)

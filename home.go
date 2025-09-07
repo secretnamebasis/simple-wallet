@@ -13,8 +13,8 @@ func home() *fyne.Container {
 		updateHeader(program.hyperlinks.home)
 
 		// sometimes things fall through the cracks in the login screen
-		if program.entries.wallet.entry.Text != "" || program.entries.pass.Text != "" {
-			program.entries.wallet.entry.SetText("")
+		if program.entries.wallet.Text != "" || program.entries.pass.Text != "" {
+			program.entries.wallet.SetText("")
 			program.entries.pass.SetText("")
 		}
 

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"image"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
@@ -46,7 +48,7 @@ type (
 	asset struct {
 		name  string
 		hash  string
-		image *fyne.Container
+		image image.Image
 	}
 	caches struct {
 		assets []asset
@@ -122,11 +124,8 @@ type (
 		registration *widget.Activity
 	}
 	entries struct {
-		// these could be combined...
-		wallet *entryWithIcon
-		file   *entryWithIcon
-		// but separated intentionally
-		//
+		wallet,
+		file,
 		node,
 		username, password,
 		pass,

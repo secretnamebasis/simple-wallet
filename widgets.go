@@ -30,11 +30,6 @@ func newTappableIcon(re fyne.Resource, tapped func()) *tappableIcon {
 	return ti
 }
 
-// and then implement the renderer
-func (t *tappableIcon) CreateRenderer() fyne.WidgetRenderer {
-	return widget.NewSimpleRenderer(t.icon)
-}
-
 // here is what happens when the thing is tapped
 func (t *tappableIcon) Tapped(p *fyne.PointEvent) {
 	// if on tapped function is defined
@@ -49,39 +44,12 @@ func (t *tappableIcon) TappedSecondary(p *fyne.PointEvent) {
 	// do nothing when the right click
 }
 
-// now let's create the entry widget that contains the tappable icon widget
-
-// entryWithIcon is a custom Entry widget with a tappable icon as an action area
-type entryWithIcon struct {
-	widget.BaseWidget               // extend base behaviors
-	entry             *widget.Entry // include a entry field
-	actionArea        *tappableIcon // as well as the action area
-	window            fyne.Window   // and the window that it will reside in
-}
-
-// newEntryWithIcon creates a new entry with an an icon and sets up its behavior
-func newEntryWithIcon(pw fyne.Window, icon fyne.Resource, action func()) *entryWithIcon {
-	// build the object into memory
-	ewi := &entryWithIcon{
-		entry:  widget.NewEntry(),
-		window: pw,
-	}
-	// extend the base behaviors
-	ewi.ExtendBaseWidget(ewi)
-
-	// load the tappable icon into the actionArea with the desired icon and action
-	ewi.actionArea = newTappableIcon(icon, action)
-
-	return ewi
-}
-
-// CreateRenderer defines how the entryWithIcon should be rendered
-func (f *entryWithIcon) CreateRenderer() fyne.WidgetRenderer {
-	return &entryWithIconRenderer{
-		entryWithIcon: f, // include the entryWithIcon
+// CreateRenderer defines how the tappableIcon should be rendered
+func (f *tappableIcon) CreateRenderer() fyne.WidgetRenderer {
+	return &tappableIconRenderer{
+		tappableIcon: f,
 		objects: []fyne.CanvasObject{ // explicitly state the objects
-			f.entry,      // text entry
-			f.actionArea, // embedded icon
+			f.icon,
 		},
 	}
 }
@@ -93,20 +61,20 @@ func (f *entryWithIcon) CreateRenderer() fyne.WidgetRenderer {
 // Destroy
 // Objects
 
-// entryWithIconRenderer handles layout and drawing for the entryWithIcon
-type entryWithIconRenderer struct {
-	entryWithIcon *entryWithIcon      // the actual widget
+// tappableIconRenderer handles layout and drawing for the tappableIcon
+type tappableIconRenderer struct {
+	*tappableIcon                     // the actual widget
 	objects       []fyne.CanvasObject // and the objects it contains
 }
 
-func (r *entryWithIconRenderer) Layout(size fyne.Size) {
+func (r *tappableIconRenderer) Layout(size fyne.Size) {
 	padding := theme.InnerPadding()
 
 	// capture the icon's minsize
-	iconSize := r.entryWithIcon.actionArea.icon.MinSize()
+	iconSize := r.icon.MinSize()
 
-	// resize the entry area to be the size of the widget
-	r.entryWithIcon.entry.Resize(size)
+	// resize the icon area to be the size of the widget
+	r.icon.Resize(size)
 
 	// position the icon on the right inside the entry
 	x := size.Width - iconSize.Width - padding
@@ -118,40 +86,33 @@ func (r *entryWithIconRenderer) Layout(size fyne.Size) {
 	y := (size.Height - iconSize.Height) / float32(vertical_center)
 
 	// move the icon into place and resize it
-	r.entryWithIcon.actionArea.Move(fyne.NewPos(x, y))
-	r.entryWithIcon.actionArea.Resize(iconSize)
+	r.icon.Move(fyne.NewPos(x, y))
+	r.icon.Resize(iconSize)
 
 	// refresh for good measure
-	r.entryWithIcon.entry.Refresh()
+	r.icon.Refresh()
 }
 
 // MinSize returns the minimum size of the widget including the icon
-func (r *entryWithIconRenderer) MinSize() fyne.Size {
+func (r *tappableIconRenderer) MinSize() fyne.Size {
 	// capture the minsize of the entry and actionArea
-	entryMin := r.entryWithIcon.entry.MinSize()
-	iconMin := r.entryWithIcon.actionArea.MinSize()
-
-	// include entry , icon & padding as width
-	width := entryMin.Width + iconMin.Width + theme.InnerPadding()
-	// height is the greater of the two
-	height := fyne.Max(entryMin.Height, iconMin.Height)
+	iconMin := r.icon.MinSize()
 
 	// and return the size
-	return fyne.NewSize(width, height)
+	return fyne.NewSize(iconMin.Width, iconMin.Height)
 }
 
 // required: redraw items
-func (r *entryWithIconRenderer) Refresh() {
-	r.entryWithIcon.entry.Refresh()
-	r.entryWithIcon.actionArea.Refresh()
+func (r *tappableIconRenderer) Refresh() {
+	r.icon.Refresh()
 }
 
 // required for interface
-func (r *entryWithIconRenderer) Destroy() {
+func (r *tappableIconRenderer) Destroy() {
 	// TODO for now
 }
 
 // required: must return the objects of the renderer
-func (r *entryWithIconRenderer) Objects() []fyne.CanvasObject {
+func (r *tappableIconRenderer) Objects() []fyne.CanvasObject {
 	return r.objects
 }

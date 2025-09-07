@@ -96,6 +96,8 @@ Please do not leave this page.
 		public:  widget.NewLabel("PUBLIC KEY"),
 	},
 	entries: entries{
+		wallet:             widget.NewEntry(),
+		file:               widget.NewEntry(),
 		username:           widget.NewEntry(),
 		password:           widget.NewEntry(),
 		node:               widget.NewEntry(),

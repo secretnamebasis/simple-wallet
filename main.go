@@ -8,7 +8,6 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/theme"
-	"fyne.io/fyne/v2/widget"
 	"github.com/deroproject/derohe/walletapi"
 )
 
@@ -100,20 +99,16 @@ func initialize() {
 	program.containers.dashboard.Hide()
 
 	// here is a simple way to select a wallet file
-	program.entries.wallet = newEntryWithIcon(
-		program.window, theme.FolderOpenIcon(), loginOpenFile,
-	)
+	program.entries.wallet.ActionItem = newTappableIcon(theme.FolderOpenIcon(), loginOpenFile)
 
 	// here is a simple way to select a file in general
 	program.dialogues.open = openExplorer()
 
 	// let's make an simple way to open files
-	program.entries.file = newEntryWithIcon(
-		program.window, theme.FolderOpenIcon(), func() {
-			program.dialogues.open.Resize(program.size)
-			program.dialogues.open.Show()
-		},
-	)
+	program.entries.file.ActionItem = newTappableIcon(theme.FolderOpenIcon(), func() {
+		program.dialogues.open.Resize(program.size)
+		program.dialogues.open.Show()
+	})
 
 	// let's make a simple way to login
 	program.hyperlinks.login.OnTapped = loginFunction
@@ -137,14 +132,6 @@ func initialize() {
 
 	// and now, let's hide the toolbox
 	program.containers.toolbox.Hide()
-
-	// set open file button within app to prevent error:
-	// 'Fyne error:  Attempt to access current Fyne app when none is started'
-	program.buttons.open_file = widget.NewButtonWithIcon(
-		"", theme.FolderOpenIcon(), func() {})
-
-	program.buttons.open_wallet = widget.NewButtonWithIcon(
-		"", theme.FolderOpenIcon(), func() {})
 
 	// as a precaution, let's make sure that
 	// these text fields are treated like passwords

@@ -44,7 +44,7 @@ func openExplorer() *dialog.FileDialog {
 			return
 		}
 		defer reader.Close()
-		program.entries.file.entry.SetText(reader.URI().Path())
+		program.entries.file.SetText(reader.URI().Path())
 	}, program.window)
 }
 
@@ -257,7 +257,7 @@ func buildAssetHashList() {
 			program.caches.assets = append(program.caches.assets, asset{
 				name:  getSCNameFromVars(hash.String()),
 				hash:  hash.String(),
-				image: getSCIDImageThumbnailContainer(hash.String()),
+				image: getSCIDImage(hash.String()),
 			})
 		}
 	}
@@ -371,7 +371,30 @@ func testConnection(s string) error {
 	return nil
 }
 func hashesLength() int { return len(program.caches.assets) }
+func createImageLabel() fyne.CanvasObject {
+	// define a canvas object
+	img := canvas.NewImageFromResource(nil)
 
+	// set a fillmode, the original is fine
+	img.FillMode = canvas.ImageFillOriginal
+
+	// make a thumbnail size
+	img.SetMinSize(fyne.NewSize(25, 25))
+
+	// set the object in a new container
+	image := container.NewPadded(img)
+
+	// resize the container to be the min size of the object
+	image.Resize(img.MinSize())
+
+	// return the adaptive container
+	return container.NewAdaptiveGrid(4,
+		image,
+		widget.NewLabel(""),
+		widget.NewLabel(""),
+		widget.NewLabel(""),
+	)
+}
 func createLabel() fyne.CanvasObject {
 	return container.NewAdaptiveGrid(3,
 		widget.NewLabel(""),
@@ -475,9 +498,19 @@ func getSCValues(scid string) rpc.GetSC_Result {
 
 	return sc
 }
-func getSCIDImageThumbnailContainer(scid string) *fyne.Container {
-	image_thumbnail := container.NewVBox()
-
+func setSCIDThumbnail(img image.Image, h, w float32) *canvas.Image {
+	var thumbnail = new(canvas.Image)
+	thumbnail = canvas.NewImageFromResource(theme.BrokenImageIcon())
+	thumbnail.SetMinSize(fyne.NewSize(w, h))
+	if img == nil {
+		return thumbnail
+	}
+	thumb := image.NewNRGBA(image.Rect(0, 0, int(h), int(w)))
+	draw.ApproxBiLinear.Scale(thumb, thumb.Bounds(), img, img.Bounds(), draw.Over, nil)
+	thumbnail = canvas.NewImageFromImage(thumb)
+	return thumbnail
+}
+func getSCIDImage(scid string) image.Image {
 	for k, v := range getSCValues(scid).VariableStringKeys {
 		if strings.Contains(k, "image") ||
 			strings.Contains(k, "icon") {
@@ -489,9 +522,7 @@ func getSCIDImageThumbnailContainer(scid string) *fyne.Container {
 			value := string(b)
 			uri, err := storage.ParseURI(value)
 			if err != nil {
-				image := canvas.NewImageFromResource(theme.BrokenImageIcon())
-				image_thumbnail.Add(image)
-				return image_thumbnail
+				return nil
 			} else {
 				ctx, cancel := context.WithTimeout(context.Background(), timeout/3)
 				defer cancel()
@@ -499,34 +530,25 @@ func getSCIDImageThumbnailContainer(scid string) *fyne.Container {
 				req, err := http.NewRequestWithContext(ctx, "GET", uri.String(), nil)
 				if err != nil {
 					fmt.Println(err)
-					return image_thumbnail
+					return nil
 				}
 				client := http.DefaultClient
 				resp, err := client.Do(req)
 				if err != nil || resp.StatusCode != http.StatusOK {
-					image := canvas.NewImageFromResource(theme.BrokenImageIcon())
-					image.FillMode = canvas.ImageFillOriginal
-					image_thumbnail.Add(image)
+					return nil
 				} else {
 					defer resp.Body.Close()
 					i, _, err := image.Decode(resp.Body)
 					if err != nil {
-						image := canvas.NewImageFromResource(theme.BrokenImageIcon())
-						image.FillMode = canvas.ImageFillOriginal
-						image_thumbnail.Add(image)
+						return nil
 					} else {
-						h, w := 100, 100
-						thumb := image.NewNRGBA(image.Rect(0, 0, h, w))
-						draw.ApproxBiLinear.Scale(thumb, thumb.Bounds(), i, i.Bounds(), draw.Over, nil)
-						image := canvas.NewImageFromImage(thumb)
-						image.FillMode = canvas.ImageFillOriginal
-						image_thumbnail.Add(container.NewCenter(image))
+						return i
 					}
 				}
 			}
 		}
 	}
-	return image_thumbnail
+	return nil
 }
 func getSCIDBalancesContainer(scid string) *fyne.Container {
 	balances := container.NewVBox()
