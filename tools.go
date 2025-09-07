@@ -1715,7 +1715,7 @@ func interaction() {
 			sa := makeCenteredWrappedLabel(string(string_args))
 
 			// load up the splash and a password entry
-			splash := container.NewVBox(sa, program.entries.password)
+			splash := container.NewVBox(sa, program.entries.pass)
 			var ci *dialog.ConfirmDialog
 			// if they press enter here, it is a confirmation
 			program.entries.pass.OnSubmitted = func(s string) {
