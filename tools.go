@@ -77,7 +77,7 @@ func tools() *fyne.Container {
 func filesign() {
 
 	// let's make it noticeable that you can select the file
-	program.entries.file.entry.SetPlaceHolder("/path/to/file.txt")
+	program.entries.file.SetPlaceHolder("/path/to/file.txt")
 
 	// now let's make a sign hyperlink
 	sign := widget.NewHyperlink("filesign", nil)
@@ -109,14 +109,14 @@ func filesign() {
 				showError(errors.New("wrong password"))
 
 				// dump the filepath
-				program.entries.file.entry.SetText("")
+				program.entries.file.SetText("")
 				return
 			} else {
 				// get the filename
-				filename := program.entries.file.entry.Text
+				filename := program.entries.file.Text
 
 				//dump the entry
-				program.entries.file.entry.SetText("")
+				program.entries.file.SetText("")
 
 				// read the file
 				file, err := os.ReadFile(filename)
@@ -190,12 +190,12 @@ func filesign() {
 				showError(errors.New("wrong password"))
 
 				//dump entry
-				program.entries.file.entry.SetText("")
+				program.entries.file.SetText("")
 
 			} else {
 				// get the filename
-				filename := program.entries.file.entry.Text
-				program.entries.file.entry.SetText("")
+				filename := program.entries.file.Text
+				program.entries.file.SetText("")
 
 				// check if the file is a .signed file
 				if !strings.HasSuffix(filename, ".signed") {
@@ -292,7 +292,7 @@ func filesign() {
 }
 func self_crypt() {
 	// another round of make sure this works XD
-	program.entries.file.entry.SetPlaceHolder("/path/to/file.txt")
+	program.entries.file.SetPlaceHolder("/path/to/file.txt")
 
 	// let's encrypt data
 	encrypt := widget.NewHyperlink("encrypt", nil)
@@ -322,14 +322,14 @@ func self_crypt() {
 				showError(errors.New("wrong password"))
 
 				// dump the entry
-				program.entries.file.entry.SetText("")
+				program.entries.file.SetText("")
 			} else {
 
 				// get the filename
-				filename := program.entries.file.entry.Text
+				filename := program.entries.file.Text
 
 				// dump the entry
-				program.entries.file.entry.SetText("")
+				program.entries.file.SetText("")
 
 				// read the file
 				file, err := os.ReadFile(filename)
@@ -404,15 +404,15 @@ func self_crypt() {
 				showError(errors.New("wrong password"))
 
 				// dump the file path
-				program.entries.file.entry.SetText("")
+				program.entries.file.SetText("")
 
 			} else {
 
 				// get the file name
-				filename := program.entries.file.entry.Text
+				filename := program.entries.file.Text
 
 				// dump the entry
-				program.entries.file.entry.SetText("")
+				program.entries.file.SetText("")
 
 				// check if this is an .enc file
 				if !strings.HasSuffix(filename, ".enc") {
@@ -492,7 +492,7 @@ func self_crypt() {
 }
 func recipient_crypt() {
 	// let's make a simple way to open a file
-	program.entries.file.entry.SetPlaceHolder("/path/to/file.txt")
+	program.entries.file.SetPlaceHolder("/path/to/file.txt")
 	program.entries.counterparty.SetPlaceHolder("counterparty address: dero...")
 
 	// now we are going to encrypt a file
@@ -526,14 +526,14 @@ func recipient_crypt() {
 			if !program.wallet.Check_Password(pass) {
 				showError(errors.New("wrong password"))
 				program.entries.counterparty.SetText("")
-				program.entries.file.entry.SetText("")
+				program.entries.file.SetText("")
 			} else {
 
 				//get the filename
-				filename := program.entries.file.entry.Text
+				filename := program.entries.file.Text
 
 				// dump the entry
-				program.entries.file.entry.SetText("")
+				program.entries.file.SetText("")
 
 				// read the file
 				file, err := os.ReadFile(filename)
@@ -626,11 +626,11 @@ func recipient_crypt() {
 			// check the password
 			if !program.wallet.Check_Password(pass) {
 				showError(errors.New("wrong password"))
-				program.entries.file.entry.SetText("")
+				program.entries.file.SetText("")
 			} else {
 
 				// get the filename
-				filename := program.entries.file.entry.Text
+				filename := program.entries.file.Text
 
 				// check if it is an .enc file
 				if !strings.HasSuffix(filename, ".enc") {
@@ -1073,7 +1073,7 @@ func balance_rescan() {
 }
 func installer() {
 
-	program.entries.file.entry.SetPlaceHolder("/path/to/contract.bas")
+	program.entries.file.SetPlaceHolder("/path/to/contract.bas")
 
 	// let's validate that file, shall we?
 	validate_path := func(s string) error {
@@ -1102,7 +1102,7 @@ func installer() {
 	}
 
 	// and set it
-	program.entries.file.entry.Validator = validate_path
+	program.entries.file.Validator = validate_path
 
 	// let's make it easy write a contract on the fly
 	entry := widget.NewEntry()
@@ -1180,13 +1180,13 @@ func installer() {
 			// check the password
 			if !program.wallet.Check_Password(pass) {
 				showError(errors.New("wrong password"))
-				program.entries.file.entry.SetText("")
+				program.entries.file.SetText("")
 				return
 			} else {
 				// get the filename
-				filename := program.entries.file.entry.Text
+				filename := program.entries.file.Text
 				// dump the entry
-				program.entries.file.entry.SetText("")
+				program.entries.file.SetText("")
 
 				var upload string
 				if filename == "" && entry.Text == "" {

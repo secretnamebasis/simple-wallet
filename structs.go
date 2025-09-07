@@ -124,11 +124,8 @@ type (
 		registration *widget.Activity
 	}
 	entries struct {
-		// these could be combined...
-		wallet *entryWithIcon
-		file   *entryWithIcon
-		// but separated intentionally
-		//
+		wallet,
+		file,
 		node,
 		username, password,
 		pass,
