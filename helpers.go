@@ -256,21 +256,26 @@ func getSentTransfers() []rpc.Entry {
 func buildAssetHashList() {
 	// clear out the cache
 	program.caches.assets = []asset{}
-
+	assets := program.wallet.GetAccount().EntriesNative
+	var wg sync.WaitGroup
+	wg.Add(len(assets))
 	// range over any pre-existing entries in the account
-	for hash := range program.wallet.GetAccount().EntriesNative {
+	for a := range assets {
+		go func() {
+			defer wg.Done()
+			// skip DERO's scid
+			if !a.IsZero() {
 
-		// skip DERO's scid
-		if !hash.IsZero() {
-
-			// load each has into the cache
-			program.caches.assets = append(program.caches.assets, asset{
-				name:  getSCNameFromVars(hash.String()),
-				hash:  hash.String(),
-				image: getSCIDImage(hash.String()),
-			})
-		}
+				// load each has into the cache
+				program.caches.assets = append(program.caches.assets, asset{
+					name:  getSCNameFromVars(a.String()),
+					hash:  a.String(),
+					image: getSCIDImage(a.String()),
+				})
+			}
+		}()
 	}
+	wg.Wait()
 	// now sort them for consistency
 	sort.Slice(program.caches.assets, func(i, j int) bool {
 		return program.caches.assets[i].name > program.caches.assets[j].name
