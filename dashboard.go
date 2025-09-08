@@ -547,8 +547,7 @@ func assetsList() {
 				program.application.Clipboard().SetContent(scid)
 				showInfo("", scid+" copied to clipboard")
 			}
-
-			img := canvas.NewImageFromImage(asset.image)
+			img := canvas.NewImageFromImage(setSCIDThumbnail(asset.image, float32(250), float32(250)))
 			img.FillMode = canvas.ImageFillOriginal
 			contain := container.NewPadded(img)
 			content := container.NewAdaptiveGrid(1,
