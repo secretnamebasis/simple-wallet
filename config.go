@@ -182,8 +182,8 @@ func maintain_connection() {
 					program.buttons.balance_rescan.Enable()
 					program.buttons.contract_installer.Enable()
 					program.buttons.contract_interactor.Enable()
-
 				})
+				// the above love to bark on signal interrupts
 			}
 			// also set the wallet to online mode
 			if program.preferences.Bool("loggedIn") {

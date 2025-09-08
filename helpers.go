@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -31,7 +32,12 @@ import (
 // needs to be better organized, possibly squirreled into new .go files
 
 // simple way to truncate hashes/address
-func truncator(a string) string { return a[:6] + "......." + a[len(a)-6:] }
+func truncator(a string) string {
+	if len(a) < 18 {
+		return a
+	}
+	return a[:6] + "......" + a[len(a)-6:]
+}
 
 // simple way to explore files
 func openExplorer() *dialog.FileDialog {
@@ -124,6 +130,11 @@ func notificationNewEntry() {
 
 		// determine the inset for the slice
 		inset := current_len - diff
+
+		// to avoid runtime error: slice bounds out of range...
+		if inset > len(current_transfers) {
+			continue
+		}
 
 		// define the new transfers slice
 		new_transfers := current_transfers[inset:]
@@ -246,21 +257,26 @@ func getSentTransfers() []rpc.Entry {
 func buildAssetHashList() {
 	// clear out the cache
 	program.caches.assets = []asset{}
-
+	assets := program.wallet.GetAccount().EntriesNative
+	var wg sync.WaitGroup
+	wg.Add(len(assets))
 	// range over any pre-existing entries in the account
-	for hash := range program.wallet.GetAccount().EntriesNative {
+	for a := range assets {
+		go func() {
+			defer wg.Done()
+			// skip DERO's scid
+			if !a.IsZero() {
 
-		// skip DERO's scid
-		if !hash.IsZero() {
-
-			// load each has into the cache
-			program.caches.assets = append(program.caches.assets, asset{
-				name:  getSCNameFromVars(hash.String()),
-				hash:  hash.String(),
-				image: getSCIDImage(hash.String()),
-			})
-		}
+				// load each has into the cache
+				program.caches.assets = append(program.caches.assets, asset{
+					name:  getSCNameFromVars(a.String()),
+					hash:  a.String(),
+					image: getSCIDImage(a.String()),
+				})
+			}
+		}()
 	}
+	wg.Wait()
 	// now sort them for consistency
 	sort.Slice(program.caches.assets, func(i, j int) bool {
 		return program.caches.assets[i].name > program.caches.assets[j].name
@@ -467,7 +483,11 @@ func getSCCode(scid string) rpc.GetSC_Result {
 	return sc
 }
 func getSCValues(scid string) rpc.GetSC_Result {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	time := timeout
+	if scid == gnomonSC {
+		time = timeout * 3
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time)
 	defer cancel()
 
 	// get a client for the daemon's rpc
@@ -498,17 +518,17 @@ func getSCValues(scid string) rpc.GetSC_Result {
 
 	return sc
 }
-func setSCIDThumbnail(img image.Image, h, w float32) *canvas.Image {
+func setSCIDThumbnail(img image.Image, h, w float32) image.Image {
 	var thumbnail = new(canvas.Image)
 	thumbnail = canvas.NewImageFromResource(theme.BrokenImageIcon())
 	thumbnail.SetMinSize(fyne.NewSize(w, h))
 	if img == nil {
-		return thumbnail
+		return thumbnail.Image
 	}
 	thumb := image.NewNRGBA(image.Rect(0, 0, int(h), int(w)))
 	draw.ApproxBiLinear.Scale(thumb, thumb.Bounds(), img, img.Bounds(), draw.Over, nil)
 	thumbnail = canvas.NewImageFromImage(thumb)
-	return thumbnail
+	return thumbnail.Image
 }
 func getSCIDImage(scid string) image.Image {
 	for k, v := range getSCValues(scid).VariableStringKeys {
@@ -541,22 +561,21 @@ func getSCIDImage(scid string) image.Image {
 					i, _, err := image.Decode(resp.Body)
 					if err != nil {
 						return nil
-					} else {
-						return i
 					}
+					return i
 				}
 			}
 		}
 	}
 	return nil
 }
-func getSCIDBalancesContainer(scid string) *fyne.Container {
-	balances := container.NewVBox()
+func getSCIDBalancesContainer(balances map[string]uint64) *fyne.Container {
+	bals := container.NewVBox()
 	balance_pairs := []struct {
 		key   string
 		value uint64
 	}{}
-	for k, v := range getSCValues(scid).Balances {
+	for k, v := range balances {
 		balance_pairs = append(balance_pairs, struct {
 			key   string
 			value uint64
@@ -570,7 +589,7 @@ func getSCIDBalancesContainer(scid string) *fyne.Container {
 	})
 	for _, pair := range balance_pairs {
 
-		balances.Add(container.NewAdaptiveGrid(5,
+		bals.Add(container.NewAdaptiveGrid(5,
 			layout.NewSpacer(),
 			widget.NewLabel(getSCNameFromVars(pair.key)),
 			widget.NewLabel(truncator(pair.key)),
@@ -578,19 +597,19 @@ func getSCIDBalancesContainer(scid string) *fyne.Container {
 			layout.NewSpacer(),
 		))
 	}
-	return balances
+	return bals
 }
 
-func getSCIDStringVarsContainer(scid string) *fyne.Container {
+func getSCIDStringVarsContainer(stringKeys map[string]interface{}) *fyne.Container {
 	string_vars := container.NewVBox()
 
-	if len(getSCValues(scid).VariableStringKeys) != 0 {
+	if len(stringKeys) != 0 {
 		string_pairs := []struct {
 			key   string
 			value any
 		}{}
 
-		for k, v := range getSCValues(scid).VariableStringKeys {
+		for k, v := range stringKeys {
 			if k == "C" {
 				continue
 			}
@@ -632,15 +651,15 @@ func getSCIDStringVarsContainer(scid string) *fyne.Container {
 	return string_vars
 }
 
-func getSCIDUint64VarsContainer(scid string) *fyne.Container {
+func getSCIDUint64VarsContainer(uint64Keys map[uint64]interface{}) *fyne.Container {
 	uint64_vars := container.NewVBox()
 
-	if len(getSCValues(scid).VariableUint64Keys) != 0 {
+	if len(uint64Keys) != 0 {
 		uint64_pairs := []struct {
 			key   uint64
 			value any
 		}{}
-		for k, v := range getSCValues(scid).VariableUint64Keys {
+		for k, v := range uint64Keys {
 
 			uint64_pairs = append(uint64_pairs, struct {
 				key   uint64

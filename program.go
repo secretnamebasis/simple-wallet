@@ -24,6 +24,9 @@ const confirm = `confirm`
 // simple way to set timeouts
 const timeout = time.Second * 9 // the world is a really big place
 
+// simple way to identify gnomon
+const gnomonSC = `a05395bb0cf77adc850928b0db00eb5ca7a9ccbafd9a38d021c8d299ad5ce1a4`
+
 // not to be confused with an app, this is a program:
 var program = components{
 	activities: activities{
@@ -54,6 +57,7 @@ var program = components{
 		contract_interactor:       widget.NewButton("CONTRACT INTERACTOR", nil),
 		connections:               widget.NewButton("CONNECTIONS", nil),
 		balance_rescan:            widget.NewButton("BALANCE RESCAN", nil),
+		asset_scan:                widget.NewButton("ASSET SCAN", nil),
 		token_add:                 widget.NewButton("TOKEN ADD", nil),
 		integrated:                widget.NewButton("INTEGRATED ADDRESSES", nil),
 		filesign:                  widget.NewButton("FILESIGN", nil),

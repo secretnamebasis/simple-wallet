@@ -44,15 +44,12 @@ func send() *fyne.Container {
 	// experience has shown that the validator is very aggressive
 	// don't try to do too much or it will be slow waiting for daemon calls
 	program.entries.recipient.Validator = validate_address
+	program.entries.recipient.ActionItem = widget.NewButtonWithIcon("", theme.MailSendIcon(), sendForm)
 
-	// build out simple options for the send action
-	program.buttons.send.SetIcon(theme.MailSendIcon())
-	program.buttons.send.OnTapped = sendForm
-
-	return container.New(&twoThirds{},
-		program.entries.recipient,
-		program.buttons.send,
-	)
+	program.entries.recipient.OnSubmitted = func(s string) {
+		sendForm()
+	}
+	return container.NewVBox(program.entries.recipient)
 }
 
 func sendForm() {
@@ -275,9 +272,6 @@ func sendForm() {
 	// let's make a list of assets on hand
 	var scids []string
 
-	// refresh the hash list
-	buildAssetHashList()
-
 	// iterate over the hash list for each
 	for _, asset := range program.caches.assets {
 
@@ -293,13 +287,14 @@ func sendForm() {
 			return rpc.FormatMoney(bal)
 		}
 
+		name := "Name: " + asset.name
+		scid := "SCID: " + truncator(asset.hash)
+		bal := "BAL: " + asset_balance()
 		// build a label for each hash with its balance
-		label := truncator(asset.hash) + " " + asset_balance()
-
+		label := name + " \t " + scid + " \t " + bal
 		// append them to the scids
 		scids = append(scids, label)
 	}
-
 	// load up the scids and asset options in the selector
 	program.selections.assets.Options = scids
 

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"errors"
+	"image/jpeg"
 	"sort"
 	"strings"
 
@@ -394,13 +396,21 @@ func assetsList() {
 
 			// here is the image object
 			img := padded.Objects[0].(*canvas.Image)
+			img.Resource = theme.BrokenImageIcon()
 
 			// we'll use the asset image when not nil
 			if asset.image != nil {
-				img.Image = asset.image
-			} else { // otherwise, set the resource to be the broken icon
-				img.Resource = theme.BrokenImageIcon()
+				buf := new(bytes.Buffer)
+				h, w := float32(25), float32(25)
+				i := setSCIDThumbnail(asset.image, h, w)
+				err := jpeg.Encode(buf, i, nil)
+				if err != nil {
+					showError(err)
+				}
+				b := buf.Bytes()
+				img.Resource = fyne.NewStaticResource("", b)
 			}
+			img.Refresh()
 
 			text := asset.name
 			label := contain.Objects[1].(*widget.Label)
@@ -538,7 +548,7 @@ func assetsList() {
 				showInfo("", scid+" copied to clipboard")
 			}
 
-			img := setSCIDThumbnail(asset.image, 250, 250)
+			img := canvas.NewImageFromImage(asset.image)
 			img.FillMode = canvas.ImageFillOriginal
 			contain := container.NewPadded(img)
 			content := container.NewAdaptiveGrid(1,
@@ -563,6 +573,8 @@ func assetsList() {
 			}
 			confirm.OnTapped = onTapped
 
+			result := getSCValues(scid)
+			// fmt.Println(result)
 			// let's make some tabs
 			tabs := container.NewAppTabs(
 				container.NewTabItem("Details",
@@ -575,17 +587,17 @@ func assetsList() {
 				),
 				container.NewTabItem("Balances",
 					container.NewScroll(
-						getSCIDBalancesContainer(scid),
+						getSCIDBalancesContainer(result.Balances),
 					),
 				),
 				container.NewTabItem("String Variables",
 					container.NewScroll(
-						getSCIDStringVarsContainer(scid),
+						getSCIDStringVarsContainer(result.VariableStringKeys),
 					),
 				),
 				container.NewTabItem("Uint64 Variables",
 					container.NewScroll(
-						getSCIDUint64VarsContainer(scid),
+						getSCIDUint64VarsContainer(result.VariableUint64Keys),
 					),
 				),
 				container.NewTabItem("Entries",
@@ -607,11 +619,11 @@ func assetsList() {
 
 		program.lists.asset_list.OnSelected = onSelected
 
-		// for good measure, we'll refresh the list
-		program.lists.asset_list.Refresh()
-
 		// let's set the asset list into a new scroll
 		scroll = container.NewScroll(program.lists.asset_list)
+
+		scroll.Refresh()
+
 	}
 
 	// and we'll set the scroll into a new dialog, resize and show
