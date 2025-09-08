@@ -8,9 +8,11 @@ import (
 	"math"
 	"math/rand"
 	"os"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
@@ -39,6 +41,7 @@ func tools() *fyne.Container {
 	program.buttons.recipient_encrypt_decrypt.OnTapped = recipient_crypt
 	program.buttons.integrated.OnTapped = integrated_address_generator
 	program.buttons.balance_rescan.OnTapped = balance_rescan
+	program.buttons.asset_scan.OnTapped = asset_scan
 	program.buttons.contract_installer.OnTapped = installer
 	program.buttons.contract_interactor.OnTapped = interaction
 	program.buttons.token_add.OnTapped = add_token
@@ -51,6 +54,7 @@ func tools() *fyne.Container {
 		container.NewVBox(program.buttons.recipient_encrypt_decrypt),
 		container.NewVBox(program.buttons.token_add),
 		container.NewVBox(program.buttons.balance_rescan),
+		container.NewVBox(program.buttons.asset_scan),
 		container.NewVBox(program.buttons.contract_installer),
 		container.NewVBox(program.buttons.contract_interactor),
 	}
@@ -956,11 +960,11 @@ func balance_rescan() {
 			layout.NewSpacer(),
 		)
 		// set it to a splash screen
-		sync := dialog.NewCustomWithoutButtons("syncing", content, program.window)
+		syncro := dialog.NewCustomWithoutButtons("syncing", content, program.window)
 
 		// resize and show
-		sync.Resize(program.size)
-		sync.Show()
+		syncro.Resize(program.size)
+		syncro.Show()
 
 		// rebuild the hash list
 		buildAssetHashList()
@@ -1011,7 +1015,7 @@ func balance_rescan() {
 
 						// update the notice
 						fyne.DoAndWait(func() {
-							notice.SetText("BlockHash: " + truncator(each.BlockHash))
+							notice.SetText("Blockheight: " + strconv.Itoa(int(each.Height)) + " BlockHash: " + truncator(each.BlockHash))
 						})
 
 						// take a small breather between updates
@@ -1032,33 +1036,39 @@ func balance_rescan() {
 				return
 			} else {
 				// now range through each token in the cache one at a time
+				var wg sync.WaitGroup
+				wg.Add(len(program.caches.assets))
 				for _, asset := range program.caches.assets {
-					// assume there could be an error
-					var err error
+					go func() {
+						defer wg.Done()
+						// assume there could be an error
+						var err error
 
-					// then add each scid back to the map
-					hash := crypto.HashHexToHash(asset.hash)
-					if err = program.wallet.TokenAdd(hash); err != nil {
-						// if err, show it
-						showError(err)
-						// but don't stop, just continue the loop
-						continue
-					}
+						// then add each scid back to the map
+						hash := crypto.HashHexToHash(asset.hash)
+						if err = program.wallet.TokenAdd(hash); err != nil {
+							// if err, show it
+							showError(err)
+							// but don't stop, just continue the loop
+							return
+						}
 
-					// and then sync scid internally with the daemon
-					if err = program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
-						// if err, show it
-						showError(err)
-						// but don't stop, just continue the loop
-						continue
-					}
+						// and then sync scid internally with the daemon
+						if err = program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
+							// if err, show it
+							showError(err)
+							// but don't stop, just continue the loop
+							return
+						}
+					}()
 				}
+				wg.Wait()
 			}
 			// when done, shut down the sync status in the go routine
 			fyne.DoAndWait(func() {
 				done = true
 				syncing.Stop()
-				sync.Dismiss()
+				syncro.Dismiss()
 			})
 		}()
 
@@ -1070,6 +1080,130 @@ func balance_rescan() {
 	// resize and show
 	rescan.Resize(program.size)
 	rescan.Show()
+}
+func asset_scan() {
+	var scan *dialog.ConfirmDialog
+	syncing := widget.NewActivity()
+	scids := widget.NewProgressBar()
+	label := makeCenteredWrappedLabel("Gathering Gnomon Smart Contract Data")
+	content := container.NewVBox(
+		layout.NewSpacer(),
+		syncing,
+		scids,
+		label,
+		layout.NewSpacer(),
+	)
+	syncro := dialog.NewCustomWithoutButtons("syncing", content, program.window)
+	callback := func(b bool) {
+		// if they cancel
+		if !b {
+			return
+		}
+		syncing.Start()
+		scids.Hide()
+		syncro.Resize(program.size)
+		syncro.Show()
+		label.SetText("Syncing with gnomon smart contract")
+		go func() {
+
+			var list_of_scids []string
+
+			big_map := getSCValues(gnomonSC).VariableStringKeys
+			lenMap := len(big_map)
+			if lenMap == 0 {
+				showError(errors.New("gnomon values are not in memory"))
+				return
+			}
+			for k := range big_map {
+				if strings.Contains(k, "owner") ||
+					strings.Contains(k, "height") ||
+					strings.Contains(k, "C") ||
+					len(k) < 64 {
+					continue
+				}
+				list_of_scids = append(list_of_scids, k)
+			}
+
+			scid_count := len(list_of_scids)
+
+			// start a sync activity widget
+			fyne.DoAndWait(func() {
+				syncing.Stop()
+				syncing.Hide()
+				scids.Show()
+				label.SetText("Scanning SCIDs")
+			})
+			scid_chan := make(chan string, len(list_of_scids))
+			for _, scid := range list_of_scids {
+				scid_chan <- scid
+			}
+			close(scid_chan)
+
+			var wg sync.WaitGroup
+			var counter int
+			work := func() {
+				defer wg.Done()
+				for scid := range scid_chan {
+					counter++
+					fyne.DoAndWait(func() { scids.SetValue(float64(counter) / float64(scid_count)) })
+					hash := crypto.HashHexToHash(scid)
+					bal, _, err := program.wallet.GetDecryptedBalanceAtTopoHeight(hash, -1, program.wallet.GetAddress().String())
+					if err != nil {
+						continue
+					}
+					if bal != 0 {
+						text := "ASSET FOUND: " + truncator(scid) + " Balance: " + rpc.FormatMoney(bal)
+						fyne.DoAndWait(func() { label.SetText(text) })
+						if err := program.wallet.TokenAdd(hash); err != nil {
+							// obviously already in the map
+						}
+						// we are just going to set this now...
+						program.wallet.GetAccount().Balance[hash] = bal
+
+						// if there is a "better" balance, we'll let it happen here
+						if err := program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
+							showError(err)
+							continue
+						} // seems like there isn't an error
+
+					}
+				}
+			}
+			var os_thread, app_thread int = 1, 1
+			// reserve 1 thread for os management
+			// reserve 1 thread for app management
+
+			// we are going to use almost all threads
+			max_threads := runtime.GOMAXPROCS(0)
+			desired_threads := max_threads - os_thread - app_thread
+			wg.Add(desired_threads)
+			for range desired_threads {
+				go work()
+			}
+			wg.Wait()
+			fyne.DoAndWait(func() {
+				scids.Hide()
+				label.SetText("Rebuilding cache")
+				syncing.Show()
+				syncing.Start()
+			})
+			buildAssetHashList()
+			fyne.DoAndWait(func() {
+				showInfo("Asset Scan", "Scan complete")
+				syncing.Stop()
+				syncing.Hide()
+				syncro.Dismiss()
+			})
+		}()
+	}
+	notice := `
+this function will search through every smart contract in the network for a balance or entries and add the token to your collectibles.
+
+it is recommended that you use a full node for best success.`
+	scan = dialog.NewConfirm("Asset Scan", notice, callback, program.window)
+	scan.Resize(program.size)
+	scan.Show()
+
 }
 func installer() {
 
@@ -1866,6 +2000,10 @@ func add_token() {
 			program.wallet.GetAccount().EntriesNative = make(map[crypto.Hash][]rpc.Entry)
 		}
 
+		if t.Text == gnomonSC { // mainnet gnomon
+			showError(errors.New("cannot add gnomon sc to collectibles"))
+			return
+		}
 		//get the hash
 		hash := crypto.HashHexToHash(t.Text)
 		// start a sync activity widget

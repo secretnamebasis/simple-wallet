@@ -57,6 +57,7 @@ var program = components{
 		contract_interactor:       widget.NewButton("CONTRACT INTERACTOR", nil),
 		connections:               widget.NewButton("CONNECTIONS", nil),
 		balance_rescan:            widget.NewButton("BALANCE RESCAN", nil),
+		asset_scan:                widget.NewButton("ASSET SCAN", nil),
 		token_add:                 widget.NewButton("TOKEN ADD", nil),
 		integrated:                widget.NewButton("INTEGRATED ADDRESSES", nil),
 		filesign:                  widget.NewButton("FILESIGN", nil),

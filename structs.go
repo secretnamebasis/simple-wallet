@@ -109,6 +109,7 @@ type (
 		recipient_encrypt_decrypt,
 		token_add,
 		balance_rescan,
+		asset_scan,
 		integrated,
 		contract_installer,
 		contract_interactor *widget.Button
