@@ -287,15 +287,11 @@ func sendForm() {
 			return rpc.FormatMoney(bal)
 		}
 
-		max_length := 90
-		equal_len := max_length / 3
 		name := "Name: " + asset.name
 		scid := "SCID: " + truncator(asset.hash)
 		bal := "BAL: " + asset_balance()
 		// build a label for each hash with its balance
-		label := name + strings.Repeat(" ", equal_len-len(name)) + "\t" +
-			scid + strings.Repeat(" ", equal_len-len(scid)) + "\t" +
-			bal + strings.Repeat(" ", equal_len-len(bal)) + "\t"
+		label := name + " \t " + scid + " \t " + bal
 		// append them to the scids
 		scids = append(scids, label)
 	}
