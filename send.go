@@ -467,7 +467,7 @@ func conductTransfer() {
 
 		// let's get the reciever
 		destination := program.receiver
-
+		program.receiver = ""
 		// dump the receiver
 		// clear recipient on send action
 		program.entries.recipient.SetText("")
