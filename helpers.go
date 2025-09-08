@@ -482,7 +482,11 @@ func getSCCode(scid string) rpc.GetSC_Result {
 	return sc
 }
 func getSCValues(scid string) rpc.GetSC_Result {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	time := timeout
+	if scid == gnomonSC {
+		time = timeout * 3
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time)
 	defer cancel()
 
 	// get a client for the daemon's rpc
