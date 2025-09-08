@@ -538,10 +538,6 @@ func assetsList() {
 			entries_list.OnSelected = onSelected
 
 			var smart_contract_details *dialog.CustomDialog
-
-			// we'll use the truncated scid as the header for the transfers
-			title := truncator(scid)
-
 			scid_hyperlink := widget.NewHyperlink(scid, nil)
 			scid_hyperlink.OnTapped = func() {
 				program.application.Clipboard().SetContent(scid)
