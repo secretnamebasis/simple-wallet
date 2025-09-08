@@ -568,13 +568,13 @@ func getSCIDImage(scid string) image.Image {
 	}
 	return nil
 }
-func getSCIDBalancesContainer(scid string) *fyne.Container {
-	balances := container.NewVBox()
+func getSCIDBalancesContainer(balances map[string]uint64) *fyne.Container {
+	bals := container.NewVBox()
 	balance_pairs := []struct {
 		key   string
 		value uint64
 	}{}
-	for k, v := range getSCValues(scid).Balances {
+	for k, v := range balances {
 		balance_pairs = append(balance_pairs, struct {
 			key   string
 			value uint64
@@ -588,7 +588,7 @@ func getSCIDBalancesContainer(scid string) *fyne.Container {
 	})
 	for _, pair := range balance_pairs {
 
-		balances.Add(container.NewAdaptiveGrid(5,
+		bals.Add(container.NewAdaptiveGrid(5,
 			layout.NewSpacer(),
 			widget.NewLabel(getSCNameFromVars(pair.key)),
 			widget.NewLabel(truncator(pair.key)),
@@ -596,19 +596,19 @@ func getSCIDBalancesContainer(scid string) *fyne.Container {
 			layout.NewSpacer(),
 		))
 	}
-	return balances
+	return bals
 }
 
-func getSCIDStringVarsContainer(scid string) *fyne.Container {
+func getSCIDStringVarsContainer(stringKeys map[string]interface{}) *fyne.Container {
 	string_vars := container.NewVBox()
 
-	if len(getSCValues(scid).VariableStringKeys) != 0 {
+	if len(stringKeys) != 0 {
 		string_pairs := []struct {
 			key   string
 			value any
 		}{}
 
-		for k, v := range getSCValues(scid).VariableStringKeys {
+		for k, v := range stringKeys {
 			if k == "C" {
 				continue
 			}
@@ -650,15 +650,15 @@ func getSCIDStringVarsContainer(scid string) *fyne.Container {
 	return string_vars
 }
 
-func getSCIDUint64VarsContainer(scid string) *fyne.Container {
+func getSCIDUint64VarsContainer(uint64Keys map[uint64]interface{}) *fyne.Container {
 	uint64_vars := container.NewVBox()
 
-	if len(getSCValues(scid).VariableUint64Keys) != 0 {
+	if len(uint64Keys) != 0 {
 		uint64_pairs := []struct {
 			key   uint64
 			value any
 		}{}
-		for k, v := range getSCValues(scid).VariableUint64Keys {
+		for k, v := range uint64Keys {
 
 			uint64_pairs = append(uint64_pairs, struct {
 				key   uint64
