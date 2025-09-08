@@ -610,7 +610,8 @@ func assetsList() {
 
 			// kind of looks nice on the side
 			tabs.SetTabLocation(container.TabLocationLeading)
-
+			// we'll use the truncated scid as the header for the transfers
+			title := truncator(scid)
 			// set the entries in the dialog, resize and show
 			smart_contract_details = dialog.NewCustom(title, dismiss, tabs, program.window)
 			smart_contract_details.Resize(program.size)
