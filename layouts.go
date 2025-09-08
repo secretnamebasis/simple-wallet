@@ -5,7 +5,9 @@ import (
 	"fyne.io/fyne/v2/theme"
 )
 
-type twoThirds struct{}
+type twoThirds struct {
+	Orientation fyne.TextAlign
+}
 
 func (t *twoThirds) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 	// this only works on 2 objects for the time being
@@ -13,20 +15,27 @@ func (t *twoThirds) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 		return
 	}
 
-	// we assume the following size for the  left object
-	left := size.Width * 2 / 3
+	var left, right float32
+	padding := theme.Padding() // theme padding for consistency
 
-	// and we assume the following size for the right object
-	right := size.Width - left
+	switch t.Orientation {
+	case fyne.TextAlignLeading:
+		left = size.Width * 2 / 3
+		right = size.Width - left
+	case fyne.TextAlignTrailing:
+		right = size.Width * 2 / 3
+		left = size.Width - right
+	default:
+		// unknown orientation.... an error case
+		left = size.Width / 2
+		right = size.Width / 2
+	}
 
 	// let's resize and reposition the left object
 	objects[0].Resize(fyne.NewSize(left, size.Height))
-	objects[0].Move(fyne.NewPos(0, 0))
+	objects[0].Move(fyne.NewPos(padding, 0))
 
-	// we are going to use just a tiny bit of padding
-	padding := theme.Padding()
-
-	// let's resize and reposition the left object
+	// resize and position the right object
 	objects[1].Resize(fyne.NewSize(right-padding, size.Height))
 	objects[1].Move(fyne.NewPos(left+padding, 0))
 }
