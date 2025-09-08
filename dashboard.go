@@ -563,6 +563,8 @@ func assetsList() {
 			}
 			confirm.OnTapped = onTapped
 
+			result := getSCValues(scid)
+			// fmt.Println(result)
 			// let's make some tabs
 			tabs := container.NewAppTabs(
 				container.NewTabItem("Details",
@@ -575,17 +577,17 @@ func assetsList() {
 				),
 				container.NewTabItem("Balances",
 					container.NewScroll(
-						getSCIDBalancesContainer(scid),
+						getSCIDBalancesContainer(result.Balances),
 					),
 				),
 				container.NewTabItem("String Variables",
 					container.NewScroll(
-						getSCIDStringVarsContainer(scid),
+						getSCIDStringVarsContainer(result.VariableStringKeys),
 					),
 				),
 				container.NewTabItem("Uint64 Variables",
 					container.NewScroll(
-						getSCIDUint64VarsContainer(scid),
+						getSCIDUint64VarsContainer(result.VariableUint64Keys),
 					),
 				),
 				container.NewTabItem("Entries",
