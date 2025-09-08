@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"errors"
+	"image/jpeg"
 	"sort"
 	"strings"
 
@@ -394,13 +396,21 @@ func assetsList() {
 
 			// here is the image object
 			img := padded.Objects[0].(*canvas.Image)
+			img.Resource = theme.BrokenImageIcon()
 
 			// we'll use the asset image when not nil
 			if asset.image != nil {
-				img.Image = asset.image
-			} else { // otherwise, set the resource to be the broken icon
-				img.Resource = theme.BrokenImageIcon()
+				buf := new(bytes.Buffer)
+				h, w := float32(25), float32(25)
+				i := setSCIDThumbnail(asset.image, h, w)
+				err := jpeg.Encode(buf, i, nil)
+				if err != nil {
+					showError(err)
+				}
+				b := buf.Bytes()
+				img.Resource = fyne.NewStaticResource("", b)
 			}
+			img.Refresh()
 
 			text := asset.name
 			label := contain.Objects[1].(*widget.Label)
@@ -538,7 +548,7 @@ func assetsList() {
 				showInfo("", scid+" copied to clipboard")
 			}
 
-			img := setSCIDThumbnail(asset.image, 250, 250)
+			img := canvas.NewImageFromImage(asset.image)
 			img.FillMode = canvas.ImageFillOriginal
 			contain := container.NewPadded(img)
 			content := container.NewAdaptiveGrid(1,

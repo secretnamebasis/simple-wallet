@@ -517,17 +517,17 @@ func getSCValues(scid string) rpc.GetSC_Result {
 
 	return sc
 }
-func setSCIDThumbnail(img image.Image, h, w float32) *canvas.Image {
+func setSCIDThumbnail(img image.Image, h, w float32) image.Image {
 	var thumbnail = new(canvas.Image)
 	thumbnail = canvas.NewImageFromResource(theme.BrokenImageIcon())
 	thumbnail.SetMinSize(fyne.NewSize(w, h))
 	if img == nil {
-		return thumbnail
+		return thumbnail.Image
 	}
 	thumb := image.NewNRGBA(image.Rect(0, 0, int(h), int(w)))
 	draw.ApproxBiLinear.Scale(thumb, thumb.Bounds(), img, img.Bounds(), draw.Over, nil)
 	thumbnail = canvas.NewImageFromImage(thumb)
-	return thumbnail
+	return thumbnail.Image
 }
 func getSCIDImage(scid string) image.Image {
 	for k, v := range getSCValues(scid).VariableStringKeys {
@@ -560,9 +560,8 @@ func getSCIDImage(scid string) image.Image {
 					i, _, err := image.Decode(resp.Body)
 					if err != nil {
 						return nil
-					} else {
-						return i
 					}
+					return i
 				}
 			}
 		}
