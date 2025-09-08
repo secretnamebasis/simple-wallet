@@ -609,11 +609,11 @@ func assetsList() {
 
 		program.lists.asset_list.OnSelected = onSelected
 
-		// for good measure, we'll refresh the list
-		program.lists.asset_list.Refresh()
-
 		// let's set the asset list into a new scroll
 		scroll = container.NewScroll(program.lists.asset_list)
+
+		scroll.Refresh()
+
 	}
 
 	// and we'll set the scroll into a new dialog, resize and show
