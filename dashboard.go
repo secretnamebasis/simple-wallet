@@ -5,7 +5,9 @@ import (
 	"errors"
 	"image/jpeg"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -546,10 +548,258 @@ func assetsList() {
 			img := canvas.NewImageFromImage(setSCIDThumbnail(asset.image, float32(250), float32(250)))
 			img.FillMode = canvas.ImageFillOriginal
 			contain := container.NewPadded(img)
-			content := container.NewAdaptiveGrid(1,
+			hash := crypto.HashHexToHash(asset.hash)
+			bal, _ := program.wallet.Get_Balance_scid(hash)
+
+			label_balance := widget.NewLabel("Balance: " + rpc.FormatMoney(bal))
+
+			// this simple go routine will update the balance every second
+			var updating bool = true
+			go func() {
+				for range time.NewTicker(time.Second).C {
+					if updating {
+						updated, _ := program.wallet.Get_Balance_scid(hash)
+						fyne.DoAndWait(func() { label_balance.SetText("Balance: " + rpc.FormatMoney(updated)) })
+					} else {
+						return
+					}
+				}
+			}()
+
+			address := widget.NewEntry()
+			address.Validator = func(s string) error {
+				if s == "" {
+					return nil
+				}
+
+				addr, err := rpc.NewAddress(s)
+				if err != nil {
+					if a_string, err := program.wallet.NameToAddress(s); err != nil {
+						return err
+					} else {
+						addr, _ = rpc.NewAddress(a_string)
+					}
+				}
+				if addr.IsIntegratedAddress() {
+					return errors.New("TODO: integrated addresses")
+				}
+				if !isRegistered(addr.String()) {
+					return errors.New("unregistered address")
+				}
+				return nil
+			}
+			balance := widget.NewEntry()
+			balance.SetPlaceHolder("1.337")
+			callback := func() {
+				fl, err := strconv.ParseFloat(balance.Text, 64)
+				if err != nil {
+					showError(err)
+					return
+				}
+
+				if fl < 0 {
+					showError(errors.New("cannot send less than zero"))
+					return
+				}
+
+				amount := uint64(fl * atomic_units)
+				if amount == 0 {
+					showError(errors.New("cannot send zero"))
+					return
+				}
+
+				// obviously, we can't send to no one,
+				// especially not a non-validated no one
+				if address.Text == "" {
+					showError(errors.New("cannot send to empty address"))
+					return
+				}
+
+				// get entry
+				send_recipient := address.Text
+
+				// dump the entry text
+				address.SetText("")
+
+				// let's validate on the send action
+
+				// if less than 4 char...
+				if len(send_recipient) < 4 {
+					showError(errors.New("cannot be less than 5 char"))
+					return
+				}
+
+				// first check to see if it is an address
+				addr, err := rpc.NewAddress(send_recipient)
+				// if it is not an address...
+				if err != nil {
+					// check to see if it is a name
+					a, err := program.wallet.NameToAddress(send_recipient)
+					if err != nil {
+						// she barks
+						// fmt.Println(err)
+					}
+					// if a valid , they are the receiver
+					if a != "" {
+						if strings.EqualFold(
+							a, program.wallet.GetAddress().String(),
+						) {
+							showError(errors.New("cannot send to self"))
+							return
+						} else {
+							program.receiver = a
+						}
+					}
+				}
+				// now if the address is an integrated address...
+				program.receiver = addr.BaseAddress().String()
+				// at this point, we should be fairly confident
+				if program.receiver == "" {
+					showError(errors.New("error obtaining receiver"))
+					return
+				}
+				// also, would make sense to make sure that it is not self
+				if strings.EqualFold(program.receiver, program.wallet.GetAddress().String()) {
+					showError(errors.New("cannot send to self"))
+					return
+				}
+
+				// but just to be extra sure...
+				// let's see if the receiver is not registered
+				if !isRegistered(program.receiver) {
+					showError(errors.New("unregistered address"))
+					return
+				}
+				// obtain their DERO balance
+				bal := program.wallet.GetAccount().Balance_Mature
+				// and check
+				if bal < 80 {
+					showError(errors.New("balance is too low, please refill wallet"))
+					return
+				}
+
+				// obtain their balance
+				bal = program.wallet.GetAccount().Balance[hash]
+				// and check
+				if bal < amount {
+					showError(errors.New("balance is too low, please refill"))
+					return
+				}
+				payload := []rpc.Transfer{
+					{
+						SCID:        hash,
+						Destination: program.receiver,
+						Amount:      amount,
+						// Payload_RPC: args, // when is this necessary?
+					},
+				}
+
+				// drop the receiver address
+				program.receiver = ""
+
+				label := makeCenteredWrappedLabel("sending asset... should see txid soon")
+				syncro := widget.NewActivity()
+				syncro.Start()
+				content := container.NewVBox(label, container.NewCenter(syncro))
+				transact := dialog.NewCustom("Transaction Dispatched", dismiss, content, program.window)
+				transact.Resize(program.size)
+				transact.Show()
+				var retries int
+				// we are going to get the current default ringsize
+				rings := uint64(program.wallet.GetRingSize())
+
+				// we are NOT sending all, which is not implemented
+				send_all := false
+
+				// we are not doing a sc call
+				scdata := rpc.Arguments{}
+
+				// there is no gasstorage in this call
+				gasstorage := uint64(0)
+
+				// and we are not going to dry run to get data from the transfer
+				dry_run := false
+
+				go func() {
+				try_again:
+					// and let's build a transaction
+					tx, err := program.wallet.TransferPayload0(
+						payload, rings, send_all,
+						scdata, gasstorage, dry_run,
+					)
+					// if this explodes...
+					if err != nil {
+
+						// show the error
+						showError(err)
+						// now let's make sure each of these are re-enabled
+
+						return
+					}
+					if !program.preferences.Bool("loggedIn") {
+						return
+					}
+
+					// let's send this to the node for processing
+					if err := program.wallet.SendTransaction(tx); err != nil {
+
+						if retries < 4 {
+							retries++
+							goto try_again
+						} else {
+							fyne.DoAndWait(func() {
+								// if it errors out, show the err
+								showError(err)
+								syncro.Stop()
+								transact.Dismiss()
+							})
+						}
+						// and return
+
+					} else { // if we have success
+
+						// let's make a link
+						link := truncator(tx.GetHash().String())
+
+						// set it into a new widget -> consider launching your own explorer
+						txid := widget.NewHyperlink(link, nil)
+
+						// align it center
+						txid.Alignment = fyne.TextAlignCenter
+
+						// when tapped, copy to clipboard
+						txid.OnTapped = func() {
+							program.application.Clipboard().SetContent(tx.GetHash().String())
+							showInfo("", "txid copied to clipboard")
+						}
+						fyne.DoAndWait(func() {
+							syncro.Stop()
+							transact.Dismiss()
+							// set it to a new dialog screen and show
+							dialog.ShowCustom(
+								"Transaction Dispatched", "dismissed",
+								container.NewVBox(txid), program.window,
+							)
+						})
+					}
+				}()
+			}
+			address.OnSubmitted = func(s string) {
+				callback()
+			}
+			address.ActionItem = widget.NewButtonWithIcon("Send", theme.MailSendIcon(), callback)
+			address.SetPlaceHolder("receiver address: dero...")
+			lay := &twoThirds{}
+			lay.Orientation = fyne.TextAlignTrailing
+			send := container.New(lay,
+				balance, address,
+			)
+			content := container.NewVBox(
+				container.NewCenter(scid_hyperlink),
 				contain,
 				container.NewCenter(widget.NewLabel(asset.name)),
-				container.NewCenter(scid_hyperlink),
+				container.NewCenter(label_balance),
+				send,
 			)
 
 			confirm := widget.NewHyperlink("Are You Sure?", nil)
@@ -609,6 +859,10 @@ func assetsList() {
 			title := truncator(scid)
 			// set the entries in the dialog, resize and show
 			smart_contract_details = dialog.NewCustom(title, dismiss, tabs, program.window)
+			// this will stop the simple balance update tool
+			smart_contract_details.SetOnClosed(func() {
+				updating = false
+			})
 			smart_contract_details.Resize(program.size)
 			smart_contract_details.Show()
 		}
