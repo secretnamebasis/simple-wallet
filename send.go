@@ -272,9 +272,6 @@ func sendForm() {
 	// let's make a list of assets on hand
 	var scids []string
 
-	// refresh the hash list
-	buildAssetHashList()
-
 	// iterate over the hash list for each
 	for _, asset := range program.caches.assets {
 
