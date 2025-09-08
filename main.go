@@ -8,6 +8,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
 	"github.com/deroproject/derohe/walletapi"
 )
 
@@ -99,13 +100,13 @@ func initialize() {
 	program.containers.dashboard.Hide()
 
 	// here is a simple way to select a wallet file
-	program.entries.wallet.ActionItem = newTappableIcon(theme.FolderOpenIcon(), loginOpenFile)
+	program.entries.wallet.ActionItem = widget.NewButtonWithIcon("", theme.FolderIcon(), loggedIn)
 
 	// here is a simple way to select a file in general
 	program.dialogues.open = openExplorer()
 
 	// let's make an simple way to open files
-	program.entries.file.ActionItem = newTappableIcon(theme.FolderOpenIcon(), func() {
+	program.entries.file.ActionItem = widget.NewButtonWithIcon("", theme.FolderOpenIcon(), func() {
 		program.dialogues.open.Resize(program.size)
 		program.dialogues.open.Show()
 	})

@@ -44,17 +44,12 @@ func send() *fyne.Container {
 	// experience has shown that the validator is very aggressive
 	// don't try to do too much or it will be slow waiting for daemon calls
 	program.entries.recipient.Validator = validate_address
+	program.entries.recipient.ActionItem = widget.NewButtonWithIcon("", theme.MailSendIcon(), sendForm)
 
-	// build out simple options for the send action
-	program.buttons.send.SetIcon(theme.MailSendIcon())
-	program.buttons.send.OnTapped = sendForm
 	program.entries.recipient.OnSubmitted = func(s string) {
 		sendForm()
 	}
-	return container.New(&twoThirds{},
-		program.entries.recipient,
-		program.buttons.send,
-	)
+	return container.NewVBox(program.entries.recipient)
 }
 
 func sendForm() {
