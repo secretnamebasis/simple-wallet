@@ -31,7 +31,12 @@ import (
 // needs to be better organized, possibly squirreled into new .go files
 
 // simple way to truncate hashes/address
-func truncator(a string) string { return a[:6] + "......." + a[len(a)-6:] }
+func truncator(a string) string {
+	if len(a) < 18 {
+		return a
+	}
+	return a[:6] + "......" + a[len(a)-6:]
+}
 
 // simple way to explore files
 func openExplorer() *dialog.FileDialog {
@@ -124,6 +129,11 @@ func notificationNewEntry() {
 
 		// determine the inset for the slice
 		inset := current_len - diff
+
+		// to avoid runtime error: slice bounds out of range...
+		if inset > len(current_transfers) {
+			continue
+		}
 
 		// define the new transfers slice
 		new_transfers := current_transfers[inset:]
