@@ -36,10 +36,14 @@ func logout() {
 				program.entries.password.SetText("")
 
 				// toggle the server
-				program.toggles.server.SetSelected("")
+				program.toggles.server.SetSelected("off") // just in case
 
 				// clear the rpc server from memory
 				program.rpc_server = nil
+
+				delete(globals.Arguments, "--rpc-server")
+				delete(globals.Arguments, "--rpc-login")
+				delete(globals.Arguments, "--rpc-bind")
 			}
 
 			// close out the wallet
@@ -52,6 +56,8 @@ func logout() {
 			program.labels.balance.SetText("Balance: 0")
 
 			program.labels.loggedin.SetText("WALLET: 🔴")
+
+			program.viewer_window.Close()
 		}
 	}
 
