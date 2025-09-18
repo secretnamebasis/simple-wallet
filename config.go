@@ -369,10 +369,19 @@ func rpc_server() {
 			program.toggles.server.SetSelected("on")
 
 			// let's gather the creds from the text entries
-			creds := program.entries.username.Text + ":" + program.entries.password.Text
 
-			// now let's load up the global args with some creds
-			globals.Arguments["--rpc-login"] = creds
+			username := program.entries.username.Text
+
+			password := program.entries.password.Text
+
+			creds := username + ":" + password
+
+			if username == "" && password == "" {
+				creds = "" // just in case
+			} else {
+				// now let's load up the global args with some creds
+				globals.Arguments["--rpc-login"] = creds
+			}
 
 			// turn on the rpc server
 			globals.Arguments["--rpc-server"] = true
@@ -477,20 +486,17 @@ func passwordUpdate() {
 		// now run the update dialog
 		var update *dialog.CustomDialog
 
-		// show them a new placeholder
-		program.entries.password.SetPlaceHolder("n3w-w41137-p@55w0rd")
-
 		// make sure it is a password entry widget
-		program.entries.password.Password = true
+		program.entries.pass.Password = true
 
 		// here's what we are going to do...
 		change_password := func() {
 
 			// get the new password
-			new_pass := program.entries.password.Text
+			new_pass := program.entries.pass.Text
 
 			// dump the entry
-			program.entries.password.SetText("")
+			program.entries.pass.SetText("")
 
 			// now check for an err on the set password
 			err := program.wallet.Set_Encrypted_Wallet_Password(new_pass)
@@ -507,7 +513,7 @@ func passwordUpdate() {
 		}
 
 		// allow press ENTER/RETURN passthrough
-		program.entries.password.OnSubmitted = func(s string) {
+		program.entries.pass.OnSubmitted = func(s string) {
 			change_password()
 		}
 
@@ -517,7 +523,7 @@ func passwordUpdate() {
 		// set the content
 		content := container.NewVBox(
 			layout.NewSpacer(),
-			program.entries.password,
+			program.entries.pass,
 			container.NewCenter(program.hyperlinks.save),
 			layout.NewSpacer(),
 		)
