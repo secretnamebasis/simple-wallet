@@ -223,13 +223,21 @@ func updateBalance() {
 }
 
 // simple way to get all transfers
-func getTransfers(coin, in, out bool) []rpc.Entry {
+func getTransfersByHeight(min, max uint64, coin, in, out bool) []rpc.Entry {
 	return program.wallet.Show_Transfers(
 		crypto.ZEROHASH,
 		coin, in, out,
-		0, uint64(walletapi.Get_Daemon_Height()),
+		min, max,
 		"", "",
 		0, 0,
+	)
+}
+
+// simple way to get all transfers
+func getTransfers(coin, in, out bool) []rpc.Entry {
+	return getTransfersByHeight(
+		0, uint64(walletapi.Get_Daemon_Height()),
+		coin, in, out,
 	)
 }
 
