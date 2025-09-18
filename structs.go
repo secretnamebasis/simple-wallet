@@ -6,6 +6,8 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
+	"github.com/deroproject/derohe/blockchain"
+	derodrpc "github.com/deroproject/derohe/cmd/derod/rpc"
 	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/deroproject/derohe/walletapi/rpcserver"
@@ -15,8 +17,10 @@ import (
 
 type (
 	components struct {
-		wallet        *walletapi.Wallet_Disk
-		rpc_server    *rpcserver.RPCServer
+		wallet           *walletapi.Wallet_Disk
+		rpc_server       *rpcserver.RPCServer
+		simulator_server *derodrpc.RPCServer
+
 		node          nodes
 		caches        caches
 		application   fyne.App
@@ -53,9 +57,12 @@ type (
 		image image.Image
 	}
 	caches struct {
-		assets []asset
-		pool   rpc.GetTxPool_Result
-		info   rpc.GetInfo_Result
+		assets               []asset
+		pool                 rpc.GetTxPool_Result
+		info                 rpc.GetInfo_Result
+		simulator_chain      *blockchain.Blockchain
+		simulator_wallets    []*walletapi.Wallet_Disk
+		simulator_rpcservers []*rpcserver.RPCServer
 	}
 
 	dialogues struct {
@@ -67,8 +74,9 @@ type (
 	}
 
 	toggles struct {
-		server  *widget.RadioGroup
-		network *widget.RadioGroup
+		server    *widget.RadioGroup
+		network   *widget.RadioGroup
+		simulator *widget.RadioGroup
 	}
 	containers struct {
 		topbar,
@@ -104,6 +112,7 @@ type (
 		assets,
 		keys,
 		send,
+		simulator,
 		connections,
 		rpc_server,
 		update_password,
