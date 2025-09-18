@@ -950,8 +950,8 @@ func balance_rescan() {
 		}
 
 		// start a sync activity widget
-		syncing := widget.NewActivity()
-		syncing.Start()
+		// syncing := widget.NewActivity()
+		// syncing.Start()
 		notice := makeCenteredWrappedLabel("Beginning Scan")
 		prog := widget.NewProgressBar()
 		content := container.NewVBox(
