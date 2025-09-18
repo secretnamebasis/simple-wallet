@@ -57,6 +57,21 @@ func openExplorer() *dialog.FileDialog {
 	}, program.window)
 }
 
+// simple way to explore files
+func openWalletFile() *dialog.FileDialog {
+	return dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
+		if err != nil {
+			showError(err)
+			return
+		}
+		if reader == nil {
+			return
+		}
+		defer reader.Close()
+		program.entries.wallet.SetText(reader.URI().Path())
+	}, program.window)
+}
+
 // simple way to update the header
 func updateHeader(bold *widget.Hyperlink) {
 	for _, link := range []*widget.Hyperlink{
