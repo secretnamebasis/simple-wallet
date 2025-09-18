@@ -22,6 +22,7 @@ import (
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"github.com/deroproject/derohe/block"
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/walletapi"
@@ -828,6 +829,18 @@ func getSCIDUint64VarsContainer(uint64Keys map[uint64]interface{}) *fyne.Contain
 		uint64_vars.Add(widget.NewLabel("N/A"))
 	}
 	return uint64_vars
+}
+func getBlockDeserialized(blob string) block.Block {
+
+	var bl block.Block
+	b, err := hex.DecodeString(blob)
+	if err != nil {
+		// should probably log or handle this error
+		fmt.Println(err.Error())
+		return block.Block{}
+	}
+	bl.Deserialize(b)
+	return bl
 }
 
 // simple way to show error
