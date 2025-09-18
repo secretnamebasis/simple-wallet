@@ -62,6 +62,7 @@ var program = components{
 		balance_rescan:            widget.NewButton("BALANCE RESCAN", nil),
 		asset_scan:                widget.NewButton("ASSET SCAN", nil),
 		token_add:                 widget.NewButton("TOKEN ADD", nil),
+		explorer:                  widget.NewButton("EXPLORER", nil),
 		integrated:                widget.NewButton("INTEGRATED ADDRESSES", nil),
 		filesign:                  widget.NewButton("FILESIGN", nil),
 		fileverify:                widget.NewButton("FILEVERIFY", nil),
