@@ -108,7 +108,7 @@ func maintain_connection() {
 				// assuming the fastest connection works
 				walletapi.Daemon_Endpoint = program.node.current
 			}
-
+			fmt.Println("connecting to", program.node.current)
 			// re-test the connection
 			if err := walletapi.Connect(walletapi.Daemon_Endpoint); err != nil {
 				// show why?
