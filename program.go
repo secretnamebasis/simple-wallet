@@ -40,8 +40,9 @@ var program = components{
 		asset_list:   new(widget.List),
 	},
 	toggles: toggles{
-		server:  widget.NewRadioGroup([]string{}, nil),
-		network: widget.NewRadioGroup([]string{}, nil),
+		server:    widget.NewRadioGroup([]string{}, nil),
+		network:   widget.NewRadioGroup([]string{}, nil),
+		simulator: widget.NewRadioGroup([]string{}, nil),
 	},
 	checks: checks{
 		replyback: widget.NewCheck("replyback?", nil),
@@ -58,6 +59,7 @@ var program = components{
 		update_password:           widget.NewButton("UPDATE PASSWORD", nil),
 		contract_installer:        widget.NewButton("CONTRACT INSTALLER", nil),
 		contract_interactor:       widget.NewButton("CONTRACT INTERACTOR", nil),
+		simulator:                 widget.NewButton("SIMULATOR", nil),
 		connections:               widget.NewButton("CONNECTIONS", nil),
 		balance_rescan:            widget.NewButton("BALANCE RESCAN", nil),
 		asset_scan:                widget.NewButton("ASSET SCAN", nil),

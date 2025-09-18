@@ -1,9 +1,13 @@
 package main
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -11,7 +15,13 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
+	"github.com/deroproject/derohe/blockchain"
+	derodrpc "github.com/deroproject/derohe/cmd/derod/rpc"
+	"github.com/deroproject/derohe/config"
+	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/globals"
+	"github.com/deroproject/derohe/p2p"
+	"github.com/deroproject/derohe/transaction"
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/deroproject/derohe/walletapi/rpcserver"
 )
@@ -37,14 +47,17 @@ func configs() *fyne.Container {
 	// let's start off by hiding it
 	program.buttons.update_password.Hide()
 
+	program.buttons.simulator.OnTapped = simulator
+
 	return container.NewVBox(
 		program.containers.topbar,
 		layout.NewSpacer(),
+		container.NewVBox(program.buttons.simulator),
 		container.NewVBox(program.buttons.connections),
 		container.NewVBox(program.buttons.rpc_server),
 		container.NewVBox(program.buttons.update_password),
 		// container.NewVBox(program.buttons.tx_priority),
-		// container.NewVBox(program.buttons.ringsize	),
+		// container.NewVBox(program.buttons.ringsize),
 		layout.NewSpacer(),
 		program.containers.bottombar,
 	)
@@ -545,4 +558,282 @@ func passwordUpdate() {
 
 	// and show it
 	pass_confirm.Show()
+}
+
+func simulator() {
+	if program.toggles.simulator.Selected == "" {
+		program.toggles.simulator.SetSelected("off")
+	}
+	program.toggles.simulator.Horizontal = true
+	program.toggles.simulator.Options = []string{
+		"off",
+		"on",
+	}
+	program.toggles.simulator.Required = true
+	program.toggles.simulator.OnChanged = func(s string) {
+		if s == "" {
+			program.toggles.simulator.SetSelected("off")
+		}
+		switch s {
+		case "on":
+			program.toggles.simulator.SetSelected("on")
+			program.preferences.SetBool("mainnet", false)
+			// let's turn on a simulation of the blockchain
+			// before we get started, let's clear something up
+			globals.Arguments = nil // now that we have taken care of that...
+			// let's go pretend we are the captain
+			genesis_seed := "0206a2fca2d2da068dfa8f792ef190a352d656910895f6c541d54877fca95a77"
+
+			create_wallet := func(n, s string) *walletapi.Wallet_Disk {
+
+				b, err := hex.DecodeString(s)
+				if err != nil {
+					panic(err) // someting is wong, doc
+				}
+
+				// let's find the old one
+				filename := filepath.Join(globals.GetDataDirectory(), n)
+				// and get rid of it
+				os.Remove(filename)
+
+				// create the wallet
+				wallet, err := walletapi.Create_Encrypted_Wallet(filename, "", new(crypto.BNRed).SetBytes(b))
+				if err != nil {
+					panic(err) // not good
+				}
+
+				// set the network
+				wallet.SetNetwork(program.preferences.Bool("mainnet"))
+
+				// save
+				wallet.Save_Wallet()
+				return wallet
+			}
+			filename := filepath.Join(globals.GetDataDirectory(), "genesis")
+			genesis_wallet := create_wallet(filename, genesis_seed)
+
+			genesis_tx := transaction.Transaction{
+				Transaction_Prefix: transaction.Transaction_Prefix{
+					Version: 1,
+					Value:   112345,
+				},
+			}
+			// every block has a miner..
+			// the genesis_tx will use genesis wallet public key
+			copy(genesis_tx.MinerAddress[:], genesis_wallet.GetAddress().PublicKey.EncodeCompressed())
+
+			// now serialize the transaction into bytes
+			b := genesis_tx.Serialize()
+
+			// and stringify the bytes
+			tx := fmt.Sprintf("%x", b)
+
+			// // now config the testnet
+			config.Testnet.Genesis_Tx = tx // mainnet uses the same tx
+			config.Mainnet.Genesis_Tx = config.Testnet.Genesis_Tx
+
+			// // generate the genesis block
+			genesis_block := blockchain.Generate_Genesis_Block()
+
+			// // get the hash of the block
+			genesis_hash := genesis_block.GetHash()
+
+			// // now config the testnet
+			config.Testnet.Genesis_Block_Hash = genesis_hash // mainnet uses the same hash
+			config.Mainnet.Genesis_Block_Hash = config.Testnet.Genesis_Block_Hash
+
+			// chose where the endpoint location
+			daemon_endpoint := "127.0.0.1:20000"
+
+			// here is a list of arguments
+			globals.Arguments = map[string]interface{}{
+				"--rpc-bind":  daemon_endpoint,
+				"--testnet":   !program.preferences.Bool("mainnet"), // F*** IT, WE'LL DO IT LIVE!
+				"--simulator": true,                                 // obviously
+				"--p2p-bind":  ":0",
+			}
+
+			// now, we'll init the network
+			globals.InitNetwork()
+
+			// let's clean up anything that was here before
+			os.RemoveAll(globals.GetDataDirectory())
+
+			// lets create data directories
+			if err := os.MkdirAll(globals.GetDataDirectory(), 0750); err != nil {
+				panic(err)
+			}
+
+			simulation := map[string]interface{}{
+				"--simulator": true,
+			}
+			var err error
+			program.caches.simulator_chain, err = blockchain.Blockchain_Start(simulation) //start chain in simulator mode
+			if err != nil {
+				panic(err)
+			}
+
+			simulation["chain"] = program.caches.simulator_chain
+
+			p2p.P2P_Init(simulation)
+			// we should probably consider the "toggle" very seriously
+			simulator_server, err := derodrpc.RPCServer_Start(simulation)
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println(simulator_server)
+			// and let's simulate a bunch of users
+			program.caches.simulator_wallets = []*walletapi.Wallet_Disk{}
+			program.caches.simulator_rpcservers = []*rpcserver.RPCServer{}
+			simulation_seeds := []string{
+				"171eeaa899e360bf1a8ada7627aaea9fdad7992463581d935a8838f16b1ff51a",
+				"193faf64d79e9feca5fce8b992b4bb59b86c50f491e2dc475522764ca6666b6b",
+				"2e49383ac5c938c268921666bccfcb5f0c4d43cd3ed125c6c9e72fc5620bc79b",
+				"1c8ee58431e21d1ef022ccf1f53fec36f5e5851d662a3dd96ced3fc155445120",
+				"19182604625563f3ff913bb8fb53b0ade2e0271ca71926edb98c8e39f057d557",
+				"2a3beb8a57baa096512e85902bb5f1833f1f37e79f75227bbf57c4687bfbb002",
+				"055e43ebff20efff612ba6f8128caf990f2bf89aeea91584e63179b9d43cd3ab",
+				"2ccb7fc12e867796dd96e246aceff3fea1fdf78a28253c583017350034c31c81",
+				"279533d87cc4c637bf853e630480da4ee9d4390a282270d340eac52a391fd83d",
+				"03bae8b71519fe8ac3137a3c77d2b6a164672c8691f67bd97548cb6c6f868c67",
+				"2b9022d0c5ee922439b0d67864faeced65ebce5f35d26e0ee0746554d395eb88",
+				"1a63d5cf9955e8f3d6cecde4c9ecbd538089e608741019397824dc6a2e0bfcc1",
+				"10900d25e7dc0cec35fcca9161831a02cb7ed513800368529ba8944eeca6e949",
+				"2af6630905d73ee40864bd48339f297908a0731a6c4c6fa0a27ea574ac4e4733",
+				"2ac9a8984c988fcb54b261d15bc90b5961d673bffa5ff41c8250c7e262cbd606",
+				"040572cec23e6df4f686192b776c197a50591836a3dd02ba2e4a7b7474382ccd",
+				"2b2b029cfbc5d08b5d661e6fa444102d387780bec088f4dd41a4a537bf9762af",
+				"1812298da90ded6457b2a20fd52d09f639584fb470c715617db13959927be7f8",
+				"1eee334e1f533aa1ac018124cf3d5efa20e52f54b05e475f6f2cff3476b4a92f",
+				"2c34e7978ce249aebed33e14cdd5177921ecd78fbe58d33bbec21f22b80af7a5",
+				"083e7fe96e8415ea119ec6c4d0ebe233e86b53bd4e2f7598505317efc23ae34b",
+				"0fd7f8db0ed6cbe3bf300258619d8d4a2ff8132ef3c896f6e3fa65a6c92bdf9a",
+			}
+			// the rpc servers are going to be turned on automatically
+			program.toggles.server.Disable()
+			program.entries.username.Disable()
+			program.entries.password.Disable()
+			program.buttons.update_password.Disable()
+			var wg sync.WaitGroup
+			wg.Add(len(simulation_seeds))
+			for i, seed := range simulation_seeds {
+				go func() {
+					defer wg.Done()
+					n := "simulation_wallet_" + strconv.Itoa(i) + ".db"
+					wallet := create_wallet(n, seed)
+					if err := program.caches.simulator_chain.Add_TX_To_Pool(wallet.GetRegistrationTX()); err != nil {
+						panic(err)
+					}
+					// point the wallet at the daemon
+					wallet.SetDaemonAddress(daemon_endpoint)
+					wallet.SetOnlineMode() // turn it on
+
+					// choose where the wallet will serve from
+					wallet_endpoint := "127.0.0.1:" + strconv.Itoa(30000+i)
+					globals.Arguments["--rpc-bind"] = wallet_endpoint
+
+					// now start the server endpoint
+					if r, err := rpcserver.RPCServer_Start(wallet, n); err != nil {
+						panic(err)
+					} else {
+						program.caches.simulator_rpcservers = append(program.caches.simulator_rpcservers, r)
+					}
+					program.caches.simulator_wallets = append(program.caches.simulator_wallets, wallet)
+					time.Sleep(time.Millisecond * 20) // little breathing room
+				}()
+			}
+			wg.Wait()
+
+			// now let's go mine a block
+			single_block := func() {
+				// every block has a id, or a hash
+				var blid crypto.Hash
+
+				for {
+					// using the genesis wallet, get a block and miniblock template
+					bl, mbl, _, _, err := program.caches.simulator_chain.Create_new_block_template_mining(genesis_wallet.GetAddress())
+					if err != nil {
+						panic(err)
+					}
+					// now let's get the timestamp of the block
+					ts := bl.Timestamp
+					// and let's serialize the miniblock we used
+					serial := mbl.Serialize()
+
+					// and let's just accept it as is
+					if _, blid, _, err = program.caches.simulator_chain.Accept_new_block(ts, serial); err != nil {
+						panic(err)
+					} else if !blid.IsZero() {
+						// assuming that the hash is not zero, break the loop
+						break
+					}
+				}
+			}
+			single_block() // mined genesis
+			single_block() // let's advance the blocks
+			single_block() // registrations get loaded into the pool
+			single_block() // need them to all get processed
+			single_block() // and this is a great place to start
+
+			// we have a different connective function
+			// go walletapi.Keep_Connectivity()
+			// we already have an in-wallet explorer
+
+			// let's automatically mine blocks
+			go func() {
+				last := time.Now()
+				for {
+					bl, _, _, _, err := program.caches.simulator_chain.Create_new_block_template_mining(genesis_wallet.GetAddress())
+					if err != nil {
+						continue
+					}
+					// we aren't going to be using the noautomine feature right now
+					blocktime := time.Duration((config.BLOCK_TIME * uint64(time.Second)))
+					if time.Since(last) > blocktime || len(bl.Tx_hashes) >= 1 {
+						single_block()    // we are just panicing...
+						last = time.Now() // like last time? XD
+					}
+					time.Sleep(time.Second)
+				}
+			}()
+			// we aren't logging so... not sure why we would start a cron...
+			// let's see if it works?.. lol
+		case "off":
+			program.toggles.simulator.SetSelected("off")
+			if program.simulator_server != nil {
+				program.simulator_server.RPCServer_Stop()
+				p2p.P2P_Shutdown()
+				program.caches.simulator_chain.Shutdown()
+				for _, r := range program.caches.simulator_rpcservers {
+					go r.RPCServer_Stop()
+				}
+			}
+			program.toggles.server.Enable()
+			program.entries.username.Enable()
+			program.entries.password.Enable()
+			program.buttons.update_password.Enable()
+		default:
+		}
+	}
+
+	notice := makeCenteredWrappedLabel(`
+	The simulator provides a convenient place to simulate the DERO blockchain for testing and evaluation purposes.
+	
+	The simulator rpc runs on 127.0.0.1:20000 and you will need to change connections to 'simulator' in order to access the simulated network.
+	
+	21 simulator wallets can be found in the ` + globals.GetDataDirectory() + ` folder and have no password. 
+	
+	The wallets are started with rpc servers on with no username and password and can be found starting on 127.0.0.1:30000 and up, eg 30000 is wallet 0, 30001 is wallet 1, etc`)
+	// load up the widgets into a container
+	content := container.NewVBox(
+		layout.NewSpacer(),
+		notice,
+		container.NewCenter(program.toggles.simulator),
+		layout.NewSpacer(),
+	)
+
+	// let's build a walkthru for the user, resize and show
+	simulate := dialog.NewCustom("simulator server", dismiss, content, program.window)
+	simulate.Resize(program.size)
+	simulate.Show()
 }
