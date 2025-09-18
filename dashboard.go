@@ -556,7 +556,7 @@ func assetsList() {
 			// this simple go routine will update the balance every second
 			var updating bool = true
 			go func() {
-				for range time.NewTicker(time.Second).C {
+				for range time.NewTicker(time.Second * 2).C {
 					if updating {
 						updated, _ := program.wallet.Get_Balance_scid(hash)
 						fyne.DoAndWait(func() { label_balance.SetText("Balance: " + rpc.FormatMoney(updated)) })

@@ -58,7 +58,7 @@ func maintain_connection() {
 	// track the height
 	var height int64
 	// the purpose of this function is to obtain topo height every second
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(time.Second * 2)
 	// this is an infinite loop
 	for range ticker.C {
 		// assuming the localhost connection works
@@ -79,7 +79,7 @@ func maintain_connection() {
 				}
 			})
 
-			if program.toggles.network.Selected == "mainnet" {
+			if program.preferences.Bool("mainnet") {
 				// now we need to range and connect
 				var fastest int64 = 10000 // we assume 10 second
 
@@ -108,7 +108,7 @@ func maintain_connection() {
 				// assuming the fastest connection works
 				walletapi.Daemon_Endpoint = program.node.current
 			}
-
+			fmt.Println("connecting to", program.node.current)
 			// re-test the connection
 			if err := walletapi.Connect(walletapi.Daemon_Endpoint); err != nil {
 				// show why?
@@ -304,7 +304,7 @@ func connections() {
 			return
 		} else {
 			// tell the user how cool they are
-			showInfo("Connection", "success")
+			showInfoFast("Connection", "success", program.window)
 		}
 		// now the current node is the entry
 		program.node.current = endpoint
@@ -502,7 +502,7 @@ func passwordUpdate() {
 			} else { // otherwise
 				update.Dismiss() // close the password dialog
 				// and notify the user of update
-				showInfo("UPDATE PASSWORD", "Password has been successfully updated")
+				showInfoFast("UPDATE PASSWORD", "Password has been successfully updated", program.window)
 			}
 		}
 

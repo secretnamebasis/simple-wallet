@@ -239,6 +239,9 @@ func loginFunction() {
 			return
 		}
 
+		// simple way to know which file you are working with
+		program.window.SetTitle(program.name + " | " + filename)
+
 		// and then do the loggedIn thing
 		loggedIn()
 	}

@@ -6,6 +6,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
+	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/deroproject/derohe/walletapi/rpcserver"
 )
@@ -14,28 +15,29 @@ import (
 
 type (
 	components struct {
-		wallet      *walletapi.Wallet_Disk
-		rpc_server  *rpcserver.RPCServer
-		node        nodes
-		caches      caches
-		application fyne.App
-		preferences fyne.Preferences
-		selections  selections
-		dialogues   dialogues
-		activities  activities
-		toggles     toggles
-		checks      checks
-		lists       lists
-		entries     entries
-		containers  containers
-		hyperlinks  hyperlinks
-		labels      labels
-		buttons     buttons
-		window      fyne.Window
-		loggedIn    bool
-		name        string
-		receiver    string
-		size        fyne.Size
+		wallet        *walletapi.Wallet_Disk
+		rpc_server    *rpcserver.RPCServer
+		node          nodes
+		caches        caches
+		application   fyne.App
+		preferences   fyne.Preferences
+		selections    selections
+		dialogues     dialogues
+		activities    activities
+		toggles       toggles
+		checks        checks
+		lists         lists
+		entries       entries
+		containers    containers
+		hyperlinks    hyperlinks
+		labels        labels
+		buttons       buttons
+		window        fyne.Window
+		viewer_window fyne.Window
+		loggedIn      bool
+		name          string
+		receiver      string
+		size          fyne.Size
 	}
 
 	nodes struct {
@@ -52,6 +54,8 @@ type (
 	}
 	caches struct {
 		assets []asset
+		pool   rpc.GetTxPool_Result
+		info   rpc.GetInfo_Result
 	}
 
 	dialogues struct {
@@ -110,6 +114,7 @@ type (
 		token_add,
 		balance_rescan,
 		asset_scan,
+		explorer,
 		integrated,
 		contract_installer,
 		contract_interactor *widget.Button

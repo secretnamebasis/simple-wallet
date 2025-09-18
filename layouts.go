@@ -1,8 +1,12 @@
 package main
 
 import (
+	"image/color"
+
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
 )
 
 type twoThirds struct {
@@ -103,3 +107,50 @@ func (r *responsiveGrid) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 func (r *responsiveGrid) MinSize(objects []fyne.CanvasObject) fyne.Size {
 	return fyne.NewSize(300, 300)
 }
+
+type graph struct {
+	widget.BaseWidget
+	hd_map map[int]int
+}
+
+type graphRenderer struct {
+	graph   *graph
+	objects []fyne.CanvasObject
+}
+
+func (g *graph) CreateRenderer() fyne.WidgetRenderer {
+	objects := []fyne.CanvasObject{}
+
+	// Dummy object to force re-rendering
+	bg := canvas.NewRectangle(color.Transparent)
+	objects = append(objects, bg)
+
+	// return your renderer
+	return &graphRenderer{
+		graph:   g,
+		objects: objects,
+	}
+}
+
+func (r *graphRenderer) Layout(size fyne.Size) {
+	r.objects = []fyne.CanvasObject{makeGraph(r.graph.hd_map, size.Width, size.Height)}
+}
+
+func (r *graphRenderer) MinSize() fyne.Size {
+	return fyne.NewSize(600, 400) // Minimum size for the graph
+}
+
+func (r *graphRenderer) Refresh() {
+	r.Layout(r.graph.Size())
+	canvas.Refresh(r.graph)
+}
+
+func (r *graphRenderer) BackgroundColor() color.Color {
+	return color.Transparent
+}
+
+func (r *graphRenderer) Objects() []fyne.CanvasObject {
+	return r.objects
+}
+
+func (r *graphRenderer) Destroy() {}

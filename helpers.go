@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"image/color"
 	"io"
 	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -22,6 +24,7 @@ import (
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"github.com/deroproject/derohe/block"
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/walletapi"
@@ -170,7 +173,7 @@ func notificationNewEntry() {
 func updateBalance() {
 	var previous_bal uint64
 	var bal uint64
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(time.Second * 2)
 	for range ticker.C {
 		// check to see if we are logged-in first
 		if !program.preferences.Bool("loggedIn") {
@@ -200,7 +203,8 @@ func updateBalance() {
 			if program.wallet == nil {
 				return
 			}
-
+			program.caches.info = getDaemonInfo()
+			program.caches.pool = getTxPool()
 			// get the balance
 			bal, _ = program.wallet.Get_Balance()
 
@@ -223,13 +227,21 @@ func updateBalance() {
 }
 
 // simple way to get all transfers
-func getTransfers(coin, in, out bool) []rpc.Entry {
+func getTransfersByHeight(min, max uint64, coin, in, out bool) []rpc.Entry {
 	return program.wallet.Show_Transfers(
 		crypto.ZEROHASH,
 		coin, in, out,
-		0, uint64(walletapi.Get_Daemon_Height()),
+		min, max,
 		"", "",
 		0, 0,
+	)
+}
+
+// simple way to get all transfers
+func getTransfers(coin, in, out bool) []rpc.Entry {
+	return getTransfersByHeight(
+		0, uint64(walletapi.Get_Daemon_Height()),
+		coin, in, out,
 	)
 }
 
@@ -426,6 +438,81 @@ func makeCenteredWrappedLabel(s string) *widget.Label {
 	return label
 }
 
+func getTransaction(params rpc.GetTransaction_Params) rpc.GetTransaction_Result {
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	// get a client for the daemon's rpc
+	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
+
+	// here is our results bucket
+	var result rpc.GetTransaction_Result
+
+	// here is the method we are going to use
+	var method = "DERO.GetTransaction"
+
+	// call for the contract
+	if err := rpcClient.CallFor(ctx, &result, method, params); err != nil {
+		fmt.Println(err)
+		return rpc.GetTransaction_Result{}
+	}
+	// the code needs to be present
+	if result.Status == "" {
+		return rpc.GetTransaction_Result{}
+	}
+
+	return result
+}
+func getBlockInfo(params rpc.GetBlock_Params) rpc.GetBlock_Result {
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	// get a client for the daemon's rpc
+	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
+
+	// here is our results bucket
+	var result rpc.GetBlock_Result
+
+	// here is the method we are going to use
+	var method = "DERO.GetBlock"
+
+	// call for the contract
+	if err := rpcClient.CallFor(ctx, &result, method, params); err != nil {
+		fmt.Println(err)
+		return rpc.GetBlock_Result{}
+	}
+	// the code needs to be present
+	if result.Block_Header.Depth == 0 {
+		return rpc.GetBlock_Result{}
+	}
+
+	return result
+}
+
+func getTxPool() rpc.GetTxPool_Result {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	// get a client for the daemon's rpc
+	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
+
+	// here is our results bucket
+	var pool rpc.GetTxPool_Result
+
+	// here is the method we are going to use
+	var method = "DERO.GetTxPool"
+
+	// call for the contract
+	if err := rpcClient.CallFor(ctx, &pool, method); err != nil {
+		fmt.Println(err)
+		return rpc.GetTxPool_Result{}
+	}
+	// the code needs to be present
+	if pool.Status == "" {
+		return rpc.GetTxPool_Result{}
+	}
+
+	return pool
+}
 func getDaemonInfo() rpc.GetInfo_Result {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -449,6 +536,30 @@ func getDaemonInfo() rpc.GetInfo_Result {
 	}
 
 	return info
+}
+func getSC(scParam rpc.GetSC_Params) rpc.GetSC_Result {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	// get a client for the daemon's rpc
+	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
+
+	// here is our results bucket
+	var sc rpc.GetSC_Result
+
+	// here is the method we are going to use
+	var method = "DERO.GetSC"
+
+	// call for the contract
+	if err := rpcClient.CallFor(ctx, &sc, method, scParam); err != nil {
+		return rpc.GetSC_Result{}
+	}
+	// the code needs to be present
+	if sc.Code == "" {
+		return rpc.GetSC_Result{}
+	}
+
+	return sc
 }
 func getSCCode(scid string) rpc.GetSC_Result {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -640,10 +751,22 @@ func getSCIDStringVarsContainer(stringKeys map[string]interface{}) *fyne.Contain
 			case float64:
 				value = strconv.FormatFloat(v, 'f', 0, 64)
 			}
-			string_vars.Add(container.NewAdaptiveGrid(2,
-				widget.NewLabel(pair.key),
-				widget.NewLabel(value),
-			))
+
+			key := container.NewScroll(widget.NewLabel(pair.key))
+			key.Direction = container.ScrollHorizontalOnly
+			var val *container.Scroll
+			if strings.Contains(value, "http") {
+				u, err := url.Parse(value)
+				if err != nil {
+					u = nil
+				}
+				val = container.NewScroll(widget.NewHyperlink(value, u))
+				val.Direction = container.ScrollHorizontalOnly
+			} else {
+				val = container.NewScroll(widget.NewLabel(value))
+				val.Direction = container.ScrollHorizontalOnly
+			}
+			string_vars.Add(container.NewAdaptiveGrid(2, key, val))
 		}
 	} else {
 		string_vars.Add(widget.NewLabel("N/A"))
@@ -687,21 +810,55 @@ func getSCIDUint64VarsContainer(uint64Keys map[uint64]interface{}) *fyne.Contain
 			case float64:
 				value = strconv.FormatFloat(v, 'f', 0, 64)
 			}
-			uint64_vars.Add(container.NewAdaptiveGrid(2,
-				widget.NewLabel(strconv.Itoa(int(pair.key))),
-				widget.NewLabel(value),
-			))
+
+			key := container.NewScroll(widget.NewLabel(strconv.Itoa(int(pair.key))))
+			key.Direction = container.ScrollHorizontalOnly
+			var val *container.Scroll
+			if strings.Contains(value, "http") {
+				u, err := url.Parse(value)
+				if err != nil {
+					u = nil
+				}
+				val = container.NewScroll(widget.NewHyperlink(value, u))
+				val.Direction = container.ScrollHorizontalOnly
+			} else {
+				val = container.NewScroll(widget.NewLabel(value))
+				val.Direction = container.ScrollHorizontalOnly
+			}
+			uint64_vars.Add(container.NewAdaptiveGrid(2, key, val))
 		}
 	} else {
 		uint64_vars.Add(widget.NewLabel("N/A"))
 	}
 	return uint64_vars
 }
+func getBlockDeserialized(blob string) block.Block {
+
+	var bl block.Block
+	b, err := hex.DecodeString(blob)
+	if err != nil {
+		// should probably log or handle this error
+		fmt.Println(err.Error())
+		return block.Block{}
+	}
+	bl.Deserialize(b)
+	return bl
+}
 
 // simple way to show error
 func showError(e error) { dialog.ShowError(e, program.window) }
 
 func showInfo(t, m string) { dialog.ShowInformation(t, m, program.window) }
+func showInfoFast(t, m string, w fyne.Window) {
+	s := dialog.NewInformation(t, m, w)
+	s.Show()
+	go func() {
+		time.Sleep(time.Millisecond * 500)
+		fyne.DoAndWait(func() {
+			s.Dismiss()
+		})
+	}()
+}
 
 // simple way to go home
 func setContentAsHome() { program.window.SetContent(program.containers.home) }
@@ -742,4 +899,267 @@ func lockScreen() {
 
 	lockscreen.Resize(program.size)
 	lockscreen.Show()
+}
+
+func makeGraph(hd_map map[int]int, w, h float32) fyne.CanvasObject {
+	// the graph is upside down...
+	// remember?
+	// 0,0 +1 +2 +3 +4 >
+	// -1
+	// -2
+	// -3
+	//  ▼
+	invert := float32(-1.0)
+
+	var ( // up for interpretation, change as necessary
+		left_padding   = float32(60)
+		right_padding  = float32(0)
+		top_padding    = float32(20)
+		bottom_padding = float32(40)
+	)
+
+	graph_width := w - left_padding - right_padding
+	graph_height := h - top_padding - bottom_padding
+
+	if len(hd_map) == 0 {
+		return canvas.NewText("No data", color.Black)
+	}
+
+	// we are goind to index the heights
+	heights := []int{}
+
+	// need some min maxing while we are at it
+	var first_height, last_height, max_difficulty int
+
+	// range, append and process
+	for h, d := range hd_map {
+		heights = append(heights, h)
+		max_difficulty = max(d, max_difficulty)
+	}
+
+	// get sorted
+	sort.Ints(heights)
+
+	// the first graph_height is the lowest
+	first_height = heights[0]
+	last_height = heights[len(heights)-1]
+
+	height_range := float32(last_height - first_height)
+	if height_range == 0 {
+		height_range = 1 // avoid divide by zero
+	}
+
+	// so that the top of the graph isn't the max difficulty
+	buffer := float32(1.5) // take it up 150% just for a clearer view
+	difficulty_range := float32(max_difficulty) * (buffer)
+	if difficulty_range == 0 {
+		difficulty_range = 1
+	}
+
+	// now let's make an slice of objects
+	objects := []fyne.CanvasObject{}
+
+	// when plotting a graph, always start with the x axis first
+	x_axis := canvas.NewLine(theme.Color(theme.ColorNameForeground))
+
+	// then start by establishing where x_axis start/end x,y co-ordinates are
+	x_axis.Position1 = fyne.NewPos( // left-top 'position of the Line'
+		left_padding,
+		(graph_height + top_padding), // just so happens to be a negative number
+	)
+
+	x_axis.Position2 = x_axis.Position1.Add(
+		fyne.Position{ // right-bottom 'position of the Line'
+			X: graph_width, // straight across
+			Y: 0,           // not angled
+		})
+
+	// now, let's graph the y axis line
+	y_axis := canvas.NewLine(theme.Color(theme.ColorNameForeground))
+
+	// we'll use the starting position of the x_axis as the starting position for y
+	y_axis.Position1 = x_axis.Position1 // left-top 'position of the Line'
+
+	// then we'll subtract to make the line go up, -n minus -n = -n plus n = 0
+	y_axis.Position2 = y_axis.Position1.Subtract(fyne.Position{ // right-bottom 'position of the Line'
+		// X: 0, // straight
+		Y: graph_height,
+	})
+
+	// let's add the lines into the bucket of objects
+	objects = append(objects, x_axis, y_axis)
+
+	// for scaling purposes
+	horizontal_scaling := graph_width / height_range
+	vertical_scaling := graph_height / difficulty_range
+
+	var prevX, prevY float32
+	for i, height := range heights {
+
+		// place it on the x plane
+		x := (float32(i) * horizontal_scaling) + (left_padding)
+
+		// let's get the difficulty from the map
+		difficulty := hd_map[height]
+
+		// now place it on the y plane
+		y := (invert * float32(difficulty) * vertical_scaling) + (graph_height + top_padding)
+
+		// let's make a dot to represent the data point
+		dot := canvas.NewCircle(color.RGBA{R: 0, G: 150, B: 255, A: 255})
+
+		// the dot has two features:
+		// stroke, or the edge
+		// fill, or the center
+
+		// paint it
+		dot.StrokeColor = theme.Color(theme.ColorNameForeground)
+		dot.StrokeWidth = 1 // give it depth
+
+		// fill it
+		dot.FillColor = theme.Color(theme.ColorNameBackground)
+		dot.Resize(fyne.NewSize(2, 2)) // give it depth
+
+		// move it into place
+		dot.Move(fyne.NewPos(x, y))
+
+		// might as well, load it in the bucket
+		objects = append(objects, dot)
+
+		// make a line for each datapoint after first height
+		if i > 0 {
+			// start by making a line
+			line := canvas.NewLine(theme.Color(theme.ColorNameForeground))
+			// feel free to color it
+			line.StrokeColor = theme.Color(theme.ColorNameForeground)
+
+			// and here is your brush stroke
+			line.StrokeWidth = 1
+
+			// we are going to use a previous iteration's values
+			line.Position1 = fyne.NewPos(prevX, prevY)
+
+			// and then add the difference between these values and previous
+			line.Position2 = line.Position1.Add(fyne.Position{
+				X: (x - prevX),
+				Y: (y - prevY),
+			})
+
+			// and append
+			objects = append(objects, line)
+		}
+
+		// pick this up on the way to the next iteration
+		prevX, prevY = x, y
+	}
+
+	ticks := 10 // feel free to change it
+	for i := range ticks {
+
+		// there is no x value because we are on the y axis plane
+		x := float32(0.0)
+
+		// find the smallest tick value
+		smallest := (difficulty_range / float32(ticks))
+
+		// multiply it by the tick index
+		value := float32(i) * smallest
+
+		// to obtain y...
+		//invert the value and multiply by scaling factor
+		y := (invert * value * vertical_scaling) + // then add paddings
+			graph_height + top_padding
+
+		// let's make a tick line
+		tick := canvas.NewLine(color.Gray{Y: 100})
+		tick.StrokeWidth = 1
+		// tick.Resize(fyne.NewSize(5, 5)) // did it do anything?
+		x += left_padding - theme.Padding()
+
+		// set the position of the tick
+		tick.Position1 = fyne.NewPos(x, y)
+
+		// add back the padding
+		tick.Position2 = tick.Position1.Add(fyne.Position{
+			X: theme.Padding(),
+			// Y: 0,
+		})
+
+		// append the tick onto the board
+		objects = append(objects, tick)
+
+		// now make a label
+		txt := fmt.Sprintf("%.0fMH/s", value/1000000)
+		label := canvas.NewText(txt, theme.Color(theme.ColorNameForeground))
+		label.TextSize = 10
+		label.Move(fyne.NewPos(theme.Padding(), (y - theme.Padding())))
+		objects = append(objects, label)
+	}
+
+	// re-assign the tick value
+	ticks = int(max(1.0, float32((last_height-first_height)/len(heights))))
+	for i := first_height; i <= last_height; i += ticks {
+
+		// get the working value
+		value := float32((i - first_height))
+
+		// to obtain x, take value times scaling and add in padding
+		x := (value * horizontal_scaling) + left_padding
+
+		// let's make a tick
+		tick := canvas.NewLine(color.Gray{Y: 100})
+
+		// establish the first position
+		tick.Position1 = fyne.NewPos(x, (graph_height + top_padding))
+
+		// add in some padding
+		tick.Position2 = tick.Position1.Add(fyne.Position{
+			Y: theme.Padding(),
+		})
+
+		// append the objects
+		objects = append(objects, tick)
+
+		// make a label
+		txt := fmt.Sprintf("%d", i)
+		label := canvas.NewText(txt, theme.Color(theme.ColorNameForeground))
+		label.TextSize = 10
+		label.Move(fyne.NewPos((x - top_padding), (graph_height + top_padding + theme.Padding())))
+		objects = append(objects, label)
+	}
+	// now let's make a nice label for the block heights
+	bottom_text := canvas.NewText("Block Height", theme.Color(theme.ColorNameForeground))
+	bottom_text.TextStyle = fyne.TextStyle{Bold: true}
+
+	// the width of the graph in half
+	half_way := (w / 2)
+	// almost touching the bottom
+	near_the_bottom := (h - top_padding) + theme.Padding()
+	// position it
+	bottom_text.Move(fyne.NewPos(half_way, near_the_bottom))
+
+	// and append
+	objects = append(objects, bottom_text)
+
+	// here is the left side
+	left_text := canvas.NewText("Difficulty", theme.Color(theme.ColorNameForeground))
+	left_text.TextStyle = fyne.TextStyle{Bold: true}
+	left_text.TextSize = 12 // smaller...
+
+	// we need to find out what half way is for this object
+	width := fyne.MeasureText(left_text.Text, left_text.TextSize, left_text.TextStyle).Width
+	half_way = (left_padding - (width / 2))
+	// and set it right on top of the y-axis
+	left_text.Move(fyne.NewPos(half_way, theme.Padding()))
+
+	// append object
+	objects = append(objects, left_text)
+
+	// let them all lay where we said...
+	graph := container.NewWithoutLayout(objects...)
+	// resize the graph
+	graph.Resize(fyne.NewSize(w, h))
+
+	// gimme gimme gimme
+	return graph
 }

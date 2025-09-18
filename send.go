@@ -1,9 +1,13 @@
 package main
 
 import (
+	"encoding/hex"
 	"errors"
+	"fmt"
+	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -526,9 +530,9 @@ func conductTransfer() {
 		// create content container
 		content := container.NewVBox(notice, container.NewCenter(sync))
 		// set it to a new dialog screen and show
-		transaction := dialog.NewCustomWithoutButtons("Transaction Dispatched", content, program.window)
-		transaction.Resize(program.size)
-		transaction.Show()
+		transact := dialog.NewCustomWithoutButtons("Transaction Dispatched", content, program.window)
+		transact.Resize(program.size)
+		transact.Show()
 		var retries int
 		go func() {
 		try_again:
@@ -561,36 +565,78 @@ func conductTransfer() {
 						// if it errors out, show the err
 						showError(err)
 						sync.Stop()
-						transaction.Dismiss()
+						transact.Dismiss()
 					})
 				}
 				// and return
 
 			} else { // if we have success
+				start := time.Now().Add(time.Second * 600)
+				for searching := range time.NewTicker(time.Second * 2).C {
+					if searching.After(start) {
+						sync.Stop()
+						transact.Dismiss()
+						showError(errors.New("manually confirm transfer"))
+						return
+					}
+					if len(program.caches.pool.Tx_list) > 0 {
 
-				// let's make a link
-				link := truncator(tx.GetHash().String())
+						fmt.Println("searching", searching.After(start), searching.String(), program.caches.pool.Tx_list)
 
-				// set it into a new widget -> consider launching your own explorer
-				txid := widget.NewHyperlink(link, nil)
+						if slices.Contains(program.caches.pool.Tx_list, tx.GetHash().String()) {
+							// in pool
+							fmt.Println("in pool", searching.After(start), searching.String(), program.caches.pool.Tx_list, tx.GetHash().String())
 
-				// align it center
-				txid.Alignment = fyne.TextAlignCenter
+							in_pool := time.Now().Add(time.Second * 600)
+							for on_chain := range time.NewTicker(time.Second * 2).C {
+								if on_chain.After(in_pool) {
+									sync.Stop()
+									transact.Dismiss()
+									showError(errors.New("manually confirm transfer"))
+									return
+								}
+								fmt.Println("on chain", on_chain.After(in_pool), on_chain.String(), program.caches.pool.Tx_list, tx.GetHash().String())
 
-				// when tapped, copy to clipboard
-				txid.OnTapped = func() {
-					program.application.Clipboard().SetContent(tx.GetHash().String())
-					showInfo("", "txid copied to clipboard")
+								result := getTransaction(rpc.GetTransaction_Params{
+									Tx_Hashes: []string{tx.GetHash().String()},
+								})
+								for _, each := range result.Txs_as_hex {
+									b, _ := hex.DecodeString(each)
+									var tr transaction.Transaction
+									tr.Deserialize(b)
+									t := tr.GetHash().String()
+									fmt.Println("results", on_chain.After(in_pool), on_chain.String(), tx.GetHash().String())
+									if strings.Contains(t, tx.GetHash().String()) {
+										// let's make a link
+										link := truncator(tx.GetHash().String())
+
+										// set it into a new widget -> consider launching your own explorer
+										txid := widget.NewHyperlink(link, nil)
+
+										// align it center
+										txid.Alignment = fyne.TextAlignCenter
+
+										// when tapped, copy to clipboard
+										txid.OnTapped = func() {
+											program.application.Clipboard().SetContent(tx.GetHash().String())
+											showInfo("", "txid copied to clipboard")
+										}
+										fyne.DoAndWait(func() {
+											sync.Stop()
+											transact.Dismiss()
+											// set it to a new dialog screen and show
+											dialog.ShowCustom(
+												"Transaction Dispatched", "dismissed",
+												container.NewVBox(txid), program.window,
+											)
+										})
+										return
+									}
+								}
+							}
+						}
+					}
 				}
-				fyne.DoAndWait(func() {
-					sync.Stop()
-					transaction.Dismiss()
-					// set it to a new dialog screen and show
-					dialog.ShowCustom(
-						"Transaction Dispatched", "dismissed",
-						container.NewVBox(txid), program.window,
-					)
-				})
 			}
 		}()
 
