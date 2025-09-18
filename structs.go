@@ -6,6 +6,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
+	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/deroproject/derohe/walletapi/rpcserver"
 )
@@ -52,6 +53,8 @@ type (
 	}
 	caches struct {
 		assets []asset
+		pool   rpc.GetTxPool_Result
+		info   rpc.GetInfo_Result
 	}
 
 	dialogues struct {

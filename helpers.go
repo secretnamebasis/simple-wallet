@@ -200,7 +200,8 @@ func updateBalance() {
 			if program.wallet == nil {
 				return
 			}
-
+			program.caches.info = getDaemonInfo()
+			program.caches.pool = getTxPool()
 			// get the balance
 			bal, _ = program.wallet.Get_Balance()
 
