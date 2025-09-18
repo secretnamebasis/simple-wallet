@@ -104,7 +104,11 @@ func initialize() {
 	program.containers.dashboard.Hide()
 
 	// here is a simple way to select a wallet file
-	program.entries.wallet.ActionItem = widget.NewButtonWithIcon("", theme.FolderIcon(), loggedIn)
+	program.entries.wallet.ActionItem = widget.NewButtonWithIcon("", theme.FolderIcon(), func() {
+		explorer := openWalletFile()
+		explorer.Resize(program.size)
+		explorer.Show()
+	})
 
 	// here is a simple way to select a file in general
 	program.dialogues.open = openExplorer()
