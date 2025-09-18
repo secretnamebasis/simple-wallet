@@ -32,7 +32,7 @@ Initial feedback suggested a contract installer/interactor would be useful, and 
 - "🔒" Lockscreen Button
 - Create/Login/Restore Wallets
 - Transaction History
-- Asset Collections with Histories
+- Expanded Asset Collections with Details , Code , Variables , Histories
 - Seed Phrase & Public/Secret Key Reveal
 - Sending with Options, including Token Assets
 - Public Node Auto-Connect
@@ -44,6 +44,7 @@ Initial feedback suggested a contract installer/interactor would be useful, and 
     - Recipient Encryption/Decryption
     - Token Adding
     - Balance Rescan
+    - Asset Scan (powered by gnomon SC)
     - Contract Installer
     - Contract Interactor
 
@@ -87,7 +88,7 @@ There are many additional Dero-related technologies that could be integrated int
 - Native Explorer, Miner, Daemon
 - Civilware Integrations:
   - ENCRYPTED_DEFAULT_PAYLOAD_CBOR_V2
-  - Gnomon integration (likely via an RPC/WS connection, versus within the program)
+  - ~~Gnomon integration (likely via an RPC/WS connection, versus within the program)~~
   - XSWD Websocket
   - Tela Installer & Server
   - Epoch Management
