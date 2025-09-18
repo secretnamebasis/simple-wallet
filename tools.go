@@ -40,11 +40,11 @@ func tools() *fyne.Container {
 	program.buttons.self_encrypt_decrypt.OnTapped = self_crypt
 	program.buttons.recipient_encrypt_decrypt.OnTapped = recipient_crypt
 	program.buttons.integrated.OnTapped = integrated_address_generator
+	program.buttons.token_add.OnTapped = add_token
 	program.buttons.balance_rescan.OnTapped = balance_rescan
 	program.buttons.asset_scan.OnTapped = asset_scan
 	program.buttons.contract_installer.OnTapped = installer
 	program.buttons.contract_interactor.OnTapped = interaction
-	program.buttons.token_add.OnTapped = add_token
 
 	// and then set them
 	toolButtons := []fyne.CanvasObject{
