@@ -304,7 +304,7 @@ func connections() {
 			return
 		} else {
 			// tell the user how cool they are
-			showInfo("Connection", "success")
+			showInfoFast("Connection", "success", program.window)
 		}
 		// now the current node is the entry
 		program.node.current = endpoint
@@ -502,7 +502,7 @@ func passwordUpdate() {
 			} else { // otherwise
 				update.Dismiss() // close the password dialog
 				// and notify the user of update
-				showInfo("UPDATE PASSWORD", "Password has been successfully updated")
+				showInfoFast("UPDATE PASSWORD", "Password has been successfully updated", program.window)
 			}
 		}
 

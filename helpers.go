@@ -702,6 +702,16 @@ func getSCIDUint64VarsContainer(uint64Keys map[uint64]interface{}) *fyne.Contain
 func showError(e error) { dialog.ShowError(e, program.window) }
 
 func showInfo(t, m string) { dialog.ShowInformation(t, m, program.window) }
+func showInfoFast(t, m string, w fyne.Window) {
+	s := dialog.NewInformation(t, m, w)
+	s.Show()
+	go func() {
+		time.Sleep(time.Millisecond * 500)
+		fyne.DoAndWait(func() {
+			s.Dismiss()
+		})
+	}()
+}
 
 // simple way to go home
 func setContentAsHome() { program.window.SetContent(program.containers.home) }
