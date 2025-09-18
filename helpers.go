@@ -748,10 +748,22 @@ func getSCIDStringVarsContainer(stringKeys map[string]interface{}) *fyne.Contain
 			case float64:
 				value = strconv.FormatFloat(v, 'f', 0, 64)
 			}
-			string_vars.Add(container.NewAdaptiveGrid(2,
-				widget.NewLabel(pair.key),
-				widget.NewLabel(value),
-			))
+
+			key := container.NewScroll(widget.NewLabel(pair.key))
+			key.Direction = container.ScrollHorizontalOnly
+			var val *container.Scroll
+			if strings.Contains(value, "http") {
+				u, err := url.Parse(value)
+				if err != nil {
+					u = nil
+				}
+				val = container.NewScroll(widget.NewHyperlink(value, u))
+				val.Direction = container.ScrollHorizontalOnly
+			} else {
+				val = container.NewScroll(widget.NewLabel(value))
+				val.Direction = container.ScrollHorizontalOnly
+			}
+			string_vars.Add(container.NewAdaptiveGrid(2, key, val))
 		}
 	} else {
 		string_vars.Add(widget.NewLabel("N/A"))
@@ -795,10 +807,22 @@ func getSCIDUint64VarsContainer(uint64Keys map[uint64]interface{}) *fyne.Contain
 			case float64:
 				value = strconv.FormatFloat(v, 'f', 0, 64)
 			}
-			uint64_vars.Add(container.NewAdaptiveGrid(2,
-				widget.NewLabel(strconv.Itoa(int(pair.key))),
-				widget.NewLabel(value),
-			))
+
+			key := container.NewScroll(widget.NewLabel(strconv.Itoa(int(pair.key))))
+			key.Direction = container.ScrollHorizontalOnly
+			var val *container.Scroll
+			if strings.Contains(value, "http") {
+				u, err := url.Parse(value)
+				if err != nil {
+					u = nil
+				}
+				val = container.NewScroll(widget.NewHyperlink(value, u))
+				val.Direction = container.ScrollHorizontalOnly
+			} else {
+				val = container.NewScroll(widget.NewLabel(value))
+				val.Direction = container.ScrollHorizontalOnly
+			}
+			uint64_vars.Add(container.NewAdaptiveGrid(2, key, val))
 		}
 	} else {
 		uint64_vars.Add(widget.NewLabel("N/A"))
