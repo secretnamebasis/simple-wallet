@@ -79,7 +79,7 @@ func maintain_connection() {
 				}
 			})
 
-			if program.toggles.network.Selected == "mainnet" {
+			if program.preferences.Bool("mainnet") {
 				// now we need to range and connect
 				var fastest int64 = 10000 // we assume 10 second
 
