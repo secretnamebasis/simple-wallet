@@ -218,9 +218,16 @@ func updateBalance() {
 			if program.wallet == nil {
 				return
 			}
-			program.caches.info = getDaemonInfo()
-			program.caches.pool = getTxPool()
+
+			go func() {
+				program.caches.info = getDaemonInfo()
+				program.caches.pool = getTxPool()
+			}()
+
 			// get the balance
+			if !program.preferences.Bool("loggedIn") {
+				break
+			} // hella sensitive
 			bal, _ = program.wallet.Get_Balance()
 
 			// check it against previous
