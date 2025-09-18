@@ -58,7 +58,7 @@ func maintain_connection() {
 	// track the height
 	var height int64
 	// the purpose of this function is to obtain topo height every second
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(time.Second * 2)
 	// this is an infinite loop
 	for range ticker.C {
 		// assuming the localhost connection works

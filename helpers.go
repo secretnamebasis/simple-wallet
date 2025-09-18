@@ -170,7 +170,7 @@ func notificationNewEntry() {
 func updateBalance() {
 	var previous_bal uint64
 	var bal uint64
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(time.Second * 2)
 	for range ticker.C {
 		// check to see if we are logged-in first
 		if !program.preferences.Bool("loggedIn") {
