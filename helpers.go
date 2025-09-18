@@ -434,6 +434,81 @@ func makeCenteredWrappedLabel(s string) *widget.Label {
 	return label
 }
 
+func getTransaction(params rpc.GetTransaction_Params) rpc.GetTransaction_Result {
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	// get a client for the daemon's rpc
+	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
+
+	// here is our results bucket
+	var result rpc.GetTransaction_Result
+
+	// here is the method we are going to use
+	var method = "DERO.GetTransaction"
+
+	// call for the contract
+	if err := rpcClient.CallFor(ctx, &result, method, params); err != nil {
+		fmt.Println(err)
+		return rpc.GetTransaction_Result{}
+	}
+	// the code needs to be present
+	if result.Status == "" {
+		return rpc.GetTransaction_Result{}
+	}
+
+	return result
+}
+func getBlockInfo(params rpc.GetBlock_Params) rpc.GetBlock_Result {
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	// get a client for the daemon's rpc
+	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
+
+	// here is our results bucket
+	var result rpc.GetBlock_Result
+
+	// here is the method we are going to use
+	var method = "DERO.GetBlock"
+
+	// call for the contract
+	if err := rpcClient.CallFor(ctx, &result, method, params); err != nil {
+		fmt.Println(err)
+		return rpc.GetBlock_Result{}
+	}
+	// the code needs to be present
+	if result.Block_Header.Depth == 0 {
+		return rpc.GetBlock_Result{}
+	}
+
+	return result
+}
+
+func getTxPool() rpc.GetTxPool_Result {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	// get a client for the daemon's rpc
+	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
+
+	// here is our results bucket
+	var pool rpc.GetTxPool_Result
+
+	// here is the method we are going to use
+	var method = "DERO.GetTxPool"
+
+	// call for the contract
+	if err := rpcClient.CallFor(ctx, &pool, method); err != nil {
+		fmt.Println(err)
+		return rpc.GetTxPool_Result{}
+	}
+	// the code needs to be present
+	if pool.Status == "" {
+		return rpc.GetTxPool_Result{}
+	}
+
+	return pool
+}
 func getDaemonInfo() rpc.GetInfo_Result {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -457,6 +532,30 @@ func getDaemonInfo() rpc.GetInfo_Result {
 	}
 
 	return info
+}
+func getSC(scParam rpc.GetSC_Params) rpc.GetSC_Result {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	// get a client for the daemon's rpc
+	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
+
+	// here is our results bucket
+	var sc rpc.GetSC_Result
+
+	// here is the method we are going to use
+	var method = "DERO.GetSC"
+
+	// call for the contract
+	if err := rpcClient.CallFor(ctx, &sc, method, scParam); err != nil {
+		return rpc.GetSC_Result{}
+	}
+	// the code needs to be present
+	if sc.Code == "" {
+		return rpc.GetSC_Result{}
+	}
+
+	return sc
 }
 func getSCCode(scid string) rpc.GetSC_Result {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
