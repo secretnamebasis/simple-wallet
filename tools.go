@@ -953,9 +953,11 @@ func balance_rescan() {
 		syncing := widget.NewActivity()
 		syncing.Start()
 		notice := makeCenteredWrappedLabel("Beginning Scan")
+		prog := widget.NewProgressBar()
 		content := container.NewVBox(
 			layout.NewSpacer(),
-			syncing,
+			prog,
+			// syncing,
 			notice,
 			layout.NewSpacer(),
 		)
@@ -969,6 +971,9 @@ func balance_rescan() {
 		// rebuild the hash list
 		buildAssetHashList()
 
+		prog.Min = 0
+		prog.Max = 1
+
 		// as a go routine
 		go func() {
 
@@ -981,51 +986,56 @@ func balance_rescan() {
 			// as a go routine...
 			go func() {
 
-				// keep track of the old_len
-				var old_len int
+				// keep track of the start
+				var start int
 
 				// now we are going to have this spin every second
-				ticker := time.NewTicker(time.Second)
+				ticker := time.NewTicker(time.Millisecond * 300)
 				for range ticker.C {
+					h := getDaemonInfo().Height
 
 					// if we are done, break this loop
 					if done {
 						break
 					}
 
-					// get ALL transfers
-					transfers := getAllTransfers()
+					// get transfers
+					transfers := getTransfersByHeight(
+						uint64(start),
+						uint64(h), true, true, true,
+					)
 
 					// measure them
 					current_len := len(transfers)
 
-					// continue if the same as the old
-					if current_len == old_len {
+					if current_len == 0 {
 						continue
 					}
 
-					// get the difference
-					diff := current_len - old_len
-
-					// set the old length
-					old_len = current_len
+					// set the start higher up the chain
+					end_of_index := current_len - 1
+					start = int(transfers[end_of_index].Height)
+					ratio := float64(start) / float64(h)
+					fyne.DoAndWait(func() {
+						prog.SetValue(ratio)
+					})
 
 					// now spin through the transfers at the point of difference
-					for _, each := range transfers[diff:] {
+					for _, each := range transfers {
 
 						// update the notice
 						fyne.DoAndWait(func() {
-							notice.SetText("Blockheight: " + strconv.Itoa(int(each.Height)) + " BlockHash: " + truncator(each.BlockHash))
+							notice.SetText("Blockheight: " + strconv.Itoa(int(each.Height)) + " Timestamp: " + each.Time.String())
 						})
 
 						// take a small breather between updates
-						time.Sleep(time.Millisecond * 300)
+						time.Sleep(time.Millisecond)
 					}
 
 					// set notice to a default
-					fyne.DoAndWait(func() {
-						notice.SetText("Retrieving more txs")
-					})
+					// fyne.DoAndWait(func() {
+					// 	notice.SetText("Retrieving more txs")
+					// })
 				}
 			}()
 
@@ -1067,7 +1077,7 @@ func balance_rescan() {
 			// when done, shut down the sync status in the go routine
 			fyne.DoAndWait(func() {
 				done = true
-				syncing.Stop()
+				// syncing.Stop()
 				syncro.Dismiss()
 			})
 		}()
