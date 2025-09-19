@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -88,6 +89,38 @@ func updateHeader(bold *widget.Hyperlink) {
 			link.TextStyle = fyne.TextStyle{
 				Bold: false,
 			}
+		}
+	}
+}
+func createPreferred() {
+	filename := "preferred"
+	// let's make a simple way to have a preferred connection
+	preferred_connection := struct {
+		ip   string
+		name string
+	}{name: filename}
+
+	if _, err := os.Stat(filename); err != nil {
+		os.Create(filename)
+		// really
+	} else {
+		file, err := os.Open(filename)
+		if err != nil {
+
+			// we shouldn't report an err here...
+
+		}
+		b, err := io.ReadAll(file)
+		if err != nil {
+			// again, we shouldn't report an err
+			// we'll just try localhost and move on
+		}
+		// load the ip addres into the connection
+		preferred_connection.ip = string(b)
+
+		// now if we have an error here...
+		if preferred_connection.ip != "" {
+			program.node.list[0] = preferred_connection
 		}
 	}
 }
@@ -1180,4 +1213,22 @@ func makeGraph(hd_map map[int]int, w, h float32) fyne.CanvasObject {
 
 	// gimme gimme gimme
 	return graph
+}
+
+func largestMinSize(s []string) fyne.Size {
+	var largest = theme.Padding()
+	// fmt.Println(largest)
+	speed := make(map[float32]string)
+	for _, e := range s {
+		size := float32(len(e))
+		if size <= 1 {
+			continue
+		}
+		largest = max(largest, size)
+		speed[size] = e
+		// fmt.Println("current largest", speed[largest], largest)
+	}
+	l := widget.NewLabel(speed[largest])
+	l.Wrapping = fyne.TextWrapOff
+	return l.MinSize()
 }

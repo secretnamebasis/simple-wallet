@@ -129,8 +129,7 @@ Please do not leave this page.
 	rpc_server: new(rpcserver.RPCServer),
 	wallet:     new(walletapi.Wallet_Disk),
 	node: nodes{
-		list:    node_list,
-		current: `127.0.0.1:10102`,
+		list: node_list,
 	},
 
 	name: "simple wallet",
@@ -145,6 +144,10 @@ var node_list = []struct {
 	ip   string
 	name string
 }{
+	{
+		ip:   "",
+		name: "preferred",
+	},
 	{
 		ip:   "127.0.0.1:10102",
 		name: "localhost",
@@ -161,4 +164,85 @@ var node_list = []struct {
 		ip:   "51.81.96.25:10102",
 		name: "dero.geeko.cloud",
 	},
+}
+var pool_headers = []string{
+	"height built",
+	"tx hash",
+	"fee",
+	"ring size",
+	"tx size [kB]",
+}
+var block_headers = []string{
+	"height",
+	"topo height",
+	"age",
+	"miniblocks", // why would we need to know if there was less than 10?
+	"size [kiB]",
+	"tx hash",
+	"type",
+	"fees",
+	"ring size",
+	"tx size [kB]",
+}
+var search_headers_block = []string{
+	"TOPO HEIGHT",
+	"BUILD HEIGHT",
+	"BLID",
+	"PREVIOUS",
+	"UNIX TIME",
+	"UTC TIME",
+	"AGE",
+	"MAJOR.MINIOR VERSION",
+	"REWARD",
+	"SIZE kB",
+	"MINIBLOCKS",
+	"CONFIRMATIONS",
+}
+var search_headers_registration = []string{
+	"TXID",
+	"TYPE",
+	"BLOCK",
+	"ADDRESS",
+	"VALID",
+}
+var search_headers_normal = []string{
+	"TXID",
+	"TYPE",
+	"BLOCK",
+	"BLID",
+	"BUILD HEIGHT",
+	"ROOT HASH",
+	"UNIX TIME",
+	"UTC TIME",
+	"AGE",
+	"TOPO HEIGHT",
+	"FEES",
+	"SIZE kB",
+	"VERSION",
+	"CONFIRMATIONS",
+	"TYPE",
+	"RING SIZE",
+}
+var search_headers_sc_prefix = []string{
+	"TXID",
+	"TYPE",
+	"BLOCK",
+	"SCID RESERVES", // this is a k/v pair
+}
+var search_headers_sc_body = []string{
+	"BLID",
+	"ROOT HASH",
+	"BUILD HEIGHT",
+	"UNIX TIME",
+	"UTC TIME",
+	"AGE",
+	"TOPO HEIGHT",
+	"FEES",
+	"SIZE kB",
+	"VERSION",
+	"CONFIRMATIONS",
+	"SIGNATURE TYPE",
+	"RING SIZE",
+	"SENDER",
+	"RING MEMBERS",
 }

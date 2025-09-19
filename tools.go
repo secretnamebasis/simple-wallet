@@ -1222,24 +1222,6 @@ it is recommended that you use a full node for best success.`
 
 }
 
-func largestMinSize(s []string) fyne.Size {
-	var largest = theme.Padding()
-	// fmt.Println(largest)
-	speed := make(map[float32]string)
-	for _, e := range s {
-		size := float32(len(e))
-		if size <= 1 {
-			continue
-		}
-		largest = max(largest, size)
-		speed[size] = e
-		// fmt.Println("current largest", speed[largest], largest)
-	}
-	l := widget.NewLabel(speed[largest])
-	l.Wrapping = fyne.TextWrapOff
-	return l.MinSize()
-}
-
 // this is going to be a rudimentary explorer at first
 func explorer() {
 	// let's start with the stats tab
@@ -1352,20 +1334,7 @@ func explorer() {
 			b, _ := hex.DecodeString(r.Blob)
 			bl.Deserialize(b)
 
-			searchHeaders = []string{
-				"TOPO HEIGHT",
-				"BUILD HEIGHT",
-				"BLID",
-				"PREVIOUS",
-				"UNIX TIME",
-				"UTC TIME",
-				"AGE",
-				"MAJOR.MINIOR VERSION",
-				"REWARD",
-				"SIZE kB",
-				"MINIBLOCKS",
-				"CONFIRMATIONS",
-			}
+			searchHeaders = search_headers_block
 
 			var previous_block string
 			if len(r.Block_Header.Tips) > 0 {
@@ -1489,13 +1458,8 @@ func explorer() {
 				switch tx.TransactionType {
 				case transaction.PREMINE:
 				case transaction.REGISTRATION:
-					searchHeaders = []string{
-						"TXID",
-						"TYPE",
-						"BLOCK",
-						"ADDRESS",
-						"VALID",
-					}
+
+					searchHeaders = search_headers_registration
 
 					var acckey crypto.Point
 					if err := acckey.DecodeCompressed(tx.MinerAddress[:]); err != nil {
@@ -1517,24 +1481,9 @@ func explorer() {
 					// searchHeaders = append(searchHeaders, )
 				case transaction.COINBASE: // these aren't shown in the explorer; and sc interactions are...
 				case transaction.NORMAL:
-					searchHeaders = []string{
-						"TXID",
-						"TYPE",
-						"BLOCK",
-						"BLID",
-						"ROOT HASH",
-						"BUILD HEIGHT",
-						"UNIX TIME",
-						"UTC TIME",
-						"AGE",
-						"TOPO HEIGHT",
-						"FEES",
-						"SIZE kB",
-						"VERSION",
-						"CONFIRMATIONS",
-						"TYPE",
-						"RING SIZE",
-					}
+
+					searchHeaders = search_headers_normal
+
 					var ring_members []string
 
 					for _, each := range r.Txs[0].Ring {
@@ -1566,13 +1515,8 @@ func explorer() {
 				case transaction.BURN_TX:
 					// I haven't seen any of these yet...
 				case transaction.SC_TX:
-					searchHeaders = []string{
-						"TXID",
-						"TYPE",
-						"BLOCK",
-						"SCID RESERVES", // this is a k/v pair
 
-					}
+					searchHeaders = search_headers_sc_prefix
 
 					// headers := []string{}
 					sc := getSC(rpc.GetSC_Params{
@@ -1662,23 +1606,9 @@ func explorer() {
 						searchHeaders = append(searchHeaders, each.k)
 						searchData = append(searchData, each.v)
 					}
-					searchHeaders = append(searchHeaders, []string{
-						"BLID",
-						"ROOT HASH",
-						"BUILD HEIGHT",
-						"UNIX TIME",
-						"UTC TIME",
-						"AGE",
-						"TOPO HEIGHT",
-						"FEES",
-						"SIZE kB",
-						"VERSION",
-						"CONFIRMATIONS",
-						"SIGNATURE TYPE",
-						"RING SIZE",
-						"SENDER",
-						"RING MEMBERS",
-					}...)
+
+					searchHeaders = append(searchHeaders, search_headers_sc_body...)
+
 					searchData = append(searchData, []string{
 						fmt.Sprintf("%x", tx.BLID),
 						fmt.Sprintf("%x", tx.Payloads[0].Statement.Roothash[:]),
@@ -1779,13 +1709,6 @@ func explorer() {
 	}
 	updatePoolCache()
 	var pool_table *widget.Table
-	pool_headers := []string{
-		"height built",
-		"tx hash",
-		"fee",
-		"ring size",
-		"tx size [kB]",
-	}
 
 	lengthPool := func() (rows int, cols int) {
 		return len(program.caches.pool.Tx_list), len(pool_headers)
@@ -1946,18 +1869,7 @@ func explorer() {
 		}
 	}
 	updateBlocksData()
-	block_headers := []string{
-		"height",
-		"topo height",
-		"age",
-		"miniblocks", // why would we need to know if there was less than 10?
-		"size [kiB]",
-		"tx hash",
-		"type",
-		"fees",
-		"ring size",
-		"tx size [kB]",
-	}
+
 	lengthBlocks := func() (rows int, cols int) {
 		return len(block_label_data), len(block_headers)
 	}

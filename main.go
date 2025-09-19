@@ -172,6 +172,9 @@ func initialize() {
 	// captain's orders
 	initialize_table()
 
+	// simple way to create a preferred ip endpoint file
+	createPreferred()
+
 	// test localhost first, then connect from a list of public nodes
 	go maintain_connection()
 
