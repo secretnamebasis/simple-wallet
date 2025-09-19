@@ -31,12 +31,10 @@ func dashboard() *fyne.Container {
 	program.buttons.assets.OnTapped = assetsList
 
 	// we'll return all this stuff into the home as a dashboard
-	return container.NewVBox(
-		container.NewAdaptiveGrid(3,
-			container.NewVBox(program.buttons.transactions),
-			container.NewVBox(program.buttons.assets),
-			container.NewVBox(program.buttons.keys),
-		),
+	return container.NewAdaptiveGrid(3,
+		program.buttons.transactions,
+		program.buttons.assets,
+		program.buttons.keys,
 	)
 }
 

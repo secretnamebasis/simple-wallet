@@ -194,23 +194,20 @@ func updateBalance() {
 		if !program.preferences.Bool("loggedIn") {
 			fyne.DoAndWait(func() {
 				program.labels.loggedin.SetText("WALLET: 🔴")
-				program.labels.balance.SetText(
-					fmt.Sprintf("BALANCE: %s", rpc.FormatMoney(0)))
+				program.labels.balance.SetText(rpc.FormatMoney(0))
 				bal, previous_bal = 0, 0
 			})
 		} else {
 			if bal == 0 && program.wallet.IsRegistered() {
 				fyne.DoAndWait(func() {
 					// update it
-					program.labels.balance.SetText(
-						fmt.Sprintf("BALANCE: %s", "syncing"))
+					program.labels.balance.SetText("syncing")
 
 				})
 			} else if bal == 0 && !program.wallet.IsRegistered() {
 				fyne.DoAndWait(func() {
 					// update it
-					program.labels.balance.SetText(
-						fmt.Sprintf("BALANCE: %s", "unregistered"))
+					program.labels.balance.SetText("unregistered")
 
 				})
 			}
@@ -239,8 +236,7 @@ func updateBalance() {
 					program.labels.loggedin.SetText("WALLET: 🟢")
 
 					// update it
-					program.labels.balance.SetText(
-						fmt.Sprintf("BALANCE: %s", rpc.FormatMoney(bal)))
+					program.labels.balance.SetText(rpc.FormatMoney(bal))
 
 				})
 			}

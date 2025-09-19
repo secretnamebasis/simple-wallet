@@ -53,7 +53,7 @@ func send() *fyne.Container {
 	program.entries.recipient.OnSubmitted = func(s string) {
 		sendForm()
 	}
-	return container.NewVBox(program.entries.recipient)
+	return container.NewStack(program.entries.recipient)
 }
 
 func sendForm() {
