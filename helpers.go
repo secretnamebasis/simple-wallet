@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -88,6 +89,38 @@ func updateHeader(bold *widget.Hyperlink) {
 			link.TextStyle = fyne.TextStyle{
 				Bold: false,
 			}
+		}
+	}
+}
+func createPreferred() {
+	filename := "preferred"
+	// let's make a simple way to have a preferred connection
+	preferred_connection := struct {
+		ip   string
+		name string
+	}{name: filename}
+
+	if _, err := os.Stat(filename); err != nil {
+		os.Create(filename)
+		// really
+	} else {
+		file, err := os.Open(filename)
+		if err != nil {
+
+			// we shouldn't report an err here...
+
+		}
+		b, err := io.ReadAll(file)
+		if err != nil {
+			// again, we shouldn't report an err
+			// we'll just try localhost and move on
+		}
+		// load the ip addres into the connection
+		preferred_connection.ip = string(b)
+
+		// now if we have an error here...
+		if preferred_connection.ip != "" {
+			program.node.list[0] = preferred_connection
 		}
 	}
 }
