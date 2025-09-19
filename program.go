@@ -129,8 +129,7 @@ Please do not leave this page.
 	rpc_server: new(rpcserver.RPCServer),
 	wallet:     new(walletapi.Wallet_Disk),
 	node: nodes{
-		list:    node_list,
-		current: `127.0.0.1:10102`,
+		list: node_list,
 	},
 
 	name: "simple wallet",
@@ -145,6 +144,10 @@ var node_list = []struct {
 	ip   string
 	name string
 }{
+	{
+		ip:   "",
+		name: "preferred",
+	},
 	{
 		ip:   "127.0.0.1:10102",
 		name: "localhost",

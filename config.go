@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -72,6 +73,15 @@ func maintain_connection() {
 	var height int64
 	// the purpose of this function is to obtain topo height every second
 	ticker := time.NewTicker(time.Second * 2)
+
+	// so before we get started, let's assume that localhost is "first"
+	program.node.current = program.node.list[1].ip
+
+	// now if you have stated a preference...
+	if program.node.list[0].ip != "" {
+		program.node.current = program.node.list[0].ip
+	}
+
 	// this is an infinite loop
 	for range ticker.C {
 		// assuming the localhost connection works
@@ -207,9 +217,10 @@ func maintain_connection() {
 }
 
 func connections() {
-	var msg string = "Auto-connects to localhost"
+
+	var msg string = "Auto-connects to "
 	// post up the current node
-	current_node := widget.NewLabel("")
+	current_node := makeCenteredWrappedLabel("")
 	current_node.SetText("Current Node: " + program.node.current)
 
 	// make a way for them to enter and address
@@ -218,38 +229,79 @@ func connections() {
 	// build a pleasing and simple list
 	label := widget.NewRichTextFromMarkdown("") // wrap it
 	label.Wrapping = fyne.TextWrapWord
+	table := widget.NewTable(
+		func() (rows int, cols int) { return len(program.node.list), 2 },
+		func() fyne.CanvasObject { return widget.NewLabel("") },
+		func(tci widget.TableCellID, co fyne.CanvasObject) {
+			label := co.(*widget.Label)
+			label.Alignment = fyne.TextAlignCenter
+			switch tci.Col {
+			case 0:
+				label.SetText(program.node.list[tci.Row].name)
+			case 1:
+				label.SetText("not saved")
+				if program.node.list[tci.Row].ip != "" {
+					label.SetText(program.node.list[tci.Row].ip)
+				}
+			}
+		},
+	)
+	for i := range 2 {
+		table.SetColumnWidth(i, 200)
+	}
+	table.HideSeparators = true
+	table.OnSelected = func(id widget.TableCellID) {
+		var data string
+		if id.Col == 0 && id.Row > 1 {
+			data = program.node.list[id.Row].name
+
+		} else if id.Col == 1 {
+			if program.node.list[id.Row].ip != "" {
+				data = program.node.list[id.Row].ip
+			}
+		}
+		if data != "" {
+			program.application.Clipboard().SetContent(data)
+			table.UnselectAll()
+			table.Refresh()
+			showInfoFast("Copied", data, program.window)
+		}
+	}
+
 	set_label := func() {
 		var opts string
-		if program.toggles.network.Selected == "mainnet" {
-			form_entry.PlaceHolder = "127.0.0.1:10102"
-			// let's show off a list
-			var list string
-
-			// here are the hard coded nodes
-			for _, node := range program.node.list {
-				list += "- " + node.ip + " " + node.name + "\n\n"
-			}
-			opts = ", or fastest public node:\n\n" + list
+		// let's show off a list
+		switch program.toggles.network.Selected {
+		case "mainnet":
+			opts = "preferred if set, then localhost, then the fastest public node:\n\n"
+		case "testnet":
+			opts = program.node.current
+		case "simulator":
+			opts = program.node.current
 		}
 
 		label.ParseMarkdown(msg + opts)
 	}
+
 	set_label()
+
 	changed := func(s string) {
 		switch s {
 		case "mainnet":
 			program.toggles.network.SetSelected("mainnet")
+			table.Show()
 			globals.Arguments["--testnet"] = false
 			globals.Arguments["--simulator"] = false
 			program.preferences.SetBool("mainnet", true)
 			program.node.current = "127.0.0.1:10102"
 			form_entry.PlaceHolder = "127.0.0.1:10102"
 			current_node.SetText("Current Node: " + program.node.current)
-			set_label()
 			form_entry.Refresh()
 			globals.InitNetwork()
+			set_label()
 		case "testnet":
 			program.toggles.network.SetSelected("testnet")
+			table.Hide()
 			globals.Arguments["--testnet"] = true
 			globals.Arguments["--simulator"] = false
 			program.preferences.SetBool("mainnet", false)
@@ -259,8 +311,10 @@ func connections() {
 			label.ParseMarkdown(msg)
 			form_entry.Refresh()
 			globals.InitNetwork()
+			set_label()
 		case "simulator":
 			program.toggles.network.SetSelected("simulator")
+			table.Hide()
 			globals.Arguments["--testnet"] = true
 			globals.Arguments["--simulator"] = true
 			program.preferences.SetBool("mainnet", false)
@@ -270,14 +324,18 @@ func connections() {
 			form_entry.Refresh()
 			label.ParseMarkdown(msg)
 			globals.InitNetwork()
+			set_label()
 		}
 	}
 	options := []string{"mainnet", "testnet", "simulator"}
+
 	program.toggles.network.Options = options
+
 	program.toggles.network.OnChanged = changed
 	if program.toggles.network.Selected == "" {
 		program.toggles.network.SetSelected("mainnet")
 	}
+
 	program.toggles.network.Horizontal = true
 
 	if program.preferences.Bool("loggedIn") {
@@ -286,6 +344,43 @@ func connections() {
 		program.toggles.network.Enable()
 	}
 
+	save := widget.NewHyperlink("save connection", nil)
+
+	save.Alignment = fyne.TextAlignCenter
+
+	save.OnTapped = func() {
+		// obviously...
+		if form_entry.Text == "" {
+			showError(errors.New("cannot be empty"))
+			return
+		}
+		endpoint := form_entry.Text
+		// form_entry.SetText("")
+
+		// test the connection point
+		if err := testConnection(endpoint); err != nil {
+			showError(err)
+			return
+		}
+		program.node.list[0] = struct {
+			ip   string
+			name string
+		}{ip: endpoint, name: "preferred"}
+
+		file, err := os.Create("preferred")
+		if err != nil {
+			showError(err)
+			return
+		}
+		if _, err := io.WriteString(file, endpoint); err != nil {
+			showError(err)
+			return
+		}
+		path, _ := filepath.Abs(file.Name())
+
+		showInfo("Saved Preferred", "node endpoint saved to "+path)
+		table.Refresh()
+	}
 	// make a way for them to set the node endpoint
 	set := widget.NewHyperlink("set connection", nil)
 	set.Alignment = fyne.TextAlignCenter
@@ -303,7 +398,7 @@ func connections() {
 		endpoint := form_entry.Text
 
 		// dump the entry
-		form_entry.SetText("")
+		// form_entry.SetText("")
 
 		// test the connection point
 		if err := testConnection(endpoint); err != nil {
@@ -336,21 +431,32 @@ func connections() {
 		onTapped()
 	}
 
+	desiredSize := fyne.NewSize(450, 200)
+
+	fixedSizeTable := container.NewGridWrap(desiredSize, table)
+	// scrollable := container.NewScroll(fixedSizeTable)
+	centered := container.NewCenter(fixedSizeTable)
+
 	// walk the user through the process
-	content := container.New(layout.NewVBoxLayout(),
-		layout.NewSpacer(),
-		container.NewCenter(program.toggles.network),
-		form_entry,
-		set,
-		current_node,
-		label,
-		layout.NewSpacer(),
+	content := container.NewBorder(
+		container.NewVBox(
+			container.NewCenter(program.toggles.network),
+			form_entry,
+			container.NewAdaptiveGrid(2, save, set),
+			current_node,
+			label,
+		),
+		nil,
+		nil,
+		nil,
+		centered,
 	)
 
 	connect := dialog.NewCustom("Custom Node Connection", dismiss, content, program.window)
 
 	// resize and show
-	connect.Resize(program.size)
+	size := fyne.NewSize(program.size.Width/3*2, program.size.Height/3*2)
+	connect.Resize(size)
 	connect.Show()
 }
 
