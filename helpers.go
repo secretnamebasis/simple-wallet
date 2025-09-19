@@ -1214,3 +1214,21 @@ func makeGraph(hd_map map[int]int, w, h float32) fyne.CanvasObject {
 	// gimme gimme gimme
 	return graph
 }
+
+func largestMinSize(s []string) fyne.Size {
+	var largest = theme.Padding()
+	// fmt.Println(largest)
+	speed := make(map[float32]string)
+	for _, e := range s {
+		size := float32(len(e))
+		if size <= 1 {
+			continue
+		}
+		largest = max(largest, size)
+		speed[size] = e
+		// fmt.Println("current largest", speed[largest], largest)
+	}
+	l := widget.NewLabel(speed[largest])
+	l.Wrapping = fyne.TextWrapOff
+	return l.MinSize()
+}
