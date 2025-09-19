@@ -397,9 +397,6 @@ func connections() {
 		// copy the form_entry
 		endpoint := form_entry.Text
 
-		// dump the entry
-		// form_entry.SetText("")
-
 		// test the connection point
 		if err := testConnection(endpoint); err != nil {
 			showError(err)
@@ -434,7 +431,6 @@ func connections() {
 	desiredSize := fyne.NewSize(450, 200)
 
 	fixedSizeTable := container.NewGridWrap(desiredSize, table)
-	// scrollable := container.NewScroll(fixedSizeTable)
 	centered := container.NewCenter(fixedSizeTable)
 
 	// walk the user through the process
