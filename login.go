@@ -199,11 +199,18 @@ func loginFunction() {
 	// this will be our simple login container
 	login_screen := container.NewVBox(
 		layout.NewSpacer(),
-		container.NewVBox(program.entries.wallet),
-		program.entries.pass,
-		container.NewAdaptiveGrid(2,
-			container.NewCenter(program.hyperlinks.create),
-			container.NewCenter(program.hyperlinks.restore),
+		container.NewAdaptiveGrid(3,
+			layout.NewSpacer(),
+			container.NewVBox(
+
+				container.NewVBox(program.entries.wallet),
+				program.entries.pass,
+				container.NewAdaptiveGrid(2,
+					container.NewCenter(program.hyperlinks.create),
+					container.NewCenter(program.hyperlinks.restore),
+				),
+			),
+			layout.NewSpacer(),
 		),
 		layout.NewSpacer(),
 	)

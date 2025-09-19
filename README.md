@@ -36,6 +36,7 @@ Initial feedback suggested a contract installer/interactor would be useful, and 
 - Seed Phrase & Public/Secret Key Reveal
 - Sending with Options, including Token Assets
 - Public Node Auto-Connect
+- Simulator Launcher
 - RPC Server
 - Dero Tools:
     - File Signing/Verification

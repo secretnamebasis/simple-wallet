@@ -54,7 +54,7 @@ var program = components{
 		send:                      widget.NewButton("SEND", nil),
 		assets:                    widget.NewButton("ASSETS", nil),
 		keys:                      widget.NewButton("KEYS", nil),
-		transactions:              widget.NewButton("TRANSACTIONS", nil),
+		transactions:              widget.NewButton("TXS", nil),
 		rpc_server:                widget.NewButton("RPC SERVER", nil),
 		update_password:           widget.NewButton("UPDATE PASSWORD", nil),
 		contract_installer:        widget.NewButton("CONTRACT INSTALLER", nil),
@@ -94,7 +94,7 @@ var program = components{
 		loggedin:   widget.NewLabel("WALLET: 🔴"),
 		rpc_server: widget.NewLabel("RPC: 🔴"),
 		notice:     widget.NewLabel(""),
-		balance:    widget.NewLabel("BALANCE"),
+		balance:    widget.NewLabel("0.00000"),
 		counter: makeCenteredWrappedLabel(`
 Registration POW takes time 20min-2hrs...
 If on battery, plug your computer in.

@@ -109,12 +109,10 @@ func register() *fyne.Container {
 	program.buttons.register.OnTapped = registration
 
 	// and here is the simple registration container
-	return container.NewVBox(
-		layout.NewSpacer(),
+	return container.NewAdaptiveGrid(3,
 		program.activities.registration,
 		program.buttons.register,
 		program.labels.counter,
-		layout.NewSpacer(),
 	)
 }
 func registration() {
