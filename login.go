@@ -65,7 +65,21 @@ func loggedIn() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		buildAssetHashList()
+		// start sync with DERO history
+		go program.wallet.SyncHistory(crypto.ZEROHASH)
+
+		// pull the assets list and build the cache
+		buildAssetHashList() //
+
+		// and sync asset histories
+		for _, asset := range program.caches.assets {
+			if asset.hash != crypto.ZEROHASH.String() {
+				// separate go routine for each asset
+				go program.wallet.SyncHistory(
+					crypto.HashHexToHash(asset.hash),
+				)
+			}
+		}
 		fyne.DoAndWait(func() {
 			// be sure to turn off the syncing widget
 			syncing.Stop()
@@ -76,18 +90,6 @@ func loggedIn() {
 	}()
 	// save wallet every second
 	go isLoggedIn()
-
-	// start sync with DERO history
-	go program.wallet.SyncHistory(crypto.ZEROHASH)
-	// and sync asset histories
-	for _, asset := range program.caches.assets {
-		if asset.hash != crypto.ZEROHASH.String() {
-			// separate go routine for each asset
-			go program.wallet.SyncHistory(
-				crypto.HashHexToHash(asset.hash),
-			)
-		}
-	}
 
 	// and while we are at it, notify me every time a new entry comes in
 	go notificationNewEntry()
