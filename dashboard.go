@@ -451,7 +451,7 @@ func assetsList() {
 			program.lists.asset_list.Unselect(id)
 
 			// here is the asset hash
-			asset := program.caches.assets[id]
+			asset := assets[id]
 
 			// let's get the entries
 			entries := program.wallet.GetAccount().EntriesNative[crypto.HashHexToHash(asset.hash)]
