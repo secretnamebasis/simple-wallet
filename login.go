@@ -1,7 +1,11 @@
 package main
 
 import (
+	"fmt"
+	"runtime"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -10,6 +14,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/deroproject/derohe/cryptography/crypto"
+	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/walletapi"
 )
 
@@ -18,10 +23,10 @@ func loggedIn() {
 	// helper for ux
 
 	// make little warbling light
-	syncing := widget.NewActivity()
+	syncing := widget.NewProgressBar()
 
 	//start it
-	syncing.Start()
+	// syncing.Start()
 
 	// make some notice
 	notice := makeCenteredWrappedLabel("Wallet is syncing with network\n\nPls hodl")
@@ -60,34 +65,134 @@ func loggedIn() {
 	// update balance every second
 	go updateBalance()
 
-	// build the cache
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		// start sync with DERO history
-		go program.wallet.SyncHistory(crypto.ZEROHASH)
-
+		program.wallet.SyncHistory(crypto.ZEROHASH)
 		// pull the assets list and build the cache
-		buildAssetHashList() //
+		buildAssetHashList()
+		fyne.DoAndWait(func() {
+			notice.SetText("history synced for DERO, beginning asset sync")
+		})
 
-		// and sync asset histories
+		// sync asset histories
+
+		// because we can't change the SyncHistory function...
+		// histories are synced within limited concurrency
+		// and then they have to be deduplicated
+
+		// let's limit the number of concurrent jobs
+		desired := runtime.GOMAXPROCS(0) - 2 // we reserve 1 for the os and 1 for the app
+		// we will make a channel with a length of the desired number of threads
+		capacity_channel := make(chan struct{}, desired)
+
+		// let's make a wait group for this acitivity
+		var assets_wg sync.WaitGroup
+
+		// avoid concurrent writes to a map
+		var mu sync.Mutex
+
+		// let's count which jobs get done
+		var completed int32
+		// the total is assets plus DERO
+		var total = len(program.caches.assets) + 1
+
+		// range through the cache
 		for _, asset := range program.caches.assets {
-			if asset.hash != crypto.ZEROHASH.String() {
-				// separate go routine for each asset
-				go program.wallet.SyncHistory(
-					crypto.HashHexToHash(asset.hash),
-				)
+
+			// skip if dero is in there, just in case
+			if asset.hash == crypto.ZEROHASH.String() {
+				continue
 			}
+
+			hash := crypto.HashHexToHash(asset.hash)
+
+			// separate go routine for each asset
+			assets_wg.Add(1)
+			go func(crypto.Hash) {
+				defer assets_wg.Done()
+
+				new_job := struct{}{}
+
+				// load or wait for the channel to have capacity
+				capacity_channel <- new_job
+
+				// let's start a timer
+				start := time.Now()
+
+				// there is no-deduplication, de-duplicate entries immediately after
+				program.wallet.SyncHistory(hash)
+
+				// measure how long that took
+				elapsed := time.Since(start)
+
+				// let's make sure there are no duplicate entries after we have synced
+				// lock this area up
+				mu.Lock()
+
+				// get the entries
+				entries := program.wallet.GetAccount().EntriesNative[hash]
+
+				// make a seen map
+				seen := make(map[string]bool)
+
+				// make a new bucket for the entries
+				var deduped []rpc.Entry
+
+				// range through the entries from the sync process
+				for _, entry := range entries {
+
+					// check if we have not seen them
+					if !seen[entry.TXID] {
+
+						// insert the txid in the map and mark it as true
+						seen[entry.TXID] = true
+
+						// load the entry into the deduped bucket
+						deduped = append(deduped, entry)
+					}
+				}
+				// load the deduped entries into the wallet's hash map
+				program.wallet.GetAccount().EntriesNative[hash] = deduped
+
+				// and unlock this area
+				mu.Unlock()
+
+				// mark this one as completed
+				atomic.AddInt32(&completed, 1)
+
+				//update our calculation
+				progress := (float64(atomic.LoadInt32(&completed)) / float64(total))
+
+				msg := "asset: " + truncator(hash.String()) + " synced in: " + elapsed.String()
+				fmt.Println(msg)
+				// and update the user
+				fyne.DoAndWait(func() {
+					notice.SetText(msg)
+					syncing.SetValue(progress)
+				})
+
+				// 'unnecessary assignment to the blank identifier (S1005)'
+				// but we are doing it this way to explain what's going on better
+				_ = <-capacity_channel // release capacity in the channel
+
+			}(hash)
 		}
+		assets_wg.Wait()
+
 		fyne.DoAndWait(func() {
 			// be sure to turn off the syncing widget
-			syncing.Stop()
+			if syncing.Value != 1 {
+				syncing.SetValue(1)
+			}
 
 			// and be sure to dismiss the splash
 			splash.Dismiss()
 		})
 	}()
+
 	// save wallet every second
 	go isLoggedIn()
 

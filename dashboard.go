@@ -456,6 +456,10 @@ func assetsList() {
 			// let's get the entries
 			entries := program.wallet.GetAccount().EntriesNative[crypto.HashHexToHash(asset.hash)]
 
+			sort.Slice(entries, func(i, j int) bool {
+				return entries[i].Time.After(entries[j].Time)
+			})
+
 			// now let's get the scid as a string
 			scid := asset.hash
 
@@ -463,13 +467,31 @@ func assetsList() {
 			entries_list := new(widget.List)
 
 			// set the length based on entries
-			entries_list.Length = func() int { return len(entries) }
+			entries_list.Length = func() int {
+				length := len(entries)
+				if length == 0 {
+					length = 1 // we are just going to make this up
+				}
+				return length
+			}
 
 			// we'll use a label for the list item
 			entries_list.CreateItem = func() fyne.CanvasObject { return widget.NewLabel("") }
 
 			updateItem := func(lii widget.ListItemID, co fyne.CanvasObject) {
+				label := co.(*widget.Label)
 
+				if len(entries) == 0 {
+					bal, _ := program.wallet.Get_Balance_scid(
+						crypto.HashHexToHash(asset.hash),
+					)
+					if bal != 0 {
+						label.SetText("entries are syncing in the background, pls come back later")
+					} else {
+						label.SetText("ERROR")
+					}
+					return
+				}
 				// let's make sure the entry is bodied
 				entries[lii].ProcessPayload()
 
@@ -482,10 +504,10 @@ func assetsList() {
 				// make a timestamp string in local format
 				time_stamp := entries[lii].Time.Local().Format("2006-01-02 15:04")
 
-				// here's the simple label
-				text := time_stamp + " " + tx_type
+				hash := truncator(entries[lii].TXID)
 
-				label := co.(*widget.Label)
+				// here's the simple label
+				text := time_stamp + " " + hash + " " + tx_type
 
 				// and let's set the text for it
 				label.SetText(text)
@@ -496,52 +518,53 @@ func assetsList() {
 			// so now, when we select an entry on the list we'll show the transfer details
 			onSelected := func(id widget.ListItemID) {
 				entries_list.Unselect(id)
-				sort.Slice(entries, func(i, j int) bool {
-					return entries[i].Time.After(entries[j].Time)
-				})
 
-				lines := strings.SplitSeq(entries[id].String(), "\n")
-				asset_details := container.NewVBox()
-				scid_label := widget.NewLabel("SCID")
-				scid_hyperlink := widget.NewHyperlink(truncator(scid), nil)
-				scid_hyperlink.OnTapped = func() {
-					program.application.Clipboard().SetContent(scid)
-					showInfo("", scid+" copied to clipboard")
-				}
-				asset_details.Add(container.NewAdaptiveGrid(2, scid_label, scid_hyperlink))
-				for line := range lines {
+				lines := strings.Split(entries[id].String(), "\n")
+				keys := []string{}
+				values := []string{}
+				for _, line := range lines {
 					if line == "" {
 						continue
 					}
 					pair := strings.Split(line, ": ")
 					key := pair[0]
 					value := pair[1]
-					var v string = value
-					if key != "Time" {
-						if len(value) > 16 {
-							v = truncator(value)
+					keys = append(keys, key)
+					values = append(values, value)
+				}
+				table := widget.NewTable(
+					func() (rows int, cols int) { return len(lines), 2 },
+					func() fyne.CanvasObject { return widget.NewLabel("") },
+					func(tci widget.TableCellID, co fyne.CanvasObject) {
+						label := co.(*widget.Label)
+						if len(keys) <= tci.Row {
+							return
 						}
+						switch tci.Col {
+						case 0:
+							label.SetText(keys[tci.Row])
+						case 1:
+							label.SetText(values[tci.Row])
+						}
+					},
+				)
+				table.SetColumnWidth(0, largestMinSize(keys).Width)
+				table.SetColumnWidth(1, largestMinSize(values).Width)
+				table.Refresh()
+				table.OnSelected = func(id widget.TableCellID) {
+
+					if id.Col > 0 {
+						data := values[id.Row]
+						program.application.Clipboard().SetContent(values[id.Row])
+						showInfo("", data+" copied to clipboard")
 					}
-					value_hyperlink := widget.NewHyperlink(v, nil)
-					value_hyperlink.OnTapped = func() {
-						program.application.Clipboard().SetContent(value)
-						showInfo("", value+" copied to clipboard")
-					}
-					asset_details.Add(
-						container.NewAdaptiveGrid(2,
-							widget.NewLabel(key),
-							value_hyperlink,
-						),
-					)
 				}
 
 				// we'll truncate the scid for the title
 				title := truncator(scid)
 
-				details := container.NewScroll(asset_details)
-
 				// now set it, resize it and show it
-				entry := dialog.NewCustom(title, dismiss, details, program.window)
+				entry := dialog.NewCustom(title, dismiss, container.NewStack(table), program.window)
 				entry.Resize(program.size)
 				entry.Show()
 			}
