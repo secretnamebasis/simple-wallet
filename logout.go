@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/deroproject/derohe/globals"
+	"github.com/deroproject/derohe/rpc"
 )
 
 // here is the simple way we log out
@@ -58,6 +59,12 @@ func logout() {
 			program.labels.loggedin.SetText("WALLET: 🔴")
 
 			program.viewer_window.Close()
+
+			// clear the cache
+			program.caches.assets = []asset{}
+			program.caches.info = rpc.GetInfo_Result{}
+			program.caches.pool = rpc.GetTxPool_Result{}
+
 		}
 	}
 
