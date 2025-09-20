@@ -9,7 +9,6 @@ import (
 	"image/color"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"sort"
 	"strconv"
@@ -762,126 +761,173 @@ func getSCIDBalancesContainer(balances map[string]uint64) *fyne.Container {
 	return bals
 }
 
-func getSCIDStringVarsContainer(stringKeys map[string]interface{}) *fyne.Container {
-	string_vars := container.NewVBox()
+func getSCIDStringVarsContainer(stringKeys map[string]any) *fyne.Container {
 
-	if len(stringKeys) != 0 {
-		string_pairs := []struct {
+	string_pairs := []struct {
+		key   string
+		value any
+	}{}
+	for k, v := range stringKeys {
+		string_pairs = append(string_pairs, struct {
 			key   string
 			value any
-		}{}
-
-		for k, v := range stringKeys {
-			if k == "C" {
-				continue
-			}
-			string_pairs = append(string_pairs, struct {
-				key   string
-				value any
-			}{
-				key:   k,
-				value: v,
-			})
-		}
-
-		sort.Slice(string_pairs, func(i, j int) bool {
-			return string_pairs[i].key < string_pairs[j].key
+		}{
+			key:   k,
+			value: v,
 		})
+	}
+	sort.Slice(string_pairs, func(i, j int) bool {
+		return string_pairs[i].key < string_pairs[j].key
+	})
 
-		for _, pair := range string_pairs {
-			var value string
-			switch v := pair.value.(type) {
-			case string:
+	keys := []string{}
+	values := []string{}
+
+	for _, p := range string_pairs {
+
+		var value string
+		switch v := p.value.(type) {
+		case string:
+			if p.key != "C" {
 				b, e := hex.DecodeString(v)
 				if e != nil {
 					continue
 				}
 				value = string(b)
-			case uint64:
-				value = strconv.Itoa(int(v))
-			case float64:
-				value = strconv.FormatFloat(v, 'f', 0, 64)
+			} else {
+				value = truncator(v)
 			}
 
-			key := container.NewScroll(widget.NewLabel(pair.key))
-			key.Direction = container.ScrollHorizontalOnly
-			var val *container.Scroll
-			if strings.Contains(value, "http") {
-				u, err := url.Parse(value)
-				if err != nil {
-					u = nil
-				}
-				val = container.NewScroll(widget.NewHyperlink(value, u))
-				val.Direction = container.ScrollHorizontalOnly
-			} else {
-				val = container.NewScroll(widget.NewLabel(value))
-				val.Direction = container.ScrollHorizontalOnly
-			}
-			string_vars.Add(container.NewAdaptiveGrid(2, key, val))
+		case uint64:
+			value = strconv.Itoa(int(v))
+		case float64:
+			value = strconv.FormatFloat(v, 'f', 0, 64)
 		}
-	} else {
-		string_vars.Add(widget.NewLabel("N/A"))
+		keys = append(keys, p.key)
+		values = append(values, value)
 	}
-	return string_vars
+	if len(keys) == 0 {
+		keys = []string{"NO DATA"}
+		values = []string{"NO DATA"}
+	}
+	table := widget.NewTable(
+		func() (rows int, cols int) { return len(keys), 2 },
+		func() fyne.CanvasObject {
+			return widget.NewLabel("")
+		},
+		func(tci widget.TableCellID, co fyne.CanvasObject) {
+			label := co.(*widget.Label)
+			switch tci.Col {
+			case 0:
+				label.SetText(keys[tci.Row])
+			case 1:
+				label.SetText(values[tci.Row])
+			}
+		},
+	)
+	table.OnSelected = func(id widget.TableCellID) {
+		var data string
+		if id.Col == 0 {
+			data = keys[id.Row]
+
+		} else if id.Col == 1 {
+			data = values[id.Row]
+			if keys[id.Row] == "C" { // we truncated it for ease of viewing
+				data = stringKeys["C"].(string)
+			}
+		}
+		if data != "" {
+			program.application.Clipboard().SetContent(data)
+			table.UnselectAll()
+			table.Refresh()
+			showInfoFast("Copied", data, program.window)
+		}
+	}
+	table.SetColumnWidth(0, largestMinSize(keys).Width)
+	table.SetColumnWidth(1, largestMinSize(values).Width)
+
+	return container.NewAdaptiveGrid(1, table)
 }
 
-func getSCIDUint64VarsContainer(uint64Keys map[uint64]interface{}) *fyne.Container {
-	uint64_vars := container.NewVBox()
+func getSCIDUint64VarsContainer(uint64Keys map[uint64]any) *fyne.Container {
 
-	if len(uint64Keys) != 0 {
-		uint64_pairs := []struct {
+	uint64_pairs := []struct {
+		key   uint64
+		value any
+	}{}
+	for k, v := range uint64Keys {
+		uint64_pairs = append(uint64_pairs, struct {
 			key   uint64
 			value any
-		}{}
-		for k, v := range uint64Keys {
-
-			uint64_pairs = append(uint64_pairs, struct {
-				key   uint64
-				value any
-			}{
-				key:   k,
-				value: v,
-			})
-		}
-		sort.Slice(uint64_pairs, func(i, j int) bool {
-			return uint64_pairs[i].key < uint64_pairs[j].key
+		}{
+			key:   k,
+			value: v,
 		})
-
-		for _, pair := range uint64_pairs {
-			var value string
-			switch v := pair.value.(type) {
-			case string:
-				b, e := hex.DecodeString(v)
-				if e != nil {
-					continue
-				}
-				value = string(b)
-			case uint64:
-				value = strconv.Itoa(int(v))
-			case float64:
-				value = strconv.FormatFloat(v, 'f', 0, 64)
-			}
-
-			key := container.NewScroll(widget.NewLabel(strconv.Itoa(int(pair.key))))
-			key.Direction = container.ScrollHorizontalOnly
-			var val *container.Scroll
-			if strings.Contains(value, "http") {
-				u, err := url.Parse(value)
-				if err != nil {
-					u = nil
-				}
-				val = container.NewScroll(widget.NewHyperlink(value, u))
-				val.Direction = container.ScrollHorizontalOnly
-			} else {
-				val = container.NewScroll(widget.NewLabel(value))
-				val.Direction = container.ScrollHorizontalOnly
-			}
-			uint64_vars.Add(container.NewAdaptiveGrid(2, key, val))
-		}
-	} else {
-		uint64_vars.Add(widget.NewLabel("N/A"))
 	}
-	return uint64_vars
+	sort.Slice(uint64_pairs, func(i, j int) bool {
+		return uint64_pairs[i].key < uint64_pairs[j].key
+	})
+
+	keys := []string{}
+	values := []string{}
+
+	for _, p := range uint64_pairs {
+
+		var value string
+		switch v := p.value.(type) {
+		case string:
+
+			b, e := hex.DecodeString(v)
+			if e != nil {
+				continue
+			}
+			value = string(b)
+
+		case uint64:
+			value = strconv.Itoa(int(v))
+		case float64:
+			value = strconv.FormatFloat(v, 'f', 0, 64)
+		}
+		keys = append(keys, strconv.Itoa(int(p.key)))
+		values = append(values, value)
+	}
+	if len(keys) == 0 {
+		keys = []string{"NO DATA"}
+		values = []string{"NO DATA"}
+	}
+	table := widget.NewTable(
+		func() (rows int, cols int) { return len(keys), 2 },
+		func() fyne.CanvasObject {
+			return widget.NewLabel("")
+		},
+		func(tci widget.TableCellID, co fyne.CanvasObject) {
+			label := co.(*widget.Label)
+			switch tci.Col {
+			case 0:
+				label.SetText(keys[tci.Row])
+			case 1:
+				label.SetText(values[tci.Row])
+			}
+		},
+	)
+	table.OnSelected = func(id widget.TableCellID) {
+		var data string
+		if id.Col == 0 {
+			data = keys[id.Row]
+		} else if id.Col == 1 {
+			data = values[id.Row]
+		}
+		if data != "" {
+			program.application.Clipboard().SetContent(data)
+			table.UnselectAll()
+			table.Refresh()
+			showInfoFast("Copied", data, program.window)
+		}
+	}
+	table.SetColumnWidth(0, largestMinSize(keys).Width)
+	table.SetColumnWidth(1, largestMinSize(values).Width)
+
+	return container.NewAdaptiveGrid(1, table)
 }
 func getBlockDeserialized(blob string) block.Block {
 
