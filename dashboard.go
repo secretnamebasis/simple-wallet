@@ -367,69 +367,79 @@ func assetsList() {
 	// let's just refresh the hash cache
 	// buildAssetHashList()
 
-	var scroll *container.Scroll
+	var list *fyne.Container
 
 	if hashesLength() == 0 {
-		scroll = container.NewVScroll(container.NewVBox(
+		list = container.NewVBox(
 			layout.NewSpacer(),
 			makeCenteredWrappedLabel("Please visit tools, and Add SCID to your collection"),
 			layout.NewSpacer(),
-		))
+		)
 	} else {
+		assets := program.caches.assets
 
 		program.lists.asset_list.HideSeparators = true
 
 		// let's use the length of the hash cache for the number of objects to make
-		program.lists.asset_list.Length = hashesLength
+		program.lists.asset_list.Length = func() int { return len(assets) }
 
 		// and here is the widget we'll use for each item in the list
 		program.lists.asset_list.CreateItem = createImageLabel
 
+		index := []int{}
 		updateItem := func(lii widget.ListItemID, co fyne.CanvasObject) {
-			// here is the asset details
-			asset := program.caches.assets[lii]
+			if lii >= len(assets) {
+				co.(*fyne.Container).RemoveAll()
+			} else {
+				// here is the asset details
+				asset := assets[lii]
 
-			// here is the container
-			contain := co.(*fyne.Container)
-			// here is the container holding the image
-			padded := contain.Objects[0].(*fyne.Container)
+				// here is the container
+				contain := co.(*fyne.Container)
+				// here is the container holding the image
+				padded := contain.Objects[0].(*fyne.Container)
 
-			// here is the image object
-			img := padded.Objects[0].(*canvas.Image)
-			img.Resource = theme.BrokenImageIcon()
+				// here is the image object
+				img := padded.Objects[0].(*canvas.Image)
+				img.Resource = theme.BrokenImageIcon()
 
-			// we'll use the asset image when not nil
-			if asset.image != nil {
-				buf := new(bytes.Buffer)
-				h, w := float32(25), float32(25)
-				i := setSCIDThumbnail(asset.image, h, w)
-				err := jpeg.Encode(buf, i, nil)
-				if err != nil {
-					showError(err)
+				// we'll use the asset image when not nil
+				if asset.image != nil {
+					buf := new(bytes.Buffer)
+					h, w := float32(25), float32(25)
+					i := setSCIDThumbnail(asset.image, h, w)
+					err := jpeg.Encode(buf, i, nil)
+					if err != nil {
+						showError(err)
+					}
+					b := buf.Bytes()
+					img.Resource = fyne.NewStaticResource("", b)
 				}
-				b := buf.Bytes()
-				img.Resource = fyne.NewStaticResource("", b)
+				img.Refresh()
+
+				text := asset.name
+				label := contain.Objects[1].(*widget.Label)
+				label.Alignment = fyne.TextAlignCenter
+				label.SetText(text)
+				label.Refresh()
+
+				text = truncator(asset.hash)
+				label = contain.Objects[2].(*widget.Label)
+				label.Alignment = fyne.TextAlignCenter
+				label.SetText(text)
+				label.Refresh()
+				// now we'll check the balance of the asset against the address
+				bal, _ := program.wallet.Get_Balance_scid(
+					crypto.HashHexToHash(asset.hash),
+				)
+				text = rpc.FormatMoney(bal)
+				label = contain.Objects[3].(*widget.Label)
+				label.Alignment = fyne.TextAlignCenter
+				label.SetText(text)
+				label.Refresh()
+
+				index = append(index, lii)
 			}
-			img.Refresh()
-
-			text := asset.name
-			label := contain.Objects[1].(*widget.Label)
-			label.Alignment = fyne.TextAlignCenter
-			label.SetText(text)
-
-			text = truncator(asset.hash)
-			label = contain.Objects[2].(*widget.Label)
-			label.Alignment = fyne.TextAlignCenter
-			label.SetText(text)
-
-			// now we'll check the balance of the asset against the address
-			bal, _ := program.wallet.Get_Balance_scid(
-				crypto.HashHexToHash(asset.hash),
-			)
-			text = rpc.FormatMoney(bal)
-			label = contain.Objects[3].(*widget.Label)
-			label.Alignment = fyne.TextAlignCenter
-			label.SetText(text)
 		}
 
 		// and now here is how we want each item updated
@@ -867,15 +877,49 @@ func assetsList() {
 
 		program.lists.asset_list.OnSelected = onSelected
 
-		// let's set the asset list into a new scroll
-		scroll = container.NewScroll(program.lists.asset_list)
+		filter := widget.NewEntry()
+		filterer := func() {
+			s := strings.ToLower(filter.Text)
+			if s != "" {
+				assets = []asset{}
+				for _, each := range program.caches.assets {
 
-		scroll.Refresh()
+					if strings.Contains(strings.ToLower(each.hash), s) || strings.Contains(strings.ToLower(each.name), s) {
+						assets = append(assets, asset{
+							name:  each.name,
+							hash:  each.hash,
+							image: each.image,
+						})
+					}
+				}
+			} else {
+				assets = program.caches.assets
+			}
+
+			for i := range index {
+				updateItem(i, createImageLabel())
+			}
+			program.lists.asset_list.Refresh()
+		}
+		filter.OnChanged = func(s string) {
+			filterer()
+		}
+		filter.ActionItem = widget.NewButtonWithIcon("Filter", theme.SearchIcon(), filterer)
+
+		// let's set the asset list into a new list
+		list = container.NewBorder(
+			filter,
+			nil,
+			nil,
+			nil,
+			program.lists.asset_list)
+
+		list.Refresh()
 
 	}
 
 	// and we'll set the scroll into a new dialog, resize and show
-	collection := dialog.NewCustom("Collectibles", dismiss, scroll, program.window)
+	collection := dialog.NewCustom("Collectibles", dismiss, list, program.window)
 	collection.Resize(program.size)
 	collection.Show()
 }
