@@ -135,7 +135,6 @@ func txList() {
 
 	// then when we select one of them, let' open it up!
 	onSelected := func(id widget.ListItemID) {
-
 		sent.Unselect(id)
 
 		// body the entries
@@ -143,39 +142,52 @@ func txList() {
 
 		e := s_entries[id]
 
-		lines := strings.SplitSeq(e.String(), "\n")
-		tx_details := container.NewVBox()
-
-		for line := range lines {
+		lines := strings.Split(e.String(), "\n")
+		keys := []string{}
+		values := []string{}
+		for _, line := range lines {
 			if line == "" {
 				continue
 			}
 			pair := strings.Split(line, ": ")
 			key := pair[0]
-			key_entry := widget.NewLabel(key)
 			value := pair[1]
-			var v string = value
-			if key != "Time" {
-				if len(value) > 16 {
-					v = truncator(value)
-				}
-			}
-			value_hyperlink := widget.NewHyperlink(v, nil)
-			value_hyperlink.OnTapped = func() {
-				program.application.Clipboard().SetContent(value)
-				showInfo("", value+" copied to clipboard")
-			}
-			tx_details.Add(container.NewAdaptiveGrid(2, key_entry, value_hyperlink))
+			keys = append(keys, key)
+			values = append(values, value)
 		}
 
-		// make a simple details scrolling container
-		details := container.NewScroll(tx_details)
+		table := widget.NewTable(
+			func() (rows int, cols int) { return len(lines), 2 },
+			func() fyne.CanvasObject { return widget.NewLabel("") },
+			func(tci widget.TableCellID, co fyne.CanvasObject) {
+				label := co.(*widget.Label)
+				if len(keys) <= tci.Row {
+					label.SetText("")
+					return
+				}
+
+				switch tci.Col {
+				case 0:
+					label.SetText(keys[tci.Row])
+				case 1:
+					label.SetText(values[tci.Row])
+				}
+			},
+		)
+		table.SetColumnWidth(0, largestMinSize(keys).Width)
+		table.SetColumnWidth(1, largestMinSize(values).Width)
+		table.OnSelected = func(id widget.TableCellID) {
+			table.UnselectAll()
+			var data string
+			if id.Col == 1 && id.Row < len(values) {
+				data = values[id.Row]
+				program.application.Clipboard().SetContent(data)
+				showInfoFast("", data+" copied to clipboard", program.window)
+			}
+		}
 
 		// load up dialog with the container
-		txs := dialog.NewCustom(
-			"Transaction Detail", dismiss,
-			details, program.window,
-		)
+		txs := dialog.NewCustom("Transaction Detail", dismiss, table, program.window)
 
 		txs.Resize(program.size)
 		txs.Show()
@@ -226,39 +238,52 @@ func txList() {
 
 		e := r_entries[id]
 
-		lines := strings.SplitSeq(e.String(), "\n")
-		tx_details := container.NewVBox()
-
-		for line := range lines {
+		lines := strings.Split(e.String(), "\n")
+		keys := []string{}
+		values := []string{}
+		for _, line := range lines {
 			if line == "" {
 				continue
 			}
 			pair := strings.Split(line, ": ")
 			key := pair[0]
-			key_entry := widget.NewLabel(key)
 			value := pair[1]
-			var v string = value
-			if key != "Time" {
-				if len(value) > 16 {
-					v = truncator(value)
-				}
-			}
-			value_hyperlink := widget.NewHyperlink(v, nil)
-			value_hyperlink.OnTapped = func() {
-				program.application.Clipboard().SetContent(value)
-				showInfo("", value+" copied to clipboard")
-			}
-			tx_details.Add(container.NewAdaptiveGrid(2, key_entry, value_hyperlink))
+			keys = append(keys, key)
+			values = append(values, value)
 		}
 
-		// make a simple details scrolling container
-		details := container.NewScroll(tx_details)
+		table := widget.NewTable(
+			func() (rows int, cols int) { return len(lines), 2 },
+			func() fyne.CanvasObject { return widget.NewLabel("") },
+			func(tci widget.TableCellID, co fyne.CanvasObject) {
+				label := co.(*widget.Label)
+				if len(keys) <= tci.Row {
+					label.SetText("")
+					return
+				}
+
+				switch tci.Col {
+				case 0:
+					label.SetText(keys[tci.Row])
+				case 1:
+					label.SetText(values[tci.Row])
+				}
+			},
+		)
+		table.SetColumnWidth(0, largestMinSize(keys).Width)
+		table.SetColumnWidth(1, largestMinSize(values).Width)
+		table.OnSelected = func(id widget.TableCellID) {
+			table.UnselectAll()
+			var data string
+			if id.Col == 1 && id.Row < len(values) {
+				data = values[id.Row]
+				program.application.Clipboard().SetContent(data)
+				showInfoFast("", data+" copied to clipboard", program.window)
+			}
+		}
 
 		// load up dialog with the container
-		txs := dialog.NewCustom(
-			"Transaction Detail", dismiss,
-			details, program.window,
-		)
+		txs := dialog.NewCustom("Transaction Detail", dismiss, table, program.window)
 
 		txs.Resize(program.size)
 		txs.Show()
@@ -311,39 +336,52 @@ func txList() {
 
 		e := coins[id]
 
-		lines := strings.SplitSeq(e.String(), "\n")
-		tx_details := container.NewVBox()
-
-		for line := range lines {
+		lines := strings.Split(e.String(), "\n")
+		keys := []string{}
+		values := []string{}
+		for _, line := range lines {
 			if line == "" {
 				continue
 			}
 			pair := strings.Split(line, ": ")
 			key := pair[0]
-			key_entry := widget.NewLabel(key)
 			value := pair[1]
-			var v string = value
-			if key != "Time" {
-				if len(value) > 16 {
-					v = truncator(value)
-				}
-			}
-			value_hyperlink := widget.NewHyperlink(v, nil)
-			value_hyperlink.OnTapped = func() {
-				program.application.Clipboard().SetContent(value)
-				showInfo("", value+" copied to clipboard")
-			}
-			tx_details.Add(container.NewAdaptiveGrid(2, key_entry, value_hyperlink))
+			keys = append(keys, key)
+			values = append(values, value)
 		}
 
-		// make a simple details scrolling container
-		details := container.NewScroll(tx_details)
+		table := widget.NewTable(
+			func() (rows int, cols int) { return len(lines), 2 },
+			func() fyne.CanvasObject { return widget.NewLabel("") },
+			func(tci widget.TableCellID, co fyne.CanvasObject) {
+				label := co.(*widget.Label)
+				if len(keys) <= tci.Row {
+					label.SetText("")
+					return
+				}
+
+				switch tci.Col {
+				case 0:
+					label.SetText(keys[tci.Row])
+				case 1:
+					label.SetText(values[tci.Row])
+				}
+			},
+		)
+		table.SetColumnWidth(0, largestMinSize(keys).Width)
+		table.SetColumnWidth(1, largestMinSize(values).Width)
+		table.OnSelected = func(id widget.TableCellID) {
+			table.UnselectAll()
+			var data string
+			if id.Col == 1 && id.Row < len(values) {
+				data = values[id.Row]
+				program.application.Clipboard().SetContent(data)
+				showInfoFast("", data+" copied to clipboard", program.window)
+			}
+		}
 
 		// load up dialog with the container
-		txs := dialog.NewCustom(
-			"Transaction Detail", dismiss,
-			details, program.window,
-		)
+		txs := dialog.NewCustom("Transaction Detail", dismiss, table, program.window)
 
 		txs.Resize(program.size)
 		txs.Show()
