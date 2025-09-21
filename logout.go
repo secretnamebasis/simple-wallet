@@ -13,14 +13,6 @@ func logout() {
 	// if there is a wallet in memory and it saves
 	if program.wallet != nil && program.wallet.Save_Wallet() == nil {
 
-		// dump the keys
-		program.entries.seed.SetText("")
-		program.entries.seed.Refresh()
-		program.entries.public.SetText("")
-		program.entries.public.Refresh()
-		program.entries.secret.SetText("")
-		program.entries.secret.Refresh()
-
 		// and as long as we are logged in...
 		if program.preferences.Bool("loggedIn") {
 

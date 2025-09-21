@@ -39,14 +39,6 @@ func dashboard() *fyne.Container {
 }
 
 func keys() {
-	// simple block of text
-	program.entries.seed.MultiLine = true
-	program.entries.seed.Wrapping = fyne.TextWrapWord
-
-	// make sure these are disabled, like for real
-	program.entries.seed.Disable()
-	program.entries.secret.Disable()
-	program.entries.public.Disable()
 
 	// simple way to see keys
 	var k *dialog.FormDialog

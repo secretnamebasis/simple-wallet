@@ -77,23 +77,6 @@ func save() {
 		} else { // follow logged in workflow
 			loggedIn()
 
-			content := container.NewVBox(
-				program.labels.seed,
-				program.entries.seed,
-				program.labels.public,
-				program.entries.public,
-				program.labels.secret,
-				program.entries.secret,
-			)
-
-			scroll := container.NewScroll(content)
-
-			title := "Wallet Created"
-
-			keys := dialog.NewCustom(title, dismiss, scroll, program.window)
-
-			keys.Resize(program.size)
-			keys.Show()
 			new_account.Dismiss()
 			updateHeader(program.hyperlinks.home)
 			setContentAsHome()

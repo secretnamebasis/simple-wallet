@@ -101,10 +101,6 @@ func restoration() {
 			return
 		}
 
-		// lock these fields down
-		program.entries.seed.Disable()
-		program.entries.secret.Disable()
-
 		// proceed with log in stuff
 		loggedIn()
 
@@ -154,10 +150,6 @@ func restoration() {
 		}
 		// give the user some feedback
 		showInfo("Restore Wallet", "successfully saved as wallet.db")
-
-		// disable these fields
-		program.entries.seed.Disable()
-		program.entries.secret.Disable()
 
 		// proceed with the usuals
 		loggedIn()
@@ -226,10 +218,6 @@ func restoration() {
 
 		// tell the user they have succeeded
 		showInfo("Restore Wallet", "successfully saved as wallet.db")
-
-		// disable these fields
-		program.entries.seed.Disable()
-		program.entries.secret.Disable()
 
 		// do the loggedIn dance
 		loggedIn()
