@@ -424,7 +424,6 @@ func assetsList() {
 		// and here is the widget we'll use for each item in the list
 		program.lists.asset_list.CreateItem = createImageLabel
 
-		index := []int{}
 		updateItem := func(lii widget.ListItemID, co fyne.CanvasObject) {
 			if lii >= len(assets) {
 				co.(*fyne.Container).RemoveAll()
@@ -476,7 +475,6 @@ func assetsList() {
 				label.SetText(text)
 				label.Refresh()
 
-				index = append(index, lii)
 			}
 		}
 
@@ -957,9 +955,6 @@ func assetsList() {
 				assets = program.caches.assets
 			}
 
-			for i := range index {
-				updateItem(i, createImageLabel())
-			}
 			program.lists.asset_list.Refresh()
 		}
 		filter.OnChanged = func(s string) {

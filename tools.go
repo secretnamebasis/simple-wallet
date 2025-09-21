@@ -1670,12 +1670,9 @@ func explorer() {
 	}
 
 	pool_label_data := [][]string{}
-	pl_mutex := sync.Mutex{}
-	pool_widgets := []widget.TableCellID{}
+
 	updatePoolCache := func() {
-		pl_mutex.Lock()
-		pool_widgets = []widget.TableCellID{}
-		pl_mutex.Unlock()
+
 		pool_label_data = [][]string{}
 		pool := program.caches.pool
 		if len(pool.Tx_list) <= 0 {
@@ -1760,9 +1757,7 @@ func explorer() {
 			}
 
 		}
-		pl_mutex.Lock()
-		pool_widgets = append(pool_widgets, tci)
-		pl_mutex.Unlock()
+
 	}
 
 	pool_table = widget.NewTable(lengthPool, createPool, updatePool)
@@ -1785,13 +1780,10 @@ func explorer() {
 
 	block_label_data := [][]string{}
 	limit := 10
-	bl_mutex := sync.Mutex{}
-	block_widgets := []widget.TableCellID{}
+
 	var block_table *widget.Table
 	updateBlocksData := func() {
-		bl_mutex.Lock()
-		block_widgets = []widget.TableCellID{}
-		bl_mutex.Unlock()
+
 		block_label_data = [][]string{}
 		height := program.caches.info.TopoHeight
 		// we are going to take the last ten blocks,
@@ -1908,9 +1900,7 @@ func explorer() {
 				tabs.Select(searchTab)
 			}
 		}
-		bl_mutex.Lock()
-		block_widgets = append(block_widgets, tci)
-		bl_mutex.Unlock()
+
 	}
 
 	block_table = widget.NewTable(lengthBlocks, createBlocks, updateBlocks)
@@ -2019,14 +2009,8 @@ func explorer() {
 					diff_graph = newGraph
 
 					updatePoolCache()
-					for _, i := range pool_widgets {
-						updatePool(i, createPool())
-					}
 
 					updateBlocksData()
-					for _, i := range block_widgets {
-						updateBlocks(i, createBlocks())
-					}
 
 					fyne.DoAndWait(func() {
 						diff_graph.Refresh()
