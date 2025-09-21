@@ -350,7 +350,10 @@ func sendForm() {
 	send := dialog.NewForm("Send DERO", "Send", "Cancel", content, callback, program.window)
 
 	// resize and show
-	send.Resize(program.size)
+	send.Resize(program.size.Subtract(fyne.Size{
+		Width:  program.size.Width / 4,
+		Height: program.size.Height / 4,
+	}))
 	send.Show()
 }
 
