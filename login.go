@@ -40,7 +40,7 @@ func loggedIn() {
 
 	// set the sync into a splash dialog
 	splash := dialog.NewCustomWithoutButtons("Opening Wallet", syncro, program.window)
-	splash.Resize(program.size)
+	splash.Resize(fyne.NewSize(program.size.Width/3, program.size.Height/3))
 	splash.Show()
 
 	// turn network on
@@ -66,7 +66,11 @@ func loggedIn() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+
 		// start sync with DERO history
+		if program.wallet == nil {
+			return
+		}
 		program.wallet.SyncHistory(crypto.ZEROHASH)
 		// pull the assets list and build the cache
 		buildAssetHashList()
@@ -111,6 +115,9 @@ func loggedIn() {
 				capacity_channel <- new_job
 
 				// there is no-deduplication, de-duplicate entries immediately after
+				if program.wallet == nil {
+					return
+				}
 				program.wallet.SyncHistory(hash)
 
 				// measure how long that took
@@ -119,6 +126,9 @@ func loggedIn() {
 				// let's make sure there are no duplicate entries after we have synced
 
 				// get the entries
+				if program.wallet == nil {
+					return
+				}
 				entries := program.wallet.GetAccount().EntriesNative[hash]
 
 				// make a seen map
@@ -141,6 +151,9 @@ func loggedIn() {
 					}
 				}
 				// load the deduped entries into the wallet's hash map
+				if program.wallet == nil {
+					return
+				}
 				program.wallet.GetAccount().EntriesNative[hash] = deduped
 
 				// mark this one as completed
@@ -191,14 +204,6 @@ func loggedIn() {
 		program.containers.register.Show()
 		program.containers.send.Hide()
 	}
-
-	// set keys
-	program.entries.seed.SetText(program.wallet.GetSeed())
-	program.entries.secret.SetText(program.wallet.Get_Keys().Secret.Text(16))
-	program.entries.public.SetText(program.wallet.Get_Keys().Public.StringHex())
-	// lock down keys
-	program.entries.seed.Disable()
-	program.entries.secret.Disable()
 
 	// hide login and notice
 	program.hyperlinks.login.Hide()
@@ -281,18 +286,14 @@ func loginFunction() {
 	// this will be our simple login container
 	login_screen := container.NewVBox(
 		layout.NewSpacer(),
-		container.NewAdaptiveGrid(3,
-			layout.NewSpacer(),
-			container.NewVBox(
+		container.NewVBox(
 
-				container.NewVBox(program.entries.wallet),
-				program.entries.pass,
-				container.NewAdaptiveGrid(2,
-					container.NewCenter(program.hyperlinks.create),
-					container.NewCenter(program.hyperlinks.restore),
-				),
+			container.NewVBox(program.entries.wallet),
+			program.entries.pass,
+			container.NewAdaptiveGrid(2,
+				container.NewCenter(program.hyperlinks.create),
+				container.NewCenter(program.hyperlinks.restore),
 			),
-			layout.NewSpacer(),
 		),
 		layout.NewSpacer(),
 	)
@@ -339,6 +340,6 @@ func loginFunction() {
 	program.dialogues.login = dialog.NewCustomConfirm("", "login", dismiss,
 		login_screen, open_wallet, program.window,
 	)
-	program.dialogues.login.Resize(program.size)
+	program.dialogues.login.Resize(fyne.NewSize(program.size.Width/3, program.size.Height/3))
 	program.dialogues.login.Show()
 }

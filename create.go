@@ -45,7 +45,7 @@ func create() {
 	program.hyperlinks.save.Alignment = fyne.TextAlignCenter
 	program.hyperlinks.save.OnTapped = save
 
-	new_account.Resize(program.size)
+	new_account.Resize(fyne.NewSize(program.size.Width/3, program.size.Height/3))
 	new_account.Show()
 }
 
@@ -77,23 +77,6 @@ func save() {
 		} else { // follow logged in workflow
 			loggedIn()
 
-			content := container.NewVBox(
-				program.labels.seed,
-				program.entries.seed,
-				program.labels.public,
-				program.entries.public,
-				program.labels.secret,
-				program.entries.secret,
-			)
-
-			scroll := container.NewScroll(content)
-
-			title := "Wallet Created"
-
-			keys := dialog.NewCustom(title, dismiss, scroll, program.window)
-
-			keys.Resize(program.size)
-			keys.Show()
 			new_account.Dismiss()
 			updateHeader(program.hyperlinks.home)
 			setContentAsHome()
@@ -109,7 +92,7 @@ func register() *fyne.Container {
 	program.buttons.register.OnTapped = registration
 
 	// and here is the simple registration container
-	return container.NewAdaptiveGrid(3,
+	return container.NewVBox(
 		program.activities.registration,
 		program.buttons.register,
 		program.labels.counter,

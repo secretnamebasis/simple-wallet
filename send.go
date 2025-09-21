@@ -120,20 +120,22 @@ func sendForm() {
 
 		// if they are asking for a specific asset, let's use it
 		if addr.Arguments.Has(rpc.RPC_ASSET, rpc.DataHash) {
+			showError(errors.New("currently unsupported"))
+			return
 			// obtain the value interface
-			value := addr.Arguments.Value(rpc.RPC_ASSET, rpc.DataHash)
+			// value := addr.Arguments.Value(rpc.RPC_ASSET, rpc.DataHash)
 
 			// coerce the value into a crypto hash
-			asset := value.(crypto.Hash)
+			// asset := value.(crypto.Hash)
 
 			// stringify the hash
-			asset_string := asset.String()
+			// asset_string := asset.String()
 
-			// set the asset string as the selection
-			program.selections.assets.SetSelected(asset_string)
+			// // set the asset string as the selection
+			// program.selections.assets.SetSelected(asset_string)
 
-			// disable the widget to prevent error
-			program.selections.assets.Disable()
+			// // disable the widget to prevent error
+			// program.selections.assets.Disable()
 		}
 
 		// if they have a specific port... use it
@@ -300,10 +302,10 @@ func sendForm() {
 		scids = append(scids, label)
 	}
 	// load up the scids and asset options in the selector
-	program.selections.assets.Options = scids
+	// program.selections.assets.Options = scids
 
 	// create a placeholder that makes sense
-	program.selections.assets.PlaceHolder = "DERO by default, or select asset"
+	// program.selections.assets.PlaceHolder = "DERO by default, or select asset"
 
 	// create callback function
 	callback := func(b bool) {
@@ -312,7 +314,7 @@ func sendForm() {
 			program.entries.amount.SetText("")
 			program.entries.dst.SetText("")
 			program.entries.comment.SetText("")
-			program.selections.assets.SetSelectedIndex(-1)
+			// program.selections.assets.SetSelectedIndex(-1)
 			// clear recipient on send action
 			program.entries.recipient.SetText("")
 			program.checks.replyback.SetChecked(false)
@@ -339,7 +341,7 @@ func sendForm() {
 		// now use an accordion for the "advanced" options
 		widget.NewFormItem("", widget.NewAccordion(
 			widget.NewAccordionItem("Options", container.NewVBox(
-				program.selections.assets,
+				// program.selections.assets,
 				program.entries.dst,
 				program.entries.comment,
 				program.checks.replyback,
@@ -350,7 +352,10 @@ func sendForm() {
 	send := dialog.NewForm("Send DERO", "Send", "Cancel", content, callback, program.window)
 
 	// resize and show
-	send.Resize(program.size)
+	send.Resize(program.size.Subtract(fyne.Size{
+		Width:  program.size.Width / 4,
+		Height: program.size.Height / 4,
+	}))
 	send.Show()
 }
 
@@ -381,7 +386,7 @@ func conductTransfer() {
 			program.entries.amount.SetText("")
 			program.entries.dst.SetText("")
 			program.entries.comment.SetText("")
-			program.selections.assets.SetSelectedIndex(-1)
+			// program.selections.assets.SetSelectedIndex(-1)
 
 			return
 		} else if !passed {
@@ -497,21 +502,21 @@ func conductTransfer() {
 		// let's check if they selected another asset to send
 
 		// first let's get the current selected index
-		index := program.selections.assets.SelectedIndex()
+		// index := program.selections.assets.SelectedIndex()
 
 		// dump the selection
 		program.selections.assets.SetSelectedIndex(-1)
 
 		// If they selected something, it is an asset
-		isAsset := index > -1
+		// isAsset := index > -1
 
-		if isAsset {
-			// thusly, well get the asset from the cache
-			asset := program.caches.assets[index]
+		// if isAsset {
+		// 	// thusly, well get the asset from the cache
+		// 	asset := program.caches.assets[index]
 
-			// and now the scid is the asset
-			scid = crypto.HashHexToHash(asset.hash)
-		}
+		// 	// and now the scid is the asset
+		// 	scid = crypto.HashHexToHash(asset.hash)
+		// }
 
 		// now, let's build the payload
 		payload := []rpc.Transfer{
