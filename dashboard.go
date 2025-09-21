@@ -110,13 +110,18 @@ func txList() {
 	// let's make a list of transactions
 	sent := new(widget.List)
 
-	// we'll use the length of entries for the count of widget's to return
+	// we'll use the length of s_entries for the count of widget's to return
 	sent.Length = func() int { return len(s_entries) }
 
 	// here is the widget that we are going to use for each item of the list
 	sent.CreateItem = createLabel
 	// then let's update the item to contain the content
-	updateItem := func(lii widget.ListItemID, co fyne.CanvasObject) {
+	var s_table *widget.Table
+	updateSent := func(lii widget.ListItemID, co fyne.CanvasObject) {
+
+		if lii >= len(s_entries) {
+			return
+		}
 
 		// let's make sure the entry is bodied
 		s_entries[lii].ProcessPayload()
@@ -129,17 +134,16 @@ func txList() {
 		container.Objects[0].(*widget.Label).SetText(time_stamp)
 		container.Objects[1].(*widget.Label).SetText(txid)
 		container.Objects[2].(*widget.Label).SetText(rpc.FormatMoney(amount))
+
 	}
 	// set the update item
-	sent.UpdateItem = updateItem
+	sent.UpdateItem = updateSent
 
 	// then when we select one of them, let' open it up!
 	onSelected := func(id widget.ListItemID) {
 		sent.Unselect(id)
 
-		// body the entries
-		s_entries[id].ProcessPayload()
-
+		// body the s_entries
 		e := s_entries[id]
 
 		lines := strings.Split(e.String(), "\n")
@@ -156,7 +160,7 @@ func txList() {
 			values = append(values, value)
 		}
 
-		table := widget.NewTable(
+		s_table = widget.NewTable(
 			func() (rows int, cols int) { return len(lines), 2 },
 			func() fyne.CanvasObject { return widget.NewLabel("") },
 			func(tci widget.TableCellID, co fyne.CanvasObject) {
@@ -174,10 +178,10 @@ func txList() {
 				}
 			},
 		)
-		table.SetColumnWidth(0, largestMinSize(keys).Width)
-		table.SetColumnWidth(1, largestMinSize(values).Width)
-		table.OnSelected = func(id widget.TableCellID) {
-			table.UnselectAll()
+		s_table.SetColumnWidth(0, largestMinSize(keys).Width)
+		s_table.SetColumnWidth(1, largestMinSize(values).Width)
+		s_table.OnSelected = func(id widget.TableCellID) {
+			s_table.UnselectAll()
 			var data string
 			if id.Col == 1 && id.Row < len(values) {
 				data = values[id.Row]
@@ -187,7 +191,7 @@ func txList() {
 		}
 
 		// load up dialog with the container
-		txs := dialog.NewCustom("Transaction Detail", dismiss, table, program.window)
+		txs := dialog.NewCustom("Transaction Detail", dismiss, s_table, program.window)
 
 		txs.Resize(program.size)
 		txs.Show()
@@ -203,15 +207,19 @@ func txList() {
 	// let's make a list of received transactions
 	received := new(widget.List)
 
-	// we'll use the length of entries for the count of widget's to return
+	// we'll use the length of r_entries for the count of widget's to return
 	received.Length = func() int { return len(r_entries) }
 
 	// here is the widget that we are going to use for each item of the list
 	received.CreateItem = createLabel
 
+	var r_table *widget.Table
 	// then let's update the item to contain the content
-	updateItem = func(lii widget.ListItemID, co fyne.CanvasObject) {
+	updateReceived := func(lii widget.ListItemID, co fyne.CanvasObject) {
 
+		if lii >= len(r_entries) {
+			return
+		}
 		// let's make sure the entry is bodied
 		r_entries[lii].ProcessPayload()
 
@@ -223,19 +231,18 @@ func txList() {
 		container.Objects[0].(*widget.Label).SetText(time_stamp)
 		container.Objects[1].(*widget.Label).SetText(txid)
 		container.Objects[2].(*widget.Label).SetText(rpc.FormatMoney(amount))
+
 	}
 
 	// set the update item field
-	received.UpdateItem = updateItem
+	received.UpdateItem = updateReceived
 
 	// then when we select one of them, let' open it up!
 	onSelected = func(id widget.ListItemID) {
 
 		received.Unselect(id)
 
-		// body the entries
-		r_entries[id].ProcessPayload()
-
+		// body the r_entries
 		e := r_entries[id]
 
 		lines := strings.Split(e.String(), "\n")
@@ -252,7 +259,7 @@ func txList() {
 			values = append(values, value)
 		}
 
-		table := widget.NewTable(
+		r_table = widget.NewTable(
 			func() (rows int, cols int) { return len(lines), 2 },
 			func() fyne.CanvasObject { return widget.NewLabel("") },
 			func(tci widget.TableCellID, co fyne.CanvasObject) {
@@ -270,10 +277,10 @@ func txList() {
 				}
 			},
 		)
-		table.SetColumnWidth(0, largestMinSize(keys).Width)
-		table.SetColumnWidth(1, largestMinSize(values).Width)
-		table.OnSelected = func(id widget.TableCellID) {
-			table.UnselectAll()
+		r_table.SetColumnWidth(0, largestMinSize(keys).Width)
+		r_table.SetColumnWidth(1, largestMinSize(values).Width)
+		r_table.OnSelected = func(id widget.TableCellID) {
+			r_table.UnselectAll()
 			var data string
 			if id.Col == 1 && id.Row < len(values) {
 				data = values[id.Row]
@@ -283,7 +290,7 @@ func txList() {
 		}
 
 		// load up dialog with the container
-		txs := dialog.NewCustom("Transaction Detail", dismiss, table, program.window)
+		txs := dialog.NewCustom("Transaction Detail", dismiss, r_table, program.window)
 
 		txs.Resize(program.size)
 		txs.Show()
@@ -293,48 +300,51 @@ func txList() {
 	received.OnSelected = onSelected
 
 	// here are all the coinbase entries
-	coins := getCoinbaseTransfers()
+	c_entries := getCoinbaseTransfers()
 
-	sort.Slice(coins, func(i, j int) bool {
-		return coins[i].Height > coins[j].Height
+	sort.Slice(c_entries, func(i, j int) bool {
+		return c_entries[i].Height > c_entries[j].Height
 	})
 
 	// let's make a list of transactions
 	coinbase := new(widget.List)
 
-	// we'll use the length of entries for the count of widget's to return
-	coinbase.Length = func() int { return len(coins) }
+	// we'll use the length of c_entries for the count of widget's to return
+	coinbase.Length = func() int { return len(c_entries) }
 
 	// here is the widget that we are going to use for each item of the list
 	coinbase.CreateItem = createLabel
 
 	// then let's update the item to contain the content
-	updateItem = func(lii widget.ListItemID, co fyne.CanvasObject) {
+	var c_table *widget.Table
+	updateCoins := func(lii widget.ListItemID, co fyne.CanvasObject) {
 
+		if lii >= len(c_entries) {
+			return
+		}
 		// let's make sure the entry is bodied
-		coins[lii].ProcessPayload()
+		c_entries[lii].ProcessPayload()
 
 		// make a timestamp string in local format
-		time_stamp := coins[lii].Time.Local().Format("2006-01-02 15:04")
-		txid := truncator(coins[lii].BlockHash)
-		amount := coins[lii].Amount
+		time_stamp := c_entries[lii].Time.Local().Format("2006-01-02 15:04")
+		txid := truncator(c_entries[lii].BlockHash)
+		amount := c_entries[lii].Amount
 		container := co.(*fyne.Container)
 		container.Objects[0].(*widget.Label).SetText(time_stamp)
 		container.Objects[1].(*widget.Label).SetText(txid)
 		container.Objects[2].(*widget.Label).SetText(rpc.FormatMoney(amount))
+
 	}
 	// set the update item
-	coinbase.UpdateItem = updateItem
+	coinbase.UpdateItem = updateCoins
 
 	// then when we select one of them, let' open it up!
 	onSelected = func(id widget.ListItemID) {
 
 		coinbase.Unselect(id)
 
-		// body the entries
-		coins[id].ProcessPayload()
-
-		e := coins[id]
+		// body the c_entries
+		e := c_entries[id]
 
 		lines := strings.Split(e.String(), "\n")
 		keys := []string{}
@@ -350,7 +360,7 @@ func txList() {
 			values = append(values, value)
 		}
 
-		table := widget.NewTable(
+		c_table = widget.NewTable(
 			func() (rows int, cols int) { return len(lines), 2 },
 			func() fyne.CanvasObject { return widget.NewLabel("") },
 			func(tci widget.TableCellID, co fyne.CanvasObject) {
@@ -368,10 +378,11 @@ func txList() {
 				}
 			},
 		)
-		table.SetColumnWidth(0, largestMinSize(keys).Width)
-		table.SetColumnWidth(1, largestMinSize(values).Width)
-		table.OnSelected = func(id widget.TableCellID) {
-			table.UnselectAll()
+		c_table.SetColumnWidth(0, largestMinSize(keys).Width)
+		c_table.SetColumnWidth(1, largestMinSize(values).Width)
+
+		c_table.OnSelected = func(id widget.TableCellID) {
+			c_table.UnselectAll()
 			var data string
 			if id.Col == 1 && id.Row < len(values) {
 				data = values[id.Row]
@@ -381,7 +392,7 @@ func txList() {
 		}
 
 		// load up dialog with the container
-		txs := dialog.NewCustom("Transaction Detail", dismiss, table, program.window)
+		txs := dialog.NewCustom("Transaction Detail", dismiss, c_table, program.window)
 
 		txs.Resize(program.size)
 		txs.Show()
@@ -389,12 +400,81 @@ func txList() {
 	// set the field
 	coinbase.OnSelected = onSelected
 
-	tabs := container.NewAppTabs(
-		container.NewTabItem("Sent", sent),
-		container.NewTabItem("Received", received),
-		container.NewTabItem("Coinbase", coinbase),
+	search_entry := widget.NewEntry()
+	searchBtn := widget.NewButtonWithIcon("Filter", theme.SearchIcon(), func() {})
+	search_entry.ActionItem = searchBtn
+
+	var tabs *container.AppTabs
+	filterer := func() {
+		search := strings.ToLower(search_entry.Text)
+
+		switch tabs.Selected().Text {
+		case "Sent":
+			s := getSentTransfers()
+			sort.Slice(s, func(i, j int) bool {
+				return s[i].Height > s[j].Height
+			})
+			if search == "" {
+				s_entries = s
+			} else {
+				s_entries = []rpc.Entry{}
+				for _, each := range s {
+					if strings.Contains(strings.ToLower(each.String()), search) {
+						s_entries = append(s_entries, each)
+					}
+				}
+			}
+			sent.Refresh()
+		case "Received":
+			r := getReceivedTransfers()
+			sort.Slice(r, func(i, j int) bool {
+				return r[i].Height > r[j].Height
+			})
+			if search == "" {
+				r_entries = r
+			} else {
+				r_entries = []rpc.Entry{}
+				for _, each := range r {
+					if strings.Contains(strings.ToLower(each.String()), search) {
+						r_entries = append(r_entries, each)
+					}
+				}
+			}
+			received.Refresh()
+		case "Coinbase":
+			c := getCoinbaseTransfers()
+			sort.Slice(c, func(i, j int) bool {
+				return c[i].Height > c[j].Height
+			})
+			if search == "" {
+				c_entries = c
+
+			} else {
+				c_entries = []rpc.Entry{}
+				for _, each := range c {
+					if strings.Contains(strings.ToLower(each.String()), search) {
+						c_entries = append(c_entries, each)
+					}
+				}
+			}
+			coinbase.Refresh()
+		}
+
+	}
+	search_entry.OnChanged = func(s string) {
+		filterer()
+	}
+
+	tabs = container.NewAppTabs(
+		container.NewTabItem("Sent", container.NewBorder(search_entry, nil, nil, nil, sent)),
+		container.NewTabItem("Received", container.NewBorder(search_entry, nil, nil, nil, received)),
+		container.NewTabItem("Coinbase", container.NewBorder(search_entry, nil, nil, nil, coinbase)),
 	)
 	tabs.SetTabLocation(container.TabLocationLeading)
+	tabs.OnSelected = func(ti *container.TabItem) {
+		search_entry.SetText("")
+		filterer()
+	}
 	txs := dialog.NewCustom("transactions", dismiss, tabs, program.window)
 	txs.Resize(program.size)
 	txs.Show()
@@ -424,7 +504,6 @@ func assetsList() {
 		// and here is the widget we'll use for each item in the list
 		program.lists.asset_list.CreateItem = createImageLabel
 
-		index := []int{}
 		updateItem := func(lii widget.ListItemID, co fyne.CanvasObject) {
 			if lii >= len(assets) {
 				co.(*fyne.Container).RemoveAll()
@@ -476,7 +555,6 @@ func assetsList() {
 				label.SetText(text)
 				label.Refresh()
 
-				index = append(index, lii)
 			}
 		}
 
@@ -860,9 +938,7 @@ func assetsList() {
 			address.SetPlaceHolder("receiver address: dero...")
 			lay := &twoThirds{}
 			lay.Orientation = fyne.TextAlignTrailing
-			send := container.New(lay,
-				balance, address,
-			)
+			send := container.New(lay, balance, address)
 			content := container.NewVBox(
 				container.NewCenter(scid_hyperlink),
 				contain,
@@ -880,6 +956,8 @@ func assetsList() {
 
 				// rebuild the asset cache
 				buildAssetHashList()
+
+				assets = program.caches.assets
 
 				// for good measure, we'll refresh the list
 				program.lists.asset_list.Refresh()
@@ -957,9 +1035,6 @@ func assetsList() {
 				assets = program.caches.assets
 			}
 
-			for i := range index {
-				updateItem(i, createImageLabel())
-			}
 			program.lists.asset_list.Refresh()
 		}
 		filter.OnChanged = func(s string) {
