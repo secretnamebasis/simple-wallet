@@ -879,6 +879,8 @@ func assetsList() {
 				// rebuild the asset cache
 				buildAssetHashList()
 
+				assets = program.caches.assets
+
 				// for good measure, we'll refresh the list
 				program.lists.asset_list.Refresh()
 				smart_contract_details.Dismiss()
