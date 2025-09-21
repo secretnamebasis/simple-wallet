@@ -66,7 +66,11 @@ func loggedIn() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+
 		// start sync with DERO history
+		if program.wallet == nil {
+			return
+		}
 		program.wallet.SyncHistory(crypto.ZEROHASH)
 		// pull the assets list and build the cache
 		buildAssetHashList()
@@ -111,6 +115,9 @@ func loggedIn() {
 				capacity_channel <- new_job
 
 				// there is no-deduplication, de-duplicate entries immediately after
+				if program.wallet == nil {
+					return
+				}
 				program.wallet.SyncHistory(hash)
 
 				// measure how long that took
@@ -119,6 +126,9 @@ func loggedIn() {
 				// let's make sure there are no duplicate entries after we have synced
 
 				// get the entries
+				if program.wallet == nil {
+					return
+				}
 				entries := program.wallet.GetAccount().EntriesNative[hash]
 
 				// make a seen map
@@ -141,6 +151,9 @@ func loggedIn() {
 					}
 				}
 				// load the deduped entries into the wallet's hash map
+				if program.wallet == nil {
+					return
+				}
 				program.wallet.GetAccount().EntriesNative[hash] = deduped
 
 				// mark this one as completed
