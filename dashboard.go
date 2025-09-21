@@ -858,9 +858,7 @@ func assetsList() {
 			address.SetPlaceHolder("receiver address: dero...")
 			lay := &twoThirds{}
 			lay.Orientation = fyne.TextAlignTrailing
-			send := container.New(lay,
-				balance, address,
-			)
+			send := container.New(lay, balance, address)
 			content := container.NewVBox(
 				container.NewCenter(scid_hyperlink),
 				contain,
