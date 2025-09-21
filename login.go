@@ -205,14 +205,6 @@ func loggedIn() {
 		program.containers.send.Hide()
 	}
 
-	// set keys
-	program.entries.seed.SetText(program.wallet.GetSeed())
-	program.entries.secret.SetText(program.wallet.Get_Keys().Secret.Text(16))
-	program.entries.public.SetText(program.wallet.Get_Keys().Public.StringHex())
-	// lock down keys
-	program.entries.seed.Disable()
-	program.entries.secret.Disable()
-
 	// hide login and notice
 	program.hyperlinks.login.Hide()
 	program.labels.notice.Hide()

@@ -64,24 +64,48 @@ func keys() {
 				showError(errors.New("wrong password"))
 				return
 			} else { // if they get it right
-
-				// here is a scroll window
-				scrollwindow := container.NewScroll(
-					container.NewVBox(
-						// here is the seed phrase
-						program.labels.seed, program.entries.seed,
-
-						// here is the public key
-						program.labels.public, program.entries.public,
-
-						// here is the secret key
-						program.labels.secret, program.entries.secret,
-					),
+				headers := []string{
+					"SEED PHRASE",
+					"SECRET KEY",
+					"PUBLIC KEY",
+				}
+				data := []string{
+					program.wallet.GetSeed(),
+					program.wallet.Get_Keys().Secret.Text(16),
+					program.wallet.Get_Keys().Public.StringHex(),
+				}
+				table := widget.NewTable(
+					func() (rows int, cols int) { return 3, 2 },
+					func() fyne.CanvasObject { return widget.NewLabel("") },
+					func(tci widget.TableCellID, co fyne.CanvasObject) {
+						label := co.(*widget.Label)
+						switch tci.Col {
+						case 0:
+							label.SetText(headers[tci.Row])
+						case 1:
+							label.SetText(data[tci.Row])
+							if tci.Row == 0 {
+								label.Wrapping = fyne.TextWrapWord
+							}
+						}
+					},
 				)
-				// let's make a dialog window with all the keys included
-				keys := dialog.NewCustom("Keys", dismiss, scrollwindow, program.window)
 
-				keys.Resize(program.size)
+				table.SetColumnWidth(0, largestMinSize(headers).Width)
+				table.SetRowHeight(0, 75)
+				table.SetColumnWidth(1, largestMinSize(data[1:]).Width)
+				table.Refresh()
+				table.OnSelected = func(id widget.TableCellID) {
+					if id.Col > 0 {
+						program.application.Clipboard().SetContent(data[id.Row])
+						showInfoFast("Copied", "Copied "+headers[id.Row], program.window)
+					}
+				}
+
+				// let's make a dialog window with all the keys included
+				keys := dialog.NewCustom("Keys", dismiss, table, program.window)
+				size := fyne.NewSize(((program.size.Width / 10) * 8), ((program.size.Height / 2) * 1))
+				keys.Resize(size)
 				keys.Show()
 				return
 			}
