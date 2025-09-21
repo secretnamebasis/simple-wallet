@@ -45,7 +45,7 @@ func create() {
 	program.hyperlinks.save.Alignment = fyne.TextAlignCenter
 	program.hyperlinks.save.OnTapped = save
 
-	new_account.Resize(program.size)
+	new_account.Resize(fyne.NewSize(program.size.Width/3, program.size.Height/3))
 	new_account.Show()
 }
 
@@ -92,7 +92,7 @@ func register() *fyne.Container {
 	program.buttons.register.OnTapped = registration
 
 	// and here is the simple registration container
-	return container.NewAdaptiveGrid(3,
+	return container.NewVBox(
 		program.activities.registration,
 		program.buttons.register,
 		program.labels.counter,

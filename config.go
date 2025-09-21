@@ -53,13 +53,19 @@ func configs() *fyne.Container {
 	return container.NewVBox(
 		program.containers.topbar,
 		layout.NewSpacer(),
-		container.NewVBox(program.buttons.simulator),
-		container.NewVBox(program.buttons.connections),
-		container.NewVBox(program.buttons.rpc_server),
-		container.NewVBox(program.buttons.update_password),
+		container.NewAdaptiveGrid(3,
+			layout.NewSpacer(),
+			container.NewVBox(
+				program.buttons.simulator,
+				program.buttons.connections,
+				program.buttons.rpc_server,
+				program.buttons.update_password,
+			),
+			layout.NewSpacer(),
+		),
+		layout.NewSpacer(),
 		// container.NewVBox(program.buttons.tx_priority),
 		// container.NewVBox(program.buttons.ringsize),
-		layout.NewSpacer(),
 		program.containers.bottombar,
 	)
 }
@@ -179,13 +185,12 @@ func maintain_connection() {
 				program.labels.connection.SetText("NODE: 🟢")
 
 				// obviously registration is different
-				if !program.buttons.register.Visible() &&
-					!program.activities.registration.Visible() &&
-					!program.wallet.IsRegistered() {
-
-					// and let them register
-					program.buttons.register.Show()
-					program.buttons.register.Enable()
+				if program.preferences.Bool("loggedIn") {
+					if !program.wallet.IsRegistered() && !program.activities.registration.Visible() {
+						// and let them register
+						program.buttons.register.Show()
+						program.buttons.register.Enable()
+					}
 				}
 			})
 
@@ -332,7 +337,15 @@ func connections() {
 	program.toggles.network.Options = options
 
 	program.toggles.network.OnChanged = changed
-	if program.toggles.network.Selected == "" {
+
+	switch program.toggles.network.Selected {
+	case "mainnet":
+		table.Show()
+	case "testnet":
+		table.Hide()
+	case "simulator":
+		table.Hide()
+	default:
 		program.toggles.network.SetSelected("mainnet")
 	}
 

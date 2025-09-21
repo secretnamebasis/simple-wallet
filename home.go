@@ -88,7 +88,7 @@ USE ONLY FOR TESTING & EVALUATION PURPOSES
 			3,
 			layout.NewSpacer(),
 
-			container.NewCenter(program.containers.register),
+			program.containers.register,
 
 			layout.NewSpacer(),
 		),
