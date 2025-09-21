@@ -40,7 +40,7 @@ func loggedIn() {
 
 	// set the sync into a splash dialog
 	splash := dialog.NewCustomWithoutButtons("Opening Wallet", syncro, program.window)
-	splash.Resize(program.size)
+	splash.Resize(fyne.NewSize(program.size.Width/3, program.size.Height/3))
 	splash.Show()
 
 	// turn network on
@@ -294,18 +294,14 @@ func loginFunction() {
 	// this will be our simple login container
 	login_screen := container.NewVBox(
 		layout.NewSpacer(),
-		container.NewAdaptiveGrid(3,
-			layout.NewSpacer(),
-			container.NewVBox(
+		container.NewVBox(
 
-				container.NewVBox(program.entries.wallet),
-				program.entries.pass,
-				container.NewAdaptiveGrid(2,
-					container.NewCenter(program.hyperlinks.create),
-					container.NewCenter(program.hyperlinks.restore),
-				),
+			container.NewVBox(program.entries.wallet),
+			program.entries.pass,
+			container.NewAdaptiveGrid(2,
+				container.NewCenter(program.hyperlinks.create),
+				container.NewCenter(program.hyperlinks.restore),
 			),
-			layout.NewSpacer(),
 		),
 		layout.NewSpacer(),
 	)
@@ -352,6 +348,6 @@ func loginFunction() {
 	program.dialogues.login = dialog.NewCustomConfirm("", "login", dismiss,
 		login_screen, open_wallet, program.window,
 	)
-	program.dialogues.login.Resize(program.size)
+	program.dialogues.login.Resize(fyne.NewSize(program.size.Width/3, program.size.Height/3))
 	program.dialogues.login.Show()
 }
