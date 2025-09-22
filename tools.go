@@ -64,7 +64,6 @@ func tools() *fyne.Container {
 		program.buttons.contract_installer,
 		program.buttons.contract_interactor,
 	)
-	// Wrap them in a responsive container
 	program.containers.toolbox = toolButtons
 
 	// and now, let's hide them
