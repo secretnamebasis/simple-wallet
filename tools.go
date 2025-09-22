@@ -72,7 +72,11 @@ func tools() *fyne.Container {
 	return container.NewVBox(
 		program.containers.topbar,
 		layout.NewSpacer(),
-		program.containers.toolbox,
+		container.NewAdaptiveGrid(3,
+			layout.NewSpacer(),
+			program.containers.toolbox,
+			layout.NewSpacer(),
+		),
 		layout.NewSpacer(),
 		program.containers.bottombar,
 	)
