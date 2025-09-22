@@ -52,23 +52,20 @@ func tools() *fyne.Container {
 	program.buttons.contract_interactor.OnTapped = interaction
 
 	// and then set them
-	toolButtons := []fyne.CanvasObject{
-		container.NewVBox(program.buttons.filesign),
-		container.NewVBox(program.buttons.integrated),
-		container.NewVBox(program.buttons.self_encrypt_decrypt),
-		container.NewVBox(program.buttons.recipient_encrypt_decrypt),
-		container.NewVBox(program.buttons.token_add),
-		container.NewVBox(program.buttons.balance_rescan),
-		container.NewVBox(program.buttons.asset_scan),
-		container.NewVBox(program.buttons.explorer),
-		container.NewVBox(program.buttons.contract_installer),
-		container.NewVBox(program.buttons.contract_interactor),
-	}
-
-	// Wrap them in a responsive container
-	program.containers.toolbox = container.New(&responsiveGrid{},
-		toolButtons...,
+	toolButtons := container.New(&responsiveGrid{},
+		program.buttons.filesign,
+		program.buttons.integrated,
+		program.buttons.self_encrypt_decrypt,
+		program.buttons.recipient_encrypt_decrypt,
+		program.buttons.token_add,
+		program.buttons.balance_rescan,
+		program.buttons.asset_scan,
+		program.buttons.explorer,
+		program.buttons.contract_installer,
+		program.buttons.contract_interactor,
 	)
+	// Wrap them in a responsive container
+	program.containers.toolbox = toolButtons
 
 	// and now, let's hide them
 	program.containers.toolbox.Hide()
