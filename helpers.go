@@ -503,7 +503,6 @@ func getTransaction(params rpc.GetTransaction_Params) rpc.GetTransaction_Result 
 
 	// call for the contract
 	if err := rpcClient.CallFor(ctx, &result, method, params); err != nil {
-		fmt.Println(err)
 		return rpc.GetTransaction_Result{}
 	}
 	// the code needs to be present
@@ -528,7 +527,6 @@ func getBlockInfo(params rpc.GetBlock_Params) rpc.GetBlock_Result {
 
 	// call for the contract
 	if err := rpcClient.CallFor(ctx, &result, method, params); err != nil {
-		fmt.Println(err)
 		return rpc.GetBlock_Result{}
 	}
 	// the code needs to be present
@@ -553,7 +551,6 @@ func getTxPool() rpc.GetTxPool_Result {
 
 	// call for the contract
 	if err := rpcClient.CallFor(ctx, &pool, method); err != nil {
-		fmt.Println(err)
 		return rpc.GetTxPool_Result{}
 	}
 	// the code needs to be present
@@ -577,7 +574,6 @@ func getDaemonInfo() rpc.GetInfo_Result {
 
 	// call for the contract
 	if err := rpcClient.CallFor(ctx, &info, method); err != nil {
-		fmt.Println(err)
 		return rpc.GetInfo_Result{}
 	}
 	// the code needs to be present
