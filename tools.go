@@ -1953,7 +1953,7 @@ func explorer() {
 				l.SetText(text)
 				l.Refresh()
 				if id.Row < len(searchHeaders) && (searchHeaders[id.Row] == "SC CODE" || searchHeaders[id.Row] == "SC ARGS") {
-					sizing := l.MinSize().Height
+					sizing := l.MinSize().Height + (theme.Padding() * 2)
 					results_table.SetRowHeight(id.Row, sizing)
 					l.Refresh()
 				}
