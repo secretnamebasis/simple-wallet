@@ -138,6 +138,7 @@ Please do not leave this page.
 		600,
 	),
 }
+var password_size = fyne.NewSize(program.size.Width/3, program.size.Height/4)
 
 // it would be ideal to have... like 20, or a callable list
 var node_list = []struct {

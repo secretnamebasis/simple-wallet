@@ -161,6 +161,7 @@ func filesign() {
 
 		// set the content and the callback
 		fs = dialog.NewForm("Sign File?", confirm, dismiss, content, callback, program.window)
+		fs.Resize(password_size)
 		fs.Show()
 	}
 
@@ -268,6 +269,7 @@ func filesign() {
 
 		// set the content and the callback
 		v = dialog.NewForm("Verify File?", confirm, dismiss, content, callback, program.window)
+		v.Resize(password_size)
 		v.Show()
 	}
 
@@ -380,6 +382,7 @@ func self_crypt() {
 
 		// set the content and the callback
 		e = dialog.NewForm("Encrypt File?", confirm, dismiss, content, callback, program.window)
+		e.Resize(password_size)
 		e.Show()
 	}
 	// now set the on tapped
@@ -469,6 +472,7 @@ func self_crypt() {
 
 		// set the content and the callback
 		d = dialog.NewForm("Decrypt File?", confirm, dismiss, content, callback, program.window)
+		d.Resize(password_size)
 		d.Show()
 	}
 
@@ -601,6 +605,7 @@ func recipient_crypt() {
 
 		// set the content and the callback
 		e = dialog.NewForm("Encrypt File?", confirm, dismiss, content, callback, program.window)
+		e.Resize(password_size)
 		e.Show()
 	}
 	// set the function
@@ -701,6 +706,7 @@ func recipient_crypt() {
 
 		// set callback and content
 		d = dialog.NewForm("Decrypt File?", confirm, dismiss, content, callback, program.window)
+		d.Resize(password_size)
 		d.Show()
 	}
 
@@ -2319,6 +2325,7 @@ func installer() {
 
 		// put a window in a window...
 		ic = dialog.NewCustomConfirm("Confirm Password", confirm, dismiss, program.entries.pass, callback, program.window)
+		ic.Resize(password_size)
 		ic.Show()
 	}
 
@@ -2807,6 +2814,7 @@ func interaction() {
 
 			// load it to the main window
 			ci = dialog.NewCustomConfirm("Confirm Password", confirm, dismiss, splash, callback, program.window)
+			ci.Resize(password_size)
 			ci.Show()
 		}
 

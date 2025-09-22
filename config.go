@@ -660,7 +660,7 @@ func passwordUpdate() {
 		update = dialog.NewCustom("update password", dismiss, content, program.window)
 
 		// resize and show it
-		update.Resize(program.size)
+		update.Resize(password_size)
 		update.Show()
 
 	}

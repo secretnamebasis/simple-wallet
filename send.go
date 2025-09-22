@@ -655,7 +655,7 @@ func conductTransfer() {
 	t = dialog.NewForm("Password Confirmation", confirm, "Cancel", content, callback, program.window)
 
 	// resize and show
-	t.Resize(program.size)
+	t.Resize(password_size)
 	t.Show()
 }
 
