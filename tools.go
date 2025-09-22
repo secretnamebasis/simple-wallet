@@ -151,8 +151,11 @@ func filesign() {
 				// write the file to disc
 				os.WriteFile(save_path, data, default_file_permissions)
 
+				msg := "File successfully signed\n\n" +
+					"Located in " + save_path
+
 				// notify the user
-				showInfo("Filesign", "File successfully signed")
+				showInfo("Filesign", msg)
 
 			}
 		}
