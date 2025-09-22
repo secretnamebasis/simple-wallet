@@ -1616,6 +1616,12 @@ func explorer() {
 
 					searchHeaders = append(searchHeaders, search_headers_sc_body...)
 
+					var ring_members []string
+
+					for _, each := range r.Txs[0].Ring {
+						ring_members = append(ring_members, each...)
+					}
+
 					searchData = append(searchData, []string{
 						fmt.Sprintf("%x", tx.BLID),
 						fmt.Sprintf("%x", tx.Payloads[0].Statement.Roothash[:]),
@@ -1629,14 +1635,14 @@ func explorer() {
 						strconv.Itoa(int(tx.Version)),
 						strconv.Itoa(int(block_info.Block_Header.Depth)),
 						"DERO_HOMOMORPHIC",
-						strconv.Itoa(len(r.Txs[0].Ring[0])),
+						strconv.Itoa(len(ring_members)),
 						r.Txs[0].Signer,
 						"RING MEMBERS",
 					}...)
-					for range r.Txs[0].Ring[0] {
+					for range ring_members {
 						searchHeaders = append(searchHeaders, "")
 					}
-					searchData = append(searchData, r.Txs[0].Ring[0]...)
+					searchData = append(searchData, ring_members...)
 					searchHeaders = append(searchHeaders, "SC BALANCE") // in DERO
 					searchData = append(searchData, rpc.FormatMoney(sc.Balance))
 
