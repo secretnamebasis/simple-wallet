@@ -277,12 +277,8 @@ func filesign() {
 	verify.OnTapped = onTapped
 
 	// now let's make another notice
-	notice := "filesign and fileverify are novel DERO features. "
-	notice += "filesign allows users to sign data in a verifiable way. "
-	notice += "fileverify allows users to verify data was signed by another user."
-
-	// load the notice into a label
-	label := makeCenteredWrappedLabel(notice)
+	filesign := "filesign creates `.signed` files."
+	fileverify := "fileverify verifies `.signed` data."
 
 	// let's load all the widgets into a container inside a dialog
 	content := container.NewVBox(
@@ -292,14 +288,15 @@ func filesign() {
 			container.NewCenter(sign),
 			container.NewCenter(verify),
 		),
-		label,
+		widget.NewRichTextFromMarkdown(filesign),
+		widget.NewRichTextFromMarkdown(fileverify),
 		layout.NewSpacer(),
 	)
 
 	file := dialog.NewCustom("filesign/fileverify", dismiss, content, program.window)
 
 	//resize and show
-	file.Resize(program.size)
+	file.Resize(fyne.NewSize(program.size.Width/3, program.size.Height/2))
 	file.Show()
 }
 func self_crypt() {
