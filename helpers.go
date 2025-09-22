@@ -950,7 +950,7 @@ func showInfoFast(t, m string, w fyne.Window) {
 	s := dialog.NewInformation(t, m, w)
 	s.Show()
 	go func() {
-		time.Sleep(time.Millisecond * 500)
+		time.Sleep(time.Millisecond * 800)
 		fyne.DoAndWait(func() {
 			s.Dismiss()
 		})
