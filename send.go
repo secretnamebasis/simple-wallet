@@ -536,7 +536,7 @@ func conductTransfer() {
 		content := container.NewVBox(notice, container.NewCenter(sync))
 		// set it to a new dialog screen and show
 		transact := dialog.NewCustomWithoutButtons("Transaction Dispatched", content, program.window)
-		transact.Resize(program.size)
+		// transact.Resize(program.size)
 		transact.Show()
 		var retries int
 		go func() {
@@ -655,7 +655,7 @@ func conductTransfer() {
 	t = dialog.NewForm("Password Confirmation", confirm, "Cancel", content, callback, program.window)
 
 	// resize and show
-	t.Resize(program.size)
+	t.Resize(password_size)
 	t.Show()
 }
 

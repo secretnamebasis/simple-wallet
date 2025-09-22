@@ -53,7 +53,7 @@ func loggedIn() {
 	program.hyperlinks.address.SetText(truncator(address))
 	program.hyperlinks.address.OnTapped = func() {
 		program.application.Clipboard().SetContent(address)
-		showInfo("", "address copied to clipboard")
+		showInfoFast("", "Address copied to clipboard", program.window)
 	}
 
 	// update preferences
@@ -219,6 +219,7 @@ func loggedIn() {
 	program.hyperlinks.logout.Show()
 	program.hyperlinks.lockscreen.Show()
 	program.hyperlinks.address.Show()
+	program.hyperlinks.generate.Show()
 
 	// show buttons
 	program.buttons.rpc_server.Show()

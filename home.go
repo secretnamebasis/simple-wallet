@@ -1,11 +1,16 @@
 package main
 
 import (
+	"math/rand"
+	"strconv"
+	"time"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
+	"github.com/deroproject/derohe/rpc"
 )
 
 func home() *fyne.Container {
@@ -51,7 +56,20 @@ USE ONLY FOR TESTING & EVALUATION PURPOSES
 	program.labels.balance.TextStyle = fyne.TextStyle{
 		Monospace: true,
 	}
-
+	program.hyperlinks.generate.OnTapped = func() {
+		addr, _ := rpc.NewAddress(program.wallet.GetAddress().String())
+		rand.NewSource(time.Now().UnixNano())
+		n := rand.Intn(100000000)
+		addr.Arguments = rpc.Arguments{
+			rpc.Argument{
+				Name:     rpc.RPC_DESTINATION_PORT,
+				DataType: rpc.DataString,
+				Value:    strconv.Itoa(n),
+			},
+		}
+		program.application.Clipboard().SetContent(addr.String())
+		showInfoFast("Copied", truncator(addr.String())+"\ncopied to clipboard", program.window)
+	}
 	main_ui := container.NewVBox(
 		program.containers.topbar,
 		layout.NewSpacer(),
@@ -67,13 +85,18 @@ USE ONLY FOR TESTING & EVALUATION PURPOSES
 		container.NewAdaptiveGrid(
 			3,
 			layout.NewSpacer(),
-			container.NewAdaptiveGrid(
-				2,
-				container.NewCenter(
-					program.hyperlinks.address,
-				),
+			container.NewVBox(
 				container.NewCenter(
 					program.labels.balance,
+				),
+				container.NewAdaptiveGrid(
+					2,
+					container.NewCenter(
+						program.hyperlinks.address,
+					),
+					container.NewCenter(
+						program.hyperlinks.generate,
+					),
 				),
 			),
 			layout.NewSpacer(),

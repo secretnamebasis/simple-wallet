@@ -96,6 +96,7 @@ func initialize() {
 	// but let's hide them for a moment
 	program.labels.address.Hide()
 	program.hyperlinks.address.Hide()
+	program.hyperlinks.generate.Hide()
 	program.labels.balance.Hide()
 
 	// let's make a simple dashboard

@@ -82,7 +82,7 @@ var program = components{
 		lockscreen: widget.NewHyperlink(" 🔒", nil),
 		unlock:     widget.NewHyperlink("unlock", nil),
 		create:     widget.NewHyperlink("create", nil),
-		generate:   widget.NewHyperlink("generate", nil),
+		generate:   widget.NewHyperlink("generate address", nil),
 		restore:    widget.NewHyperlink("restore wallet", nil),
 		address:    widget.NewHyperlink("address", nil),
 		login:      widget.NewHyperlink("login", nil),
@@ -138,6 +138,7 @@ Please do not leave this page.
 		600,
 	),
 }
+var password_size = fyne.NewSize(program.size.Width/3, program.size.Height/4)
 
 // it would be ideal to have... like 20, or a callable list
 var node_list = []struct {
