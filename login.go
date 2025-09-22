@@ -72,6 +72,9 @@ func loggedIn() {
 			return
 		}
 		program.wallet.SyncHistory(crypto.ZEROHASH)
+		// and while we are at it, notify me every time a new entry comes in
+		go notificationNewEntry()
+
 		// pull the assets list and build the cache
 		buildAssetHashList()
 		fyne.DoAndWait(func() {
@@ -183,9 +186,6 @@ func loggedIn() {
 
 	// save wallet every second
 	go isLoggedIn()
-
-	// and while we are at it, notify me every time a new entry comes in
-	go notificationNewEntry()
 
 	// check for registration
 	if program.wallet.Wallet_Memory.IsRegistered() {
