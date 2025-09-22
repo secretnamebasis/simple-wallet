@@ -71,9 +71,10 @@ func loggedIn() {
 		if program.wallet == nil {
 			return
 		}
-		program.wallet.SyncHistory(crypto.ZEROHASH)
 		// and while we are at it, notify me every time a new entry comes in
 		go notificationNewEntry()
+
+		program.wallet.SyncHistory(crypto.ZEROHASH)
 
 		// pull the assets list and build the cache
 		buildAssetHashList()
