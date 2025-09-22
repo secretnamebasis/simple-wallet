@@ -82,7 +82,7 @@ var program = components{
 		lockscreen: widget.NewHyperlink(" 🔒", nil),
 		unlock:     widget.NewHyperlink("unlock", nil),
 		create:     widget.NewHyperlink("create", nil),
-		generate:   widget.NewHyperlink("generate", nil),
+		generate:   widget.NewHyperlink("generate address", nil),
 		restore:    widget.NewHyperlink("restore wallet", nil),
 		address:    widget.NewHyperlink("address", nil),
 		login:      widget.NewHyperlink("login", nil),

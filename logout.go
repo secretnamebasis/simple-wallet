@@ -90,6 +90,7 @@ func logout() {
 	program.hyperlinks.tools.Hide()
 	program.hyperlinks.lockscreen.Hide()
 	program.hyperlinks.address.Hide()
+	program.hyperlinks.generate.Hide()
 
 	// hide labels
 	program.labels.address.Hide()
