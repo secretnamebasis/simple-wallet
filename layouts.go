@@ -69,7 +69,7 @@ type responsiveGrid struct{}
 
 func (r *responsiveGrid) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 	cols := 1
-	if size.Width >= 600 {
+	if size.Width >= ((program.size.Width / 3) - (theme.Padding() * 2)) {
 		cols = 2
 	}
 
@@ -105,7 +105,7 @@ func (r *responsiveGrid) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 }
 
 func (r *responsiveGrid) MinSize(objects []fyne.CanvasObject) fyne.Size {
-	return fyne.NewSize(300, 300)
+	return fyne.NewSize(program.size.Width/4, program.size.Height/2)
 }
 
 type graph struct {
