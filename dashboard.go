@@ -819,7 +819,7 @@ func assetsList() {
 				program.receiver = addr.BaseAddress().String()
 				// at this point, we should be fairly confident
 				if program.receiver == "" {
-					showError(errors.New("error obtaining receiver"))
+					showError(errors.New("error obtaining receiver"), program.window)
 					return
 				}
 				// also, would make sense to make sure that it is not self
