@@ -88,6 +88,7 @@ func keys() {
 				table.SetColumnWidth(1, largestMinSize(data[1:]).Width)
 				table.Refresh()
 				table.OnSelected = func(id widget.TableCellID) {
+					table.UnselectAll()
 					if id.Col > 0 {
 						program.application.Clipboard().SetContent(data[id.Row])
 						showInfoFast("Copied", "Copied "+headers[id.Row], program.window)
@@ -684,7 +685,7 @@ func assetsList() {
 				table.SetColumnWidth(1, largestMinSize(values).Width)
 				table.Refresh()
 				table.OnSelected = func(id widget.TableCellID) {
-
+					table.UnselectAll()
 					if id.Col > 0 {
 						data := values[id.Row]
 						program.application.Clipboard().SetContent(values[id.Row])
