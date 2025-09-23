@@ -126,14 +126,17 @@ func createPreferred() {
 
 // simple way to check if we are logged in
 func isLoggedIn() {
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(time.Second * 2)
+	var mu sync.Mutex
 	for range ticker.C {
+		mu.Lock()
 		if err := program.wallet.Save_Wallet(); err != nil {
 			fyne.DoAndWait(func() {
 				program.preferences.SetBool("loggedIn", false)
 				program.labels.loggedin.SetText("WALLET: 🔴")
 			})
 		}
+		mu.Unlock()
 	}
 }
 func notificationNewEntry() {
