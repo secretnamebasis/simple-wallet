@@ -50,8 +50,6 @@ func logout() {
 
 			program.labels.loggedin.SetText("WALLET: 🔴")
 
-			program.viewer_window.Close()
-
 			// clear the cache
 			program.caches.assets = []asset{}
 			program.caches.info = rpc.GetInfo_Result{}
