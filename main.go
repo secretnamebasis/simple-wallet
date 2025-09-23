@@ -51,11 +51,11 @@ func run() {
 	program.window = program.application.NewWindow(program.name)
 
 	// and just for fun, let's have a simple viewer window
-	program.viewer_window = program.application.NewWindow(program.name + " | viewer")
+	program.explorer = program.application.NewWindow(program.name + " | viewer")
 
 	// let's size the window, I think this is a nice size
 	program.window.Resize(program.size)
-	program.viewer_window.Resize(program.size)
+	program.explorer.Resize(program.size)
 
 	// let's center it to make things simple
 	program.window.CenterOnScreen()
@@ -109,15 +109,6 @@ func initialize() {
 		explorer := openWalletFile()
 		explorer.Resize(program.size)
 		explorer.Show()
-	})
-
-	// here is a simple way to select a file in general
-	program.dialogues.open = openExplorer()
-
-	// let's make an simple way to open files
-	program.entries.file.ActionItem = widget.NewButtonWithIcon("", theme.FolderOpenIcon(), func() {
-		program.dialogues.open.Resize(program.size)
-		program.dialogues.open.Show()
 	})
 
 	// let's make a simple way to login

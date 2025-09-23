@@ -40,7 +40,7 @@ func send() *fyne.Container {
 		if addr.Arguments.Has(rpc.RPC_NEEDS_REPLYBACK_ADDRESS, rpc.DataUint64) {
 			title := "Notice"
 			msg := "This address is requesting a reply back address to be sent with the transaction"
-			showInfo(title, msg)
+			showInfo(title, msg, program.window)
 		}
 		return nil
 	}
@@ -61,7 +61,7 @@ func sendForm() {
 	// obviously, we can't send to no one,
 	// especially not a non-validated no one
 	if program.entries.recipient.Text == "" {
-		showError(errors.New("cannot send to empty address"))
+		showError(errors.New("cannot send to empty address"), program.window)
 		return
 	}
 
@@ -75,7 +75,7 @@ func sendForm() {
 
 	// if less than 4 char...
 	if len(send_recipient) < 4 {
-		showError(errors.New("cannot be less than 5 char"))
+		showError(errors.New("cannot be less than 5 char"), program.window)
 		return
 	}
 
@@ -97,7 +97,7 @@ func sendForm() {
 			if strings.EqualFold(
 				a, program.wallet.GetAddress().String(),
 			) {
-				showError(errors.New("cannot send to self"))
+				showError(errors.New("cannot send to self"), program.window)
 				return
 			} else {
 				program.receiver = a
@@ -120,7 +120,7 @@ func sendForm() {
 
 		// if they are asking for a specific asset, let's use it
 		if addr.Arguments.Has(rpc.RPC_ASSET, rpc.DataHash) {
-			showError(errors.New("currently unsupported"))
+			showError(errors.New("currently unsupported"), program.window)
 			return
 			// obtain the value interface
 			// value := addr.Arguments.Value(rpc.RPC_ASSET, rpc.DataHash)
@@ -200,20 +200,20 @@ func sendForm() {
 
 	// at this point, we should be fairly confident
 	if program.receiver == "" {
-		showError(errors.New("error obtaining receiver"))
+		showError(errors.New("error obtaining receiver"), program.window)
 		return
 	}
 
 	// also, would make sense to make sure that it is not self
 	if strings.EqualFold(program.receiver, program.wallet.GetAddress().String()) {
-		showError(errors.New("cannot send to self"))
+		showError(errors.New("cannot send to self"), program.window)
 		return
 	}
 
 	// but just to be extra sure...
 	// let's see if the receiver is not registered
 	if !isRegistered(program.receiver) {
-		showError(errors.New("unregistered address"))
+		showError(errors.New("unregistered address"), program.window)
 		return
 	}
 
@@ -226,7 +226,7 @@ func sendForm() {
 	bal := program.wallet.GetAccount().Balance_Mature
 	// and check
 	if bal < 80 {
-		showError(errors.New("balance is too low, please refill wallet"))
+		showError(errors.New("balance is too low, please refill wallet"), program.window)
 		return
 	}
 
@@ -391,7 +391,7 @@ func conductTransfer() {
 			return
 		} else if !passed {
 			// show them that
-			showError(errors.New("wrong password"))
+			showError(errors.New("wrong password"), program.window)
 			return
 		}
 
@@ -407,7 +407,7 @@ func conductTransfer() {
 		// let's parse that amount so that we can work with it
 		flo, err := strconv.ParseFloat(amnt, 64)
 		if err != nil {
-			showError(err)
+			showError(err, program.window)
 		}
 
 		// now let's coerce it into a dero atomic units
@@ -425,7 +425,7 @@ func conductTransfer() {
 			// parse the string to uint
 			dst_uint, err := strconv.ParseUint(dst, 10, 64)
 			if err != nil {
-				showError(err)
+				showError(err, program.window)
 			}
 
 			// and let's append the dst as uint64 to our arguments
@@ -470,7 +470,7 @@ func conductTransfer() {
 		if _, err := args.CheckPack(transaction.PAYLOAD0_LIMIT); err != nil {
 
 			// show error if it can't
-			showError(err)
+			showError(err, program.window)
 			return
 		}
 
@@ -550,7 +550,7 @@ func conductTransfer() {
 			if err != nil {
 
 				// show the error
-				showError(err)
+				showError(err, program.window)
 				// now let's make sure each of these are re-enabled
 
 				return
@@ -568,7 +568,7 @@ func conductTransfer() {
 				} else {
 					fyne.DoAndWait(func() {
 						// if it errors out, show the err
-						showError(err)
+						showError(err, program.window)
 						sync.Stop()
 						transact.Dismiss()
 					})
@@ -581,7 +581,7 @@ func conductTransfer() {
 					if searching.After(start) {
 						sync.Stop()
 						transact.Dismiss()
-						showError(errors.New("manually confirm transfer"))
+						showError(errors.New("manually confirm transfer"), program.window)
 						return
 					}
 					if len(program.caches.pool.Tx_list) > 0 {
@@ -597,7 +597,7 @@ func conductTransfer() {
 								if on_chain.After(in_pool) {
 									sync.Stop()
 									transact.Dismiss()
-									showError(errors.New("manually confirm transfer"))
+									showError(errors.New("manually confirm transfer"), program.window)
 									return
 								}
 								fmt.Println("on chain", on_chain.After(in_pool), on_chain.String(), program.caches.pool.Tx_list, tx.GetHash().String())
@@ -624,7 +624,7 @@ func conductTransfer() {
 										// when tapped, copy to clipboard
 										txid.OnTapped = func() {
 											program.application.Clipboard().SetContent(tx.GetHash().String())
-											showInfo("", "txid copied to clipboard")
+											showInfo("", "txid copied to clipboard", program.window)
 										}
 										fyne.DoAndWait(func() {
 											sync.Stop()

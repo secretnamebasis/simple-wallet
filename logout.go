@@ -50,12 +50,15 @@ func logout() {
 
 			program.labels.loggedin.SetText("WALLET: 🔴")
 
-			program.viewer_window.Close()
-
 			// clear the cache
 			program.caches.assets = []asset{}
 			program.caches.info = rpc.GetInfo_Result{}
 			program.caches.pool = rpc.GetTxPool_Result{}
+
+			// close windows if any
+			program.encryption.Close()
+			program.contracts.Close()
+			program.explorer.Close()
 
 		}
 	}
@@ -100,6 +103,7 @@ func logout() {
 	program.buttons.rpc_server.Hide()
 	program.buttons.update_password.Hide()
 	program.buttons.assets.Hide()
+	program.buttons.balance_rescan.Hide()
 
 	// show labels
 	program.labels.notice.Show()

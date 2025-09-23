@@ -50,6 +50,10 @@ func configs() *fyne.Container {
 
 	program.buttons.simulator.OnTapped = simulator
 
+	program.buttons.balance_rescan.OnTapped = balance_rescan
+
+	program.buttons.balance_rescan.Hide()
+
 	return container.NewVBox(
 		program.containers.topbar,
 		layout.NewSpacer(),
@@ -59,6 +63,7 @@ func configs() *fyne.Container {
 				program.buttons.simulator,
 				program.buttons.connections,
 				program.buttons.rpc_server,
+				program.buttons.balance_rescan,
 				program.buttons.update_password,
 			),
 			layout.NewSpacer(),
@@ -152,7 +157,7 @@ func maintain_connection() {
 					fyne.DoAndWait(func() {
 
 						// then notify the user
-						showError(err)
+						showError(err, program.window)
 						// update the label
 						program.labels.connection.SetText("NODE: 🔴")
 						program.labels.height.SetText("BLOCK: 0000000")
@@ -160,8 +165,6 @@ func maintain_connection() {
 						program.entries.recipient.Disable()
 						program.buttons.token_add.Disable()
 						program.buttons.balance_rescan.Disable()
-						program.buttons.contract_installer.Disable()
-						program.buttons.contract_interactor.Disable()
 					})
 
 					// and if we are logged in, update to offline mode
@@ -208,8 +211,6 @@ func maintain_connection() {
 					program.entries.recipient.Enable()
 					program.buttons.token_add.Enable()
 					program.buttons.balance_rescan.Enable()
-					program.buttons.contract_installer.Enable()
-					program.buttons.contract_interactor.Enable()
 				})
 				// the above love to bark on signal interrupts
 			}
@@ -364,7 +365,7 @@ func connections() {
 	save.OnTapped = func() {
 		// obviously...
 		if form_entry.Text == "" {
-			showError(errors.New("cannot be empty"))
+			showError(errors.New("cannot be empty"), program.window)
 			return
 		}
 		endpoint := form_entry.Text
@@ -372,7 +373,7 @@ func connections() {
 
 		// test the connection point
 		if err := testConnection(endpoint); err != nil {
-			showError(err)
+			showError(err, program.window)
 			return
 		}
 		program.node.list[0] = struct {
@@ -382,16 +383,16 @@ func connections() {
 
 		file, err := os.Create("preferred")
 		if err != nil {
-			showError(err)
+			showError(err, program.window)
 			return
 		}
 		if _, err := io.WriteString(file, endpoint); err != nil {
-			showError(err)
+			showError(err, program.window)
 			return
 		}
 		path, _ := filepath.Abs(file.Name())
 
-		showInfo("Saved Preferred", "node endpoint saved to "+path)
+		showInfo("Saved Preferred", "node endpoint saved to "+path, program.window)
 		table.Refresh()
 	}
 	// make a way for them to set the node endpoint
@@ -403,7 +404,7 @@ func connections() {
 
 		// obviously...
 		if form_entry.Text == "" {
-			showError(errors.New("cannot be empty"))
+			showError(errors.New("cannot be empty"), program.window)
 			return
 		}
 
@@ -412,13 +413,13 @@ func connections() {
 
 		// test the connection point
 		if err := testConnection(endpoint); err != nil {
-			showError(err)
+			showError(err, program.window)
 			return
 		}
 
 		// attempt to connect
 		if err := walletapi.Connect(endpoint); err != nil {
-			showError(err)
+			showError(err, program.window)
 			return
 		} else {
 			// tell the user how cool they are
@@ -520,7 +521,7 @@ func rpc_server() {
 			// now we'll label this server with the application's Unique ID
 			program.rpc_server, err = rpcserver.RPCServer_Start(program.wallet, program.application.UniqueID())
 			if err != nil {
-				showError(err)
+				showError(err, program.window)
 				return
 			}
 
@@ -607,7 +608,7 @@ func passwordUpdate() {
 
 		// check the password
 		if ok := program.wallet.Check_Password(password); !ok {
-			showError(errors.New("wrong password"))
+			showError(errors.New("wrong password"), program.window)
 			return
 		}
 
@@ -631,7 +632,7 @@ func passwordUpdate() {
 
 			// if there is an error
 			if err != nil {
-				showError(err)
+				showError(err, program.window)
 				return
 			} else { // otherwise
 				update.Dismiss() // close the password dialog

@@ -53,7 +53,7 @@ func keys() {
 			// check the password for all sensitive actions
 			if !program.wallet.Check_Password(program.entries.pass.Text) {
 				// if they get is wrong, tell them
-				showError(errors.New("wrong password"))
+				showError(errors.New("wrong password"), program.window)
 				return
 			} else { // if they get it right
 				headers := []string{
@@ -88,6 +88,7 @@ func keys() {
 				table.SetColumnWidth(1, largestMinSize(data[1:]).Width)
 				table.Refresh()
 				table.OnSelected = func(id widget.TableCellID) {
+					table.UnselectAll()
 					if id.Col > 0 {
 						program.application.Clipboard().SetContent(data[id.Row])
 						showInfoFast("Copied", "Copied "+headers[id.Row], program.window)
@@ -117,7 +118,7 @@ func keys() {
 }
 func txList() {
 	// here are all the sent entries
-	s_entries := getSentTransfers()
+	s_entries := getSentTransfers(crypto.ZEROHASH)
 
 	sort.Slice(s_entries, func(i, j int) bool {
 		return s_entries[i].Height > s_entries[j].Height
@@ -214,7 +215,7 @@ func txList() {
 	}
 	sent.OnSelected = onSelected
 	// here are all the entries
-	r_entries := getReceivedTransfers()
+	r_entries := getReceivedTransfers(crypto.ZEROHASH)
 
 	sort.Slice(r_entries, func(i, j int) bool {
 		return r_entries[i].Height > r_entries[j].Height
@@ -316,7 +317,7 @@ func txList() {
 	received.OnSelected = onSelected
 
 	// here are all the coinbase entries
-	c_entries := getCoinbaseTransfers()
+	c_entries := getCoinbaseTransfers(crypto.ZEROHASH)
 
 	sort.Slice(c_entries, func(i, j int) bool {
 		return c_entries[i].Height > c_entries[j].Height
@@ -426,7 +427,7 @@ func txList() {
 
 		switch tabs.Selected().Text {
 		case "Sent":
-			s := getSentTransfers()
+			s := getSentTransfers(crypto.ZEROHASH)
 			sort.Slice(s, func(i, j int) bool {
 				return s[i].Height > s[j].Height
 			})
@@ -442,7 +443,7 @@ func txList() {
 			}
 			sent.Refresh()
 		case "Received":
-			r := getReceivedTransfers()
+			r := getReceivedTransfers(crypto.ZEROHASH)
 			sort.Slice(r, func(i, j int) bool {
 				return r[i].Height > r[j].Height
 			})
@@ -458,7 +459,7 @@ func txList() {
 			}
 			received.Refresh()
 		case "Coinbase":
-			c := getCoinbaseTransfers()
+			c := getCoinbaseTransfers(crypto.ZEROHASH)
 			sort.Slice(c, func(i, j int) bool {
 				return c[i].Height > c[j].Height
 			})
@@ -482,9 +483,21 @@ func txList() {
 	}
 
 	tabs = container.NewAppTabs(
-		container.NewTabItem("Sent", container.NewBorder(search_entry, nil, nil, nil, sent)),
-		container.NewTabItem("Received", container.NewBorder(search_entry, nil, nil, nil, received)),
-		container.NewTabItem("Coinbase", container.NewBorder(search_entry, nil, nil, nil, coinbase)),
+		container.NewTabItem("Sent", container.NewBorder(
+			container.NewAdaptiveGrid(3, layout.NewSpacer(), search_entry, layout.NewSpacer()),
+			nil, nil, nil,
+			sent,
+		)),
+		container.NewTabItem("Received", container.NewBorder(
+			container.NewAdaptiveGrid(3, layout.NewSpacer(), search_entry, layout.NewSpacer()),
+			nil, nil, nil,
+			received,
+		)),
+		container.NewTabItem("Coinbase", container.NewBorder(
+			container.NewAdaptiveGrid(3, layout.NewSpacer(), search_entry, layout.NewSpacer()),
+			nil, nil, nil,
+			coinbase,
+		)),
 	)
 	tabs.SetTabLocation(container.TabLocationLeading)
 	tabs.OnSelected = func(ti *container.TabItem) {
@@ -510,6 +523,8 @@ func assetsList() {
 			layout.NewSpacer(),
 		)
 	} else {
+		program.buttons.asset_scan.OnTapped = asset_scan
+
 		assets := program.caches.assets
 
 		program.lists.asset_list.HideSeparators = true
@@ -543,7 +558,7 @@ func assetsList() {
 					i := setSCIDThumbnail(asset.image, h, w)
 					err := jpeg.Encode(buf, i, nil)
 					if err != nil {
-						showError(err)
+						showError(err, program.window)
 					}
 					b := buf.Bytes()
 					img.Resource = fyne.NewStaticResource("", b)
@@ -684,11 +699,11 @@ func assetsList() {
 				table.SetColumnWidth(1, largestMinSize(values).Width)
 				table.Refresh()
 				table.OnSelected = func(id widget.TableCellID) {
-
+					table.UnselectAll()
 					if id.Col > 0 {
 						data := values[id.Row]
 						program.application.Clipboard().SetContent(values[id.Row])
-						showInfo("", data+" copied to clipboard")
+						showInfo("", data+" copied to clipboard", program.window)
 					}
 				}
 
@@ -706,7 +721,7 @@ func assetsList() {
 			scid_hyperlink := widget.NewHyperlink(scid, nil)
 			scid_hyperlink.OnTapped = func() {
 				program.application.Clipboard().SetContent(scid)
-				showInfo("", scid+" copied to clipboard")
+				showInfo("", scid+" copied to clipboard", program.window)
 			}
 			img := canvas.NewImageFromImage(setSCIDThumbnail(asset.image, float32(250), float32(250)))
 			img.FillMode = canvas.ImageFillOriginal
@@ -756,25 +771,25 @@ func assetsList() {
 			callback := func() {
 				fl, err := strconv.ParseFloat(balance.Text, 64)
 				if err != nil {
-					showError(err)
+					showError(err, program.window)
 					return
 				}
 
 				if fl < 0 {
-					showError(errors.New("cannot send less than zero"))
+					showError(errors.New("cannot send less than zero"), program.window)
 					return
 				}
 
 				amount := uint64(fl * atomic_units)
 				if amount == 0 {
-					showError(errors.New("cannot send zero"))
+					showError(errors.New("cannot send zero"), program.window)
 					return
 				}
 
 				// obviously, we can't send to no one,
 				// especially not a non-validated no one
 				if address.Text == "" {
-					showError(errors.New("cannot send to empty address"))
+					showError(errors.New("cannot send to empty address"), program.window)
 					return
 				}
 
@@ -788,7 +803,7 @@ func assetsList() {
 
 				// if less than 4 char...
 				if len(send_recipient) < 4 {
-					showError(errors.New("cannot be less than 5 char"))
+					showError(errors.New("cannot be less than 5 char"), program.window)
 					return
 				}
 
@@ -807,37 +822,44 @@ func assetsList() {
 						if strings.EqualFold(
 							a, program.wallet.GetAddress().String(),
 						) {
-							showError(errors.New("cannot send to self"))
+							showError(errors.New("cannot send to self"), program.window)
 							return
 						} else {
+							addr, err = rpc.NewAddress(a)
+							if err != nil {
+								// now what's going on here?
+							}
 							program.receiver = a
 						}
 					}
 				}
 				// now if the address is an integrated address...
-				program.receiver = addr.BaseAddress().String()
+				if addr.IsIntegratedAddress() {
+					program.receiver = addr.BaseAddress().String()
+				}
+
 				// at this point, we should be fairly confident
 				if program.receiver == "" {
-					showError(errors.New("error obtaining receiver"))
+					showError(errors.New("error obtaining receiver"), program.window)
 					return
 				}
 				// also, would make sense to make sure that it is not self
 				if strings.EqualFold(program.receiver, program.wallet.GetAddress().String()) {
-					showError(errors.New("cannot send to self"))
+					showError(errors.New("cannot send to self"), program.window)
 					return
 				}
 
 				// but just to be extra sure...
 				// let's see if the receiver is not registered
 				if !isRegistered(program.receiver) {
-					showError(errors.New("unregistered address"))
+					showError(errors.New("unregistered address"), program.window)
 					return
 				}
 				// obtain their DERO balance
 				bal := program.wallet.GetAccount().Balance_Mature
 				// and check
 				if bal < 80 {
-					showError(errors.New("balance is too low, please refill wallet"))
+					showError(errors.New("balance is too low, please refill wallet"), program.window)
 					return
 				}
 
@@ -845,7 +867,7 @@ func assetsList() {
 				bal = program.wallet.GetAccount().Balance[hash]
 				// and check
 				if bal < amount {
-					showError(errors.New("balance is too low, please refill"))
+					showError(errors.New("balance is too low, please refill"), program.window)
 					return
 				}
 				payload := []rpc.Transfer{
@@ -894,7 +916,7 @@ func assetsList() {
 					if err != nil {
 
 						// show the error
-						showError(err)
+						showError(err, program.window)
 						// now let's make sure each of these are re-enabled
 
 						return
@@ -912,7 +934,7 @@ func assetsList() {
 						} else {
 							fyne.DoAndWait(func() {
 								// if it errors out, show the err
-								showError(err)
+								showError(err, program.window)
 								syncro.Stop()
 								transact.Dismiss()
 							})
@@ -933,7 +955,7 @@ func assetsList() {
 						// when tapped, copy to clipboard
 						txid.OnTapped = func() {
 							program.application.Clipboard().SetContent(tx.GetHash().String())
-							showInfo("", "txid copied to clipboard")
+							showInfo("", "txid copied to clipboard", program.window)
 						}
 						fyne.DoAndWait(func() {
 							syncro.Stop()
@@ -1033,6 +1055,7 @@ func assetsList() {
 		program.lists.asset_list.OnSelected = onSelected
 
 		filter := widget.NewEntry()
+		filter.SetPlaceHolder("filter by SCID or name")
 		filterer := func() {
 			s := strings.ToLower(filter.Text)
 			if s != "" {
@@ -1056,11 +1079,90 @@ func assetsList() {
 		filter.OnChanged = func(s string) {
 			filterer()
 		}
-		filter.ActionItem = widget.NewButtonWithIcon("Filter", theme.SearchIcon(), filterer)
+		filter.ActionItem = widget.NewButtonWithIcon("", theme.SearchIcon(), filterer)
+		// make a new entry widget
+		t := widget.NewEntry()
+
+		// set the place holder
+		t.SetPlaceHolder("add SCID to collectibles")
+
+		token_add := func() {
+			// so if the map is nil, make one
+			if program.wallet.GetAccount().EntriesNative == nil {
+				program.wallet.GetAccount().EntriesNative = make(map[crypto.Hash][]rpc.Entry)
+			}
+
+			if t.Text == gnomonSC { // mainnet gnomon
+				showError(errors.New("cannot add gnomon sc to collectibles"), program.window)
+				return
+			}
+			//get the hash
+			hash := crypto.HashHexToHash(t.Text)
+			// start a sync activity widget
+			syncing := widget.NewActivity()
+			syncing.Start()
+			notice := makeCenteredWrappedLabel("syncing")
+			content := container.NewVBox(
+				layout.NewSpacer(),
+				syncing,
+				notice,
+				layout.NewSpacer(),
+			)
+
+			// set it to a splash screen
+			sync := dialog.NewCustomWithoutButtons("syncing", content, program.window)
+
+			// resize and show
+			sync.Resize(program.size)
+			sync.Show()
+			go func() {
+
+				// add the token
+				if err := program.wallet.TokenAdd(hash); err != nil {
+					// show err if one
+					fyne.DoAndWait(func() {
+						showError(err, program.window)
+						sync.Dismiss()
+					})
+					return
+				} else {
+					// immediately rebuild the assets
+					buildAssetHashList()
+
+					// sync the token now for good measure
+					if err := program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
+						fyne.DoAndWait(func() {
+							showError(err, program.window)
+							sync.Dismiss()
+						})
+						return
+					}
+
+					//make a notice
+					notice := truncator(hash.String()) + "has been added to your collection"
+
+					assets = program.caches.assets
+
+					// give notice to the user
+					fyne.DoAndWait(func() {
+						showInfo("Token Add", notice, program.window)
+						program.lists.asset_list.Refresh()
+						sync.Dismiss()
+					})
+				}
+			}()
+		}
+		t.OnSubmitted = func(s string) {
+			token_add()
+		}
+
+		t.ActionItem = widget.NewButtonWithIcon("", theme.ContentAddIcon(), token_add)
 
 		// let's set the asset list into a new list
 		list = container.NewBorder(
-			filter,
+			container.NewAdaptiveGrid(3,
+				t, program.buttons.asset_scan, filter,
+			),
 			nil,
 			nil,
 			nil,

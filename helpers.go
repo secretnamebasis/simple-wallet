@@ -8,8 +8,11 @@ import (
 	"image"
 	"image/color"
 	"io"
+	"math"
+	"math/rand"
 	"net/http"
 	"os"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -27,6 +30,7 @@ import (
 	"github.com/deroproject/derohe/block"
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
+	"github.com/deroproject/derohe/transaction"
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/ybbus/jsonrpc/v3"
 	"golang.org/x/image/draw"
@@ -43,10 +47,10 @@ func truncator(a string) string {
 }
 
 // simple way to explore files
-func openExplorer() *dialog.FileDialog {
+func openExplorer(w fyne.Window) *dialog.FileDialog {
 	return dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
 		if err != nil {
-			showError(err)
+			showError(err, w)
 			return
 		}
 		if reader == nil {
@@ -54,14 +58,14 @@ func openExplorer() *dialog.FileDialog {
 		}
 		defer reader.Close()
 		program.entries.file.SetText(reader.URI().Path())
-	}, program.window)
+	}, w)
 }
 
 // simple way to explore files
 func openWalletFile() *dialog.FileDialog {
 	return dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
 		if err != nil {
-			showError(err)
+			showError(err, program.window)
 			return
 		}
 		if reader == nil {
@@ -126,14 +130,17 @@ func createPreferred() {
 
 // simple way to check if we are logged in
 func isLoggedIn() {
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(time.Second * 2)
+	var mu sync.Mutex
 	for range ticker.C {
+		mu.Lock()
 		if err := program.wallet.Save_Wallet(); err != nil {
 			fyne.DoAndWait(func() {
 				program.preferences.SetBool("loggedIn", false)
 				program.labels.loggedin.SetText("WALLET: 🔴")
 			})
 		}
+		mu.Unlock()
 	}
 }
 func notificationNewEntry() {
@@ -144,11 +151,11 @@ func notificationNewEntry() {
 	for range ticker.C { // range that ticker
 		// check if we are still logged in
 		if !program.preferences.Bool("loggedIn") {
-			break
+			return
 		}
 		// check if the wallet is present
 		if program.wallet == nil {
-			continue
+			return
 		}
 		// check if we are registered
 		if !program.wallet.IsRegistered() {
@@ -158,7 +165,11 @@ func notificationNewEntry() {
 		// go get the transfers
 		var current_transfers []rpc.Entry
 		if program.wallet != nil { // expressly validate this
-			current_transfers = getAllTransfers()
+			current_transfers = getAllTransfers(crypto.ZEROHASH)
+			for _, each := range program.caches.assets {
+				hash := crypto.HashHexToHash(each.hash)
+				current_transfers = append(current_transfers, getAllTransfers(hash)...)
+			}
 		} else {
 			continue
 		}
@@ -277,42 +288,47 @@ func updateBalance() {
 }
 
 // simple way to get all transfers
-func getTransfersByHeight(min, max uint64, coin, in, out bool) []rpc.Entry {
-	return program.wallet.Show_Transfers(
-		crypto.ZEROHASH,
-		coin, in, out,
-		min, max,
-		"", "",
-		0, 0,
-	)
+func getTransfersByHeight(min, max uint64, hash crypto.Hash, coin, in, out bool) []rpc.Entry {
+	if program.wallet == nil {
+		return nil
+	} else {
+		return program.wallet.Show_Transfers(
+			hash,
+			coin, in, out,
+			min, max,
+			"", "",
+			0, 0,
+		)
+	}
 }
 
 // simple way to get all transfers
-func getTransfers(coin, in, out bool) []rpc.Entry {
+func getTransfers(hash crypto.Hash, coin, in, out bool) []rpc.Entry {
 	return getTransfersByHeight(
 		0, uint64(walletapi.Get_Daemon_Height()),
+		hash,
 		coin, in, out,
 	)
 }
 
 // simple way to get all transfers
-func getAllTransfers() []rpc.Entry {
-	return getTransfers(true, true, true)
+func getAllTransfers(hash crypto.Hash) []rpc.Entry {
+	return getTransfers(hash, true, true, true)
 }
 
 // simple way to get all transfers
-func getCoinbaseTransfers() []rpc.Entry {
-	return getTransfers(true, false, false)
+func getCoinbaseTransfers(hash crypto.Hash) []rpc.Entry {
+	return getTransfers(hash, true, false, false)
 }
 
 // simple way to get all transfers
-func getReceivedTransfers() []rpc.Entry {
-	return getTransfers(false, true, false)
+func getReceivedTransfers(hash crypto.Hash) []rpc.Entry {
+	return getTransfers(hash, false, true, false)
 }
 
 // simple way to get all transfers
-func getSentTransfers() []rpc.Entry {
-	return getTransfers(false, false, true)
+func getSentTransfers(hash crypto.Hash) []rpc.Entry {
+	return getTransfers(hash, false, false, true)
 }
 
 // simple way to update all assets
@@ -503,7 +519,6 @@ func getTransaction(params rpc.GetTransaction_Params) rpc.GetTransaction_Result 
 
 	// call for the contract
 	if err := rpcClient.CallFor(ctx, &result, method, params); err != nil {
-		fmt.Println(err)
 		return rpc.GetTransaction_Result{}
 	}
 	// the code needs to be present
@@ -528,7 +543,6 @@ func getBlockInfo(params rpc.GetBlock_Params) rpc.GetBlock_Result {
 
 	// call for the contract
 	if err := rpcClient.CallFor(ctx, &result, method, params); err != nil {
-		fmt.Println(err)
 		return rpc.GetBlock_Result{}
 	}
 	// the code needs to be present
@@ -553,7 +567,6 @@ func getTxPool() rpc.GetTxPool_Result {
 
 	// call for the contract
 	if err := rpcClient.CallFor(ctx, &pool, method); err != nil {
-		fmt.Println(err)
 		return rpc.GetTxPool_Result{}
 	}
 	// the code needs to be present
@@ -577,7 +590,6 @@ func getDaemonInfo() rpc.GetInfo_Result {
 
 	// call for the contract
 	if err := rpcClient.CallFor(ctx, &info, method); err != nil {
-		fmt.Println(err)
 		return rpc.GetInfo_Result{}
 	}
 	// the code needs to be present
@@ -943,9 +955,9 @@ func getBlockDeserialized(blob string) block.Block {
 }
 
 // simple way to show error
-func showError(e error) { dialog.ShowError(e, program.window) }
+func showError(e error, w fyne.Window) { dialog.ShowError(e, w) }
 
-func showInfo(t, m string) { dialog.ShowInformation(t, m, program.window) }
+func showInfo(t, m string, w fyne.Window) { dialog.ShowInformation(t, m, w) }
 func showInfoFast(t, m string, w fyne.Window) {
 	s := dialog.NewInformation(t, m, w)
 	s.Show()
@@ -981,7 +993,7 @@ func lockScreen() {
 		program.entries.pass.SetText("")
 
 		if !program.wallet.Check_Password(pass) {
-			showError(errors.New("wrong password"))
+			showError(errors.New("wrong password"), program.window)
 			return
 		}
 
@@ -1197,6 +1209,11 @@ func makeGraph(hd_map map[int]int, w, h float32) fyne.CanvasObject {
 	ticks = int(max(1.0, float32((last_height-first_height)/len(heights))))
 	for i := first_height; i <= last_height; i += ticks {
 
+		// continue if height modulus 10 is not 0... essentially, all but the tenth block
+		if i%10 != 0 {
+			continue
+		}
+
 		// get the working value
 		value := float32((i - first_height))
 
@@ -1277,4 +1294,523 @@ func largestMinSize(s []string) fyne.Size {
 	l := widget.NewLabel(speed[largest])
 	l.Wrapping = fyne.TextWrapOff
 	return l.MinSize()
+}
+
+func integrated_address_generator() {
+
+	// let's start with a set of arguments
+	args := rpc.Arguments{}
+
+	// we are going to get a destination port
+	dst := widget.NewEntry()
+
+	// make a user friendly placeholder
+	dst.SetPlaceHolder("destination port: 123456789012345678")
+	dst.ActionItem = widget.NewButtonWithIcon("random", theme.SearchReplaceIcon(), func() {
+		dst.SetText(strconv.Itoa(rand.Int()))
+	})
+
+	// let's validate the destination port
+	validate_string := func(s string) error {
+		if s == "" {
+			return nil
+		}
+		// parse the string
+		i, err := strconv.Atoi(s)
+
+		// if it isn't a number...
+		if err != nil {
+			return err
+		}
+		if i >= math.MaxInt64-1 { // 'no value of type int is greater than math.MaxInt64'
+			// yeah... but if it is...
+			return errors.New("can't be more than 18 decimals")
+		}
+		// just in case they think they can
+		if i < 1 {
+			return errors.New("can't be a zero or a negative number")
+		}
+		// load up the value into the args
+		args = append(args, rpc.Argument{
+			Name:     rpc.RPC_DESTINATION_PORT,
+			DataType: rpc.DataUint64,
+			Value:    uint64(i),
+		})
+		return nil
+	}
+	dst.Validator = validate_string
+
+	// let's get a value from the user
+	value := widget.NewEntry()
+
+	// here is a place holder
+	value.SetPlaceHolder("value: 816.80085")
+
+	// and now let's parse it
+	validate_string = func(s string) error {
+		if s == "" {
+			return nil
+		}
+		// let's assume it is float...
+		f, err := strconv.ParseFloat(s, 64)
+		// error if not
+		if err != nil {
+			return err
+		}
+
+		// that float can't be more than 21M
+		if f > 21000000 {
+			return errors.New("nope, you can't do that")
+		}
+		// and it can't me less than 0
+		if f <= 0 {
+			return errors.New("can't be a zero or a negative number")
+		}
+
+		// let's coerce the float into a value of atomic units
+		v := uint64(f * atomic_units)
+
+		// an append it into the arguments
+		args = append(args, rpc.Argument{
+			Name:     rpc.RPC_VALUE_TRANSFER,
+			DataType: rpc.DataUint64,
+			Value:    v,
+		})
+		return nil
+	}
+	value.Validator = validate_string
+
+	// let's see if there is a comment
+	comment := widget.NewEntry()
+
+	// make a placeholder
+	comment.SetPlaceHolder("send comment with transaction: barking-mad-war-dogs")
+
+	// validate the comment
+	validate_string = func(s string) error {
+		if s == "" {
+			return nil
+		}
+		// seems simple enought
+		if len(s) > 100 {
+			return errors.New("can't be more than 100 characters")
+		}
+
+		// load the string into the args
+		args = append(args, rpc.Argument{
+			Name:     rpc.RPC_COMMENT,
+			DataType: rpc.DataString,
+			Value:    s,
+		})
+		return nil
+	}
+	comment.Validator = validate_string
+
+	// now if a reply back is necessary
+	needs_replyback := widget.NewCheck("Needs Replyback Address?", func(b bool) {
+		args = append(args, rpc.Argument{
+			Name:     rpc.RPC_NEEDS_REPLYBACK_ADDRESS,
+			DataType: rpc.DataUint64,
+			Value:    uint64(1),
+		})
+	})
+
+	// well..
+	callback := func(b bool) {
+		// in case they cancel
+		if !b {
+			return
+		}
+		// let's validate; what about assets?
+		if dst.Validate() != nil &&
+			comment.Validate() != nil &&
+			value.Validate() != nil {
+
+			// show them the error
+			showError(errors.New("something isn't working"), program.window)
+
+		}
+
+		// make an address entry
+		address := widget.NewEntry()
+
+		// block text, she big
+		address.MultiLine = true
+
+		// wrap the word, looks better that way
+		address.Wrapping = fyne.TextWrapWord
+
+		// disable so there is no error there
+		address.Disable()
+
+		// if the following is empty and unchecked...
+		if dst.Text == "" &&
+			value.Text == "" &&
+			comment.Text == "" &&
+			!needs_replyback.Checked {
+
+			// generate a random address
+			address.SetText(program.wallet.GetRandomIAddress8().String())
+		} else { // otherwise
+			// get the wallet address
+			addr := program.wallet.GetAddress()
+
+			// make a new address struct
+			result, err := rpc.NewAddress(addr.String())
+			if err != nil {
+				showError(err, program.window)
+				return
+			}
+
+			// check the pack of the args
+			if _, err := args.CheckPack(transaction.PAYLOAD0_LIMIT); err != nil {
+				showError(err, program.window)
+				return
+			}
+			// the result arguments are now the args
+			result.Arguments = args
+
+			// set the block text entry to the integrated addr
+			address.SetText(result.String())
+		}
+
+		// set the address into a splash
+		integrated_address := dialog.NewCustom("Integrated Address", dismiss, container.NewVBox(address), program.window)
+
+		// resize and show
+		integrated_address.Resize(program.size)
+		integrated_address.Show()
+	}
+	quick := widget.NewHyperlink("new random address", nil)
+	quick.Alignment = fyne.TextAlignCenter
+	quick.OnTapped = func() {
+		addr, _ := rpc.NewAddress(program.wallet.GetAddress().String())
+		rand.NewSource(time.Now().UnixNano())
+		n := rand.Intn(100000000)
+		addr.Arguments = rpc.Arguments{
+			rpc.Argument{
+				Name:     rpc.RPC_DESTINATION_PORT,
+				DataType: rpc.DataString,
+				Value:    strconv.Itoa(n),
+			},
+		}
+		program.application.Clipboard().SetContent(addr.String())
+		showInfoFast("Copied", truncator(addr.String())+"\ncopied to clipboard", program.window)
+	}
+
+	items := []*widget.FormItem{
+		widget.NewFormItem("", value),
+		widget.NewFormItem("", dst),
+		widget.NewFormItem("", comment),
+		widget.NewFormItem("", needs_replyback),
+	}
+	form := widget.NewForm(items...)
+	form.OnSubmit = func() {
+		callback(true)
+	}
+	form.SubmitText = "Create"
+	advanced := widget.NewAccordion(
+		widget.NewAccordionItem("Advanced", form),
+	)
+	content := container.NewVBox(
+		quick,
+		advanced,
+	)
+	// put all the fun stuff into a dialog
+	integrated := dialog.NewCustom("Integrated Address", dismiss, content, program.window)
+	// resize and show
+	integrated.Resize(fyne.NewSize(((program.size.Width / 3) * 2), (((program.size.Height / 3) * 2) + (theme.Padding() * 2))))
+	integrated.Show()
+}
+func asset_scan() {
+	var scan *dialog.ConfirmDialog
+	syncing := widget.NewActivity()
+	scids := widget.NewProgressBar()
+	label := makeCenteredWrappedLabel("Gathering Gnomon Smart Contract Data")
+	content := container.NewVBox(
+		layout.NewSpacer(),
+		syncing,
+		scids,
+		label,
+		layout.NewSpacer(),
+	)
+	syncro := dialog.NewCustomWithoutButtons("syncing", content, program.window)
+	callback := func(b bool) {
+		// if they cancel
+		if !b {
+			return
+		}
+		syncing.Start()
+		scids.Hide()
+		syncro.Resize(program.size)
+		syncro.Show()
+		label.SetText("Syncing with gnomon smart contract")
+		go func() {
+
+			var list_of_scids []string
+
+			big_map := getSCValues(gnomonSC).VariableStringKeys
+			lenMap := len(big_map)
+			if lenMap == 0 {
+				showError(errors.New("gnomon values are not in memory"), program.window)
+				return
+			}
+			for k := range big_map {
+				if strings.Contains(k, "owner") ||
+					strings.Contains(k, "height") ||
+					strings.Contains(k, "C") ||
+					len(k) < 64 {
+					continue
+				}
+				list_of_scids = append(list_of_scids, k)
+			}
+
+			scid_count := len(list_of_scids)
+
+			// start a sync activity widget
+			fyne.DoAndWait(func() {
+				syncing.Stop()
+				syncing.Hide()
+				scids.Show()
+				label.SetText("Scanning SCIDs")
+			})
+			scid_chan := make(chan string, len(list_of_scids))
+			for _, scid := range list_of_scids {
+				scid_chan <- scid
+			}
+			close(scid_chan)
+
+			var wg sync.WaitGroup
+			var counter int
+			work := func() {
+				defer wg.Done()
+				for scid := range scid_chan {
+					counter++
+					fyne.DoAndWait(func() { scids.SetValue(float64(counter) / float64(scid_count)) })
+					hash := crypto.HashHexToHash(scid)
+					bal, _, err := program.wallet.GetDecryptedBalanceAtTopoHeight(hash, -1, program.wallet.GetAddress().String())
+					if err != nil {
+						continue
+					}
+					if bal != 0 {
+						text := "ASSET FOUND: " + truncator(scid) + " Balance: " + rpc.FormatMoney(bal)
+						fyne.DoAndWait(func() { label.SetText(text) })
+						if err := program.wallet.TokenAdd(hash); err != nil {
+							// obviously already in the map
+						}
+						// we are just going to set this now...
+						program.wallet.GetAccount().Balance[hash] = bal
+
+						// if there is a "better" balance, we'll let it happen here
+						if err := program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
+							showError(err, program.window)
+							continue
+						} // seems like there isn't an error
+
+					}
+				}
+			}
+			var os_thread, app_thread int = 1, 1
+			// reserve 1 thread for os management
+			// reserve 1 thread for app management
+
+			// we are going to use almost all threads
+			max_threads := runtime.GOMAXPROCS(0)
+			desired_threads := max_threads - os_thread - app_thread
+			wg.Add(desired_threads)
+			for range desired_threads {
+				go work()
+			}
+			wg.Wait()
+			fyne.DoAndWait(func() {
+				scids.Hide()
+				label.SetText("Rebuilding cache")
+				syncing.Show()
+				syncing.Start()
+			})
+			buildAssetHashList()
+			fyne.DoAndWait(func() {
+				showInfo("Asset Scan", "Scan complete", program.window)
+				syncing.Stop()
+				syncing.Hide()
+				syncro.Dismiss()
+			})
+		}()
+	}
+	notice := `
+this function will search through every smart contract in the network for a balance or entries and add the token to your collectibles.
+
+it is recommended that you use a full node for best success.`
+	scan = dialog.NewConfirm("Asset Scan", notice, callback, program.window)
+	scan.Resize(program.size)
+	scan.Show()
+
+}
+
+func balance_rescan() {
+	// nice big notice
+	big_notice :=
+		"This action will clear all transfer history and balances. " +
+			"Balances are nearly instant in resync; however... " +
+			"Tx history depends on node status, eg pruned/full... " +
+			"Some txs may not be available at your node connection. " +
+			"For full history, and privacy, run a full node starting at block 0 upto current topoheight. " +
+			"This operation could take a long time with many token assets and transfers. "
+
+	// create a callback function
+	callback := func(b bool) {
+		// if they cancel
+		if !b {
+			return
+		}
+
+		// start a sync activity widget
+		// syncing := widget.NewActivity()
+		// syncing.Start()
+		notice := makeCenteredWrappedLabel("Beginning Scan")
+		prog := widget.NewProgressBar()
+		content := container.NewVBox(
+			layout.NewSpacer(),
+			prog,
+			// syncing,
+			notice,
+			layout.NewSpacer(),
+		)
+		// set it to a splash screen
+		syncro := dialog.NewCustomWithoutButtons("syncing", content, program.window)
+
+		// resize and show
+		syncro.Resize(program.size)
+		syncro.Show()
+
+		// rebuild the hash list
+		buildAssetHashList()
+
+		prog.Min = 0
+		prog.Max = 1
+
+		// as a go routine
+		go func() {
+
+			// clean the wallet
+			program.wallet.Clean()
+
+			// it will be helpful to know when we are done
+			var done bool
+
+			// as a go routine...
+			go func() {
+
+				// keep track of the start
+				var start int
+
+				// now we are going to have this spin every second
+				ticker := time.NewTicker(time.Millisecond * 300)
+				for range ticker.C {
+					h := getDaemonInfo().Height
+
+					// if we are done, break this loop
+					if done {
+						break
+					}
+
+					// get transfers
+					transfers := getTransfersByHeight(
+						uint64(start), uint64(h),
+						crypto.ZEROHASH,
+						true, true, true,
+					)
+
+					// measure them
+					current_len := len(transfers)
+
+					if current_len == 0 {
+						continue
+					}
+
+					// set the start higher up the chain
+					end_of_index := current_len - 1
+					start = int(transfers[end_of_index].Height)
+					ratio := float64(start) / float64(h)
+					fyne.DoAndWait(func() {
+						prog.SetValue(ratio)
+					})
+
+					// now spin through the transfers at the point of difference
+					for _, each := range transfers {
+
+						// update the notice
+						fyne.DoAndWait(func() {
+							notice.SetText("Blockheight: " + strconv.Itoa(int(each.Height)) + " Timestamp: " + each.Time.String())
+						})
+
+						// take a small breather between updates
+						time.Sleep(time.Millisecond)
+					}
+
+					// set notice to a default
+					// fyne.DoAndWait(func() {
+					// 	notice.SetText("Retrieving more txs")
+					// })
+				}
+			}()
+
+			// then sync the wallet for DERO
+			if err := program.wallet.Sync_Wallet_Memory_With_Daemon(); err != nil {
+				// if there is an error, notify the user
+				showError(err, program.window)
+				return
+			} else {
+				// now range through each token in the cache one at a time
+				desired := 1
+				capacity_channel := make(chan struct{}, desired)
+				var wg sync.WaitGroup
+				wg.Add(len(program.caches.assets))
+				for _, asset := range program.caches.assets {
+					go func() {
+						new_job := struct{}{}
+
+						capacity_channel <- new_job
+						defer wg.Done()
+						// assume there could be an error
+						var err error
+
+						// then add each scid back to the map
+						hash := crypto.HashHexToHash(asset.hash)
+						if err = program.wallet.TokenAdd(hash); err != nil {
+							// if err, show it
+							showError(err, program.window)
+							// but don't stop, just continue the loop
+							return
+						}
+
+						// and then sync scid internally with the daemon
+						if err = program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
+							// if err, show it
+							showError(err, program.window)
+							// but don't stop, just continue the loop
+							return
+						}
+
+						<-capacity_channel
+					}()
+				}
+				wg.Wait()
+			}
+			// when done, shut down the sync status in the go routine
+			fyne.DoAndWait(func() {
+				done = true
+				// syncing.Stop()
+				syncro.Dismiss()
+			})
+		}()
+
+	}
+
+	// here is the rescan dialog
+	rescan := dialog.NewConfirm("Balance Rescan", big_notice, callback, program.window) // set to the main window
+
+	// resize and show
+	rescan.Resize(program.size)
+	rescan.Show()
 }
