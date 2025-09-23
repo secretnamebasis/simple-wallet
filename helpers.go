@@ -47,7 +47,7 @@ func truncator(a string) string {
 }
 
 // simple way to explore files
-func openExplorer(w fyne.Window) *dialog.FileDialog {
+func openExplorer(e *widget.Entry, w fyne.Window) *dialog.FileDialog {
 	return dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
 		if err != nil {
 			showError(err, w)
@@ -57,7 +57,7 @@ func openExplorer(w fyne.Window) *dialog.FileDialog {
 			return
 		}
 		defer reader.Close()
-		program.entries.file.SetText(reader.URI().Path())
+		e.SetText(reader.URI().Path())
 	}, w)
 }
 

@@ -105,16 +105,16 @@ func contracts() {
 
 // this is a pretty under-rated feature
 func filesign() *fyne.Container {
-	// here is a simple way to select a file in general
-	program.dialogues.open = openExplorer(program.encryption)
-
+	file_entry := widget.NewEntry()
 	// let's make an simple way to open files
-	program.entries.file.ActionItem = widget.NewButtonWithIcon("", theme.FolderOpenIcon(), func() {
+	file_entry.ActionItem = widget.NewButtonWithIcon("", theme.FolderOpenIcon(), func() {
 		program.dialogues.open.Show()
 	})
 
 	// let's make it noticeable that you can select the file
-	program.entries.file.SetPlaceHolder("/path/to/file.txt")
+	file_entry.SetPlaceHolder("/path/to/file.txt")
+	// here is a simple way to select a file in general
+	program.dialogues.open = openExplorer(file_entry, program.encryption)
 
 	pass := widget.NewPasswordEntry()
 	pass.SetPlaceHolder("w41137-p@55w0rd")
@@ -149,14 +149,14 @@ func filesign() *fyne.Container {
 				showError(errors.New("wrong password"), program.encryption)
 
 				// dump the filepath
-				program.entries.file.SetText("")
+				file_entry.SetText("")
 				return
 			} else {
 				// get the filename
-				filename := program.entries.file.Text
+				filename := file_entry.Text
 
 				//dump the entry
-				program.entries.file.SetText("")
+				file_entry.SetText("")
 
 				// read the file
 				file, err := os.ReadFile(filename)
@@ -236,12 +236,12 @@ func filesign() *fyne.Container {
 				showError(errors.New("wrong password"), program.encryption)
 
 				//dump entry
-				program.entries.file.SetText("")
+				file_entry.SetText("")
 
 			} else {
 				// get the filename
-				filename := program.entries.file.Text
-				program.entries.file.SetText("")
+				filename := file_entry.Text
+				file_entry.SetText("")
 
 				// check if the file is a .signed file
 				if !strings.HasSuffix(filename, ".signed") {
@@ -321,7 +321,7 @@ func filesign() *fyne.Container {
 	// let's load all the widgets into a container inside a dialog
 	content := container.NewVBox(
 		layout.NewSpacer(),
-		container.NewVBox(program.entries.file),
+		container.NewVBox(file_entry),
 		container.NewAdaptiveGrid(2,
 			container.NewCenter(sign),
 			container.NewCenter(verify),
@@ -344,7 +344,7 @@ func self_crypt() *fyne.Container {
 	file_entry := widget.NewEntry()
 	file_entry.SetPlaceHolder("/path/to/file.txt")
 	// here is a simple way to select a file in general
-	program.dialogues.open = openExplorer(program.encryption)
+	program.dialogues.open = openExplorer(file_entry, program.encryption)
 
 	file_entry.ActionItem = widget.NewButtonWithIcon("", theme.FolderOpenIcon(), func() {
 		program.dialogues.open.Resize(program.size)
@@ -617,7 +617,7 @@ func recipient_crypt() *fyne.Container {
 	file_entry := widget.NewEntry()
 	file_entry.SetPlaceHolder("/path/to/file.txt")
 	// here is a simple way to select a file in general
-	program.dialogues.open = openExplorer(program.encryption)
+	program.dialogues.open = openExplorer(file_entry, program.encryption)
 
 	file_entry.ActionItem = widget.NewButtonWithIcon("", theme.FolderOpenIcon(), func() {
 		program.dialogues.open.Resize(program.size)
@@ -1890,16 +1890,17 @@ func installer() *fyne.Container {
 		})
 		entry.SetText(r.Code)
 	}
-	// here is a simple way to select a file in general
-	program.dialogues.open = openExplorer(program.contracts)
-
-	// let's make an simple way to open files
-	program.entries.file.ActionItem = widget.NewButtonWithIcon("", theme.FolderOpenIcon(), func() {
+	file_entry := widget.NewEntry()
+	file_entry.ActionItem = widget.NewButtonWithIcon("", theme.FolderOpenIcon(), func() {
 		program.dialogues.open.Resize(program.size)
 		program.dialogues.open.Show()
 	})
+	// here is a simple way to select a file in general
+	program.dialogues.open = openExplorer(file_entry, program.contracts)
 
-	program.entries.file.SetPlaceHolder("/path/to/contract.bas")
+	// let's make an simple way to open files
+
+	file_entry.SetPlaceHolder("/path/to/contract.bas")
 	// let's validate that file, shall we?
 	validate_path := func(s string) error {
 
@@ -1927,15 +1928,15 @@ func installer() *fyne.Container {
 	}
 
 	// and set it
-	program.entries.file.Validator = validate_path
-	program.entries.file.OnChanged = func(s string) {
+	file_entry.Validator = validate_path
+	file_entry.OnChanged = func(s string) {
 		if s == "" {
 			return
 		}
-		if err := program.entries.file.Validate(); err != nil {
+		if err := file_entry.Validate(); err != nil {
 			return
 		}
-		b, err := os.ReadFile(program.entries.file.Text)
+		b, err := os.ReadFile(file_entry.Text)
 		if err != nil {
 			return
 		}
@@ -1977,13 +1978,13 @@ func installer() *fyne.Container {
 			// check the password
 			if !program.wallet.Check_Password(p) {
 				showError(errors.New("wrong password"), program.contracts)
-				program.entries.file.SetText("")
+				file_entry.SetText("")
 				return
 			} else {
 				// get the filename
-				filename := program.entries.file.Text
+				filename := file_entry.Text
 				// dump the entry
-				program.entries.file.SetText("")
+				file_entry.SetText("")
 
 				var upload string
 				if filename == "" && entry.Text == "" {
@@ -2118,7 +2119,7 @@ func installer() *fyne.Container {
 	notice := makeCenteredWrappedLabel("anonymous installs might effect intended SC functionality")
 
 	form := widget.NewForm(
-		widget.NewFormItem("", program.entries.file),
+		widget.NewFormItem("", file_entry),
 		widget.NewFormItem("", container.NewCenter(widget.NewLabel("or"))),
 		widget.NewFormItem("", importer),
 		widget.NewFormItem("", container.NewCenter(widget.NewLabel("or"))),
