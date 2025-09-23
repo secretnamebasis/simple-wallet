@@ -226,6 +226,7 @@ func loggedIn() {
 	program.buttons.assets.Show()
 	program.buttons.send.Show()
 	program.buttons.update_password.Show()
+	program.buttons.balance_rescan.Show()
 
 	// show containers
 	program.containers.toolbox.Show()
