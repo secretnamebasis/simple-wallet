@@ -147,11 +147,11 @@ func notificationNewEntry() {
 	for range ticker.C { // range that ticker
 		// check if we are still logged in
 		if !program.preferences.Bool("loggedIn") {
-			break
+			return
 		}
 		// check if the wallet is present
 		if program.wallet == nil {
-			continue
+			return
 		}
 		// check if we are registered
 		if !program.wallet.IsRegistered() {
@@ -161,7 +161,11 @@ func notificationNewEntry() {
 		// go get the transfers
 		var current_transfers []rpc.Entry
 		if program.wallet != nil { // expressly validate this
-			current_transfers = getAllTransfers()
+			current_transfers = getAllTransfers(crypto.ZEROHASH)
+			for _, each := range program.caches.assets {
+				hash := crypto.HashHexToHash(each.hash)
+				current_transfers = append(current_transfers, getAllTransfers(hash)...)
+			}
 		} else {
 			continue
 		}
@@ -280,42 +284,47 @@ func updateBalance() {
 }
 
 // simple way to get all transfers
-func getTransfersByHeight(min, max uint64, coin, in, out bool) []rpc.Entry {
-	return program.wallet.Show_Transfers(
-		crypto.ZEROHASH,
-		coin, in, out,
-		min, max,
-		"", "",
-		0, 0,
-	)
+func getTransfersByHeight(min, max uint64, hash crypto.Hash, coin, in, out bool) []rpc.Entry {
+	if program.wallet == nil {
+		return nil
+	} else {
+		return program.wallet.Show_Transfers(
+			hash,
+			coin, in, out,
+			min, max,
+			"", "",
+			0, 0,
+		)
+	}
 }
 
 // simple way to get all transfers
-func getTransfers(coin, in, out bool) []rpc.Entry {
+func getTransfers(hash crypto.Hash, coin, in, out bool) []rpc.Entry {
 	return getTransfersByHeight(
 		0, uint64(walletapi.Get_Daemon_Height()),
+		hash,
 		coin, in, out,
 	)
 }
 
 // simple way to get all transfers
-func getAllTransfers() []rpc.Entry {
-	return getTransfers(true, true, true)
+func getAllTransfers(hash crypto.Hash) []rpc.Entry {
+	return getTransfers(hash, true, true, true)
 }
 
 // simple way to get all transfers
-func getCoinbaseTransfers() []rpc.Entry {
-	return getTransfers(true, false, false)
+func getCoinbaseTransfers(hash crypto.Hash) []rpc.Entry {
+	return getTransfers(hash, true, false, false)
 }
 
 // simple way to get all transfers
-func getReceivedTransfers() []rpc.Entry {
-	return getTransfers(false, true, false)
+func getReceivedTransfers(hash crypto.Hash) []rpc.Entry {
+	return getTransfers(hash, false, true, false)
 }
 
 // simple way to get all transfers
-func getSentTransfers() []rpc.Entry {
-	return getTransfers(false, false, true)
+func getSentTransfers(hash crypto.Hash) []rpc.Entry {
+	return getTransfers(hash, false, false, true)
 }
 
 // simple way to update all assets

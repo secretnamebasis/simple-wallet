@@ -1013,8 +1013,9 @@ func balance_rescan() {
 
 					// get transfers
 					transfers := getTransfersByHeight(
-						uint64(start),
-						uint64(h), true, true, true,
+						uint64(start), uint64(h),
+						crypto.ZEROHASH,
+						true, true, true,
 					)
 
 					// measure them

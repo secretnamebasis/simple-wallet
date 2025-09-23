@@ -117,7 +117,7 @@ func keys() {
 }
 func txList() {
 	// here are all the sent entries
-	s_entries := getSentTransfers()
+	s_entries := getSentTransfers(crypto.ZEROHASH)
 
 	sort.Slice(s_entries, func(i, j int) bool {
 		return s_entries[i].Height > s_entries[j].Height
@@ -214,7 +214,7 @@ func txList() {
 	}
 	sent.OnSelected = onSelected
 	// here are all the entries
-	r_entries := getReceivedTransfers()
+	r_entries := getReceivedTransfers(crypto.ZEROHASH)
 
 	sort.Slice(r_entries, func(i, j int) bool {
 		return r_entries[i].Height > r_entries[j].Height
@@ -316,7 +316,7 @@ func txList() {
 	received.OnSelected = onSelected
 
 	// here are all the coinbase entries
-	c_entries := getCoinbaseTransfers()
+	c_entries := getCoinbaseTransfers(crypto.ZEROHASH)
 
 	sort.Slice(c_entries, func(i, j int) bool {
 		return c_entries[i].Height > c_entries[j].Height
@@ -426,7 +426,7 @@ func txList() {
 
 		switch tabs.Selected().Text {
 		case "Sent":
-			s := getSentTransfers()
+			s := getSentTransfers(crypto.ZEROHASH)
 			sort.Slice(s, func(i, j int) bool {
 				return s[i].Height > s[j].Height
 			})
@@ -442,7 +442,7 @@ func txList() {
 			}
 			sent.Refresh()
 		case "Received":
-			r := getReceivedTransfers()
+			r := getReceivedTransfers(crypto.ZEROHASH)
 			sort.Slice(r, func(i, j int) bool {
 				return r[i].Height > r[j].Height
 			})
@@ -458,7 +458,7 @@ func txList() {
 			}
 			received.Refresh()
 		case "Coinbase":
-			c := getCoinbaseTransfers()
+			c := getCoinbaseTransfers(crypto.ZEROHASH)
 			sort.Slice(c, func(i, j int) bool {
 				return c[i].Height > c[j].Height
 			})
