@@ -1288,10 +1288,16 @@ func explorer() {
 					searchHeaders = search_headers_normal
 
 					var ring_members []string
-
-					for _, each := range r.Txs[0].Ring {
-						ring_members = append(ring_members, each...)
+					var outputs []string
+					for i, each := range r.Txs[0].Ring {
+						searchHeaders = append(searchHeaders, "OUTPUT "+strconv.Itoa(i+1))
+						outputs = append(outputs, "RING MEMBERS")
+						for i, member := range each {
+							searchHeaders = append(searchHeaders, "Ring Member "+strconv.Itoa(i+1))
+							ring_members = append(ring_members, member)
+						}
 					}
+
 					searchData = []string{
 						tx.GetHash().String(),
 						tx.TransactionType.String(),
@@ -1308,11 +1314,13 @@ func explorer() {
 						strconv.Itoa(int(tx.Version)),
 						strconv.Itoa(int(block_info.Block_Header.Depth)),
 						"DERO_HOMOMORPHIC",
-						strconv.Itoa(int(len(ring_members))),
-						"RING MEMBERS",
+						strconv.Itoa(int(len(r.Txs[0].Ring))),
+						strconv.Itoa(int(float64(len(ring_members)) / float64(len(r.Txs[0].Ring)))),
 					}
-
-					searchData = append(searchData, ring_members...)
+					for i, each := range outputs {
+						searchData = append(searchData, each)
+						searchData = append(searchData, r.Txs[0].Ring[i]...)
+					}
 
 					results_table.Refresh()
 				case transaction.BURN_TX:

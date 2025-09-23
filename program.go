@@ -222,6 +222,7 @@ var search_headers_normal = []string{
 	"VERSION",
 	"CONFIRMATIONS",
 	"TYPE",
+	"OUTPUTS",
 	"RING SIZE",
 }
 var search_headers_sc_prefix = []string{
