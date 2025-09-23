@@ -107,14 +107,14 @@ func contracts() {
 func filesign() *fyne.Container {
 	file_entry := widget.NewEntry()
 	// let's make an simple way to open files
+	open := openExplorer(file_entry, program.encryption)
 	file_entry.ActionItem = widget.NewButtonWithIcon("", theme.FolderOpenIcon(), func() {
-		program.dialogues.open.Show()
+		open.Show()
 	})
 
 	// let's make it noticeable that you can select the file
 	file_entry.SetPlaceHolder("/path/to/file.txt")
 	// here is a simple way to select a file in general
-	program.dialogues.open = openExplorer(file_entry, program.encryption)
 
 	pass := widget.NewPasswordEntry()
 	pass.SetPlaceHolder("w41137-p@55w0rd")
@@ -344,11 +344,11 @@ func self_crypt() *fyne.Container {
 	file_entry := widget.NewEntry()
 	file_entry.SetPlaceHolder("/path/to/file.txt")
 	// here is a simple way to select a file in general
-	program.dialogues.open = openExplorer(file_entry, program.encryption)
+	open := openExplorer(file_entry, program.encryption)
 
 	file_entry.ActionItem = widget.NewButtonWithIcon("", theme.FolderOpenIcon(), func() {
-		program.dialogues.open.Resize(program.size)
-		program.dialogues.open.Show()
+		open.Resize(program.size)
+		open.Show()
 	})
 
 	// let's make an simple way to open files
@@ -617,11 +617,11 @@ func recipient_crypt() *fyne.Container {
 	file_entry := widget.NewEntry()
 	file_entry.SetPlaceHolder("/path/to/file.txt")
 	// here is a simple way to select a file in general
-	program.dialogues.open = openExplorer(file_entry, program.encryption)
+	open := openExplorer(file_entry, program.encryption)
 
 	file_entry.ActionItem = widget.NewButtonWithIcon("", theme.FolderOpenIcon(), func() {
-		program.dialogues.open.Resize(program.size)
-		program.dialogues.open.Show()
+		open.Resize(program.size)
+		open.Show()
 	})
 
 	entry.OnChanged = func(s string) {
@@ -1891,12 +1891,12 @@ func installer() *fyne.Container {
 		entry.SetText(r.Code)
 	}
 	file_entry := widget.NewEntry()
-	file_entry.ActionItem = widget.NewButtonWithIcon("", theme.FolderOpenIcon(), func() {
-		program.dialogues.open.Resize(program.size)
-		program.dialogues.open.Show()
-	})
 	// here is a simple way to select a file in general
-	program.dialogues.open = openExplorer(file_entry, program.contracts)
+	open := openExplorer(file_entry, program.contracts)
+	file_entry.ActionItem = widget.NewButtonWithIcon("", theme.FolderOpenIcon(), func() {
+		open.Resize(program.size)
+		open.Show()
+	})
 
 	// let's make an simple way to open files
 
