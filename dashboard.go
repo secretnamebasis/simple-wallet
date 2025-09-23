@@ -483,9 +483,21 @@ func txList() {
 	}
 
 	tabs = container.NewAppTabs(
-		container.NewTabItem("Sent", container.NewBorder(search_entry, nil, nil, nil, sent)),
-		container.NewTabItem("Received", container.NewBorder(search_entry, nil, nil, nil, received)),
-		container.NewTabItem("Coinbase", container.NewBorder(search_entry, nil, nil, nil, coinbase)),
+		container.NewTabItem("Sent", container.NewBorder(
+			container.NewAdaptiveGrid(3, layout.NewSpacer(), search_entry, layout.NewSpacer()),
+			nil, nil, nil,
+			sent,
+		)),
+		container.NewTabItem("Received", container.NewBorder(
+			container.NewAdaptiveGrid(3, layout.NewSpacer(), search_entry, layout.NewSpacer()),
+			nil, nil, nil,
+			received,
+		)),
+		container.NewTabItem("Coinbase", container.NewBorder(
+			container.NewAdaptiveGrid(3, layout.NewSpacer(), search_entry, layout.NewSpacer()),
+			nil, nil, nil,
+			coinbase,
+		)),
 	)
 	tabs.SetTabLocation(container.TabLocationLeading)
 	tabs.OnSelected = func(ti *container.TabItem) {
@@ -511,6 +523,8 @@ func assetsList() {
 			layout.NewSpacer(),
 		)
 	} else {
+		program.buttons.asset_scan.OnTapped = asset_scan
+
 		assets := program.caches.assets
 
 		program.lists.asset_list.HideSeparators = true
@@ -811,12 +825,19 @@ func assetsList() {
 							showError(errors.New("cannot send to self"), program.window)
 							return
 						} else {
+							addr, err = rpc.NewAddress(a)
+							if err != nil {
+								// now what's going on here?
+							}
 							program.receiver = a
 						}
 					}
 				}
 				// now if the address is an integrated address...
-				program.receiver = addr.BaseAddress().String()
+				if addr.IsIntegratedAddress() {
+					program.receiver = addr.BaseAddress().String()
+				}
+
 				// at this point, we should be fairly confident
 				if program.receiver == "" {
 					showError(errors.New("error obtaining receiver"), program.window)
@@ -1034,6 +1055,7 @@ func assetsList() {
 		program.lists.asset_list.OnSelected = onSelected
 
 		filter := widget.NewEntry()
+		filter.SetPlaceHolder("filter by SCID or name")
 		filterer := func() {
 			s := strings.ToLower(filter.Text)
 			if s != "" {
@@ -1057,11 +1079,90 @@ func assetsList() {
 		filter.OnChanged = func(s string) {
 			filterer()
 		}
-		filter.ActionItem = widget.NewButtonWithIcon("Filter", theme.SearchIcon(), filterer)
+		filter.ActionItem = widget.NewButtonWithIcon("", theme.SearchIcon(), filterer)
+		// make a new entry widget
+		t := widget.NewEntry()
+
+		// set the place holder
+		t.SetPlaceHolder("add SCID to collectibles")
+
+		token_add := func() {
+			// so if the map is nil, make one
+			if program.wallet.GetAccount().EntriesNative == nil {
+				program.wallet.GetAccount().EntriesNative = make(map[crypto.Hash][]rpc.Entry)
+			}
+
+			if t.Text == gnomonSC { // mainnet gnomon
+				showError(errors.New("cannot add gnomon sc to collectibles"), program.window)
+				return
+			}
+			//get the hash
+			hash := crypto.HashHexToHash(t.Text)
+			// start a sync activity widget
+			syncing := widget.NewActivity()
+			syncing.Start()
+			notice := makeCenteredWrappedLabel("syncing")
+			content := container.NewVBox(
+				layout.NewSpacer(),
+				syncing,
+				notice,
+				layout.NewSpacer(),
+			)
+
+			// set it to a splash screen
+			sync := dialog.NewCustomWithoutButtons("syncing", content, program.window)
+
+			// resize and show
+			sync.Resize(program.size)
+			sync.Show()
+			go func() {
+
+				// add the token
+				if err := program.wallet.TokenAdd(hash); err != nil {
+					// show err if one
+					fyne.DoAndWait(func() {
+						showError(err, program.window)
+						sync.Dismiss()
+					})
+					return
+				} else {
+					// immediately rebuild the assets
+					buildAssetHashList()
+
+					// sync the token now for good measure
+					if err := program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
+						fyne.DoAndWait(func() {
+							showError(err, program.window)
+							sync.Dismiss()
+						})
+						return
+					}
+
+					//make a notice
+					notice := truncator(hash.String()) + "has been added to your collection"
+
+					assets = program.caches.assets
+
+					// give notice to the user
+					fyne.DoAndWait(func() {
+						showInfo("Token Add", notice, program.window)
+						program.lists.asset_list.Refresh()
+						sync.Dismiss()
+					})
+				}
+			}()
+		}
+		t.OnSubmitted = func(s string) {
+			token_add()
+		}
+
+		t.ActionItem = widget.NewButtonWithIcon("", theme.ContentAddIcon(), token_add)
 
 		// let's set the asset list into a new list
 		list = container.NewBorder(
-			filter,
+			container.NewAdaptiveGrid(3,
+				t, program.buttons.asset_scan, filter,
+			),
 			nil,
 			nil,
 			nil,
