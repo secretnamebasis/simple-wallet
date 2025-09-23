@@ -608,6 +608,7 @@ func self_crypt() *fyne.Container {
 	return content
 }
 func recipient_crypt() *fyne.Container {
+
 	entry := widget.NewEntry()
 	entry.MultiLine = true
 	entry.SetPlaceHolder("text to be encrypted / decrypted")
@@ -1831,7 +1832,8 @@ func explorer() {
 }
 
 func installer() *fyne.Container {
-
+	pass := widget.NewPasswordEntry()
+	pass.SetPlaceHolder("w41137-p@55w0rd")
 	// let's make it easy write a contract on the fly
 
 	entry := widget.NewEntry()
@@ -1955,7 +1957,7 @@ func installer() *fyne.Container {
 
 		var ic *dialog.ConfirmDialog
 		// if they press enter, we assume it means confirm
-		program.entries.pass.OnSubmitted = func(s string) {
+		pass.OnSubmitted = func(s string) {
 			ic.Confirm()
 			ic.Dismiss()
 		}
@@ -1967,13 +1969,13 @@ func installer() *fyne.Container {
 				return
 			}
 			// get the password
-			pass := program.entries.pass.Text
+			p := pass.Text
 
 			// dump the pass entry
-			program.entries.pass.SetText("")
+			pass.SetText("")
 
 			// check the password
-			if !program.wallet.Check_Password(pass) {
+			if !program.wallet.Check_Password(p) {
 				showError(errors.New("wrong password"), program.contracts)
 				program.entries.file.SetText("")
 				return
@@ -2107,7 +2109,7 @@ func installer() *fyne.Container {
 		}
 
 		// put a window in a window...
-		ic = dialog.NewCustomConfirm("Confirm Password", confirm, dismiss, program.entries.pass, callback, program.contracts)
+		ic = dialog.NewCustomConfirm("Confirm Password", confirm, dismiss, pass, callback, program.contracts)
 		ic.Resize(password_size)
 		ic.Show()
 	}
@@ -2136,6 +2138,8 @@ func installer() *fyne.Container {
 	return content
 }
 func interaction() *fyne.Container {
+	pass := widget.NewPasswordEntry()
+	pass.SetPlaceHolder("w41137-p@55w0rd")
 	function_list := new(widget.List)
 
 	// we are going to have some func names
@@ -2515,10 +2519,10 @@ func interaction() *fyne.Container {
 			sa := makeCenteredWrappedLabel(string(string_args))
 
 			// load up the splash and a password entry
-			splash := container.NewVBox(sa, program.entries.pass)
+			splash := container.NewVBox(sa, pass)
 			var ci *dialog.ConfirmDialog
 			// if they press enter here, it is a confirmation
-			program.entries.pass.OnSubmitted = func(s string) {
+			pass.OnSubmitted = func(s string) {
 				ci.Confirm()
 				ci.Dismiss()
 			}
@@ -2531,12 +2535,12 @@ func interaction() *fyne.Container {
 				}
 
 				// get the pass
-				pass := program.entries.pass.Text
+				p := pass.Text
 
 				// dump the entry
-				program.entries.pass.SetText("")
+				pass.SetText("")
 
-				if !program.wallet.Check_Password(pass) {
+				if !program.wallet.Check_Password(p) {
 					showError(errors.New("wrong password"), program.contracts)
 					return
 				} else {
