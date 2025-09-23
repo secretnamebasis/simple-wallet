@@ -245,7 +245,7 @@ func loggedIn() {
 func loginOpenFile() {
 	callback := func(reader fyne.URIReadCloser, err error) {
 		if err != nil {
-			showError(err)
+			showError(err, program.window)
 			return
 		}
 		if reader == nil {
@@ -327,7 +327,7 @@ func loginFunction() {
 			setContentAsHome()
 
 			// show the error
-			showError(err)
+			showError(err, program.window)
 			return
 		}
 

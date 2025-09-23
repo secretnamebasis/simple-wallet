@@ -90,14 +90,14 @@ func restoration() {
 
 		// if it screws up, please show an error
 		if err != nil {
-			showError(err)
+			showError(err, program.window)
 			return
 		}
 
 		// attempt to save the wallet
 		if err = program.wallet.Save_Wallet(); err != nil {
 			// if it screws up, please show an error
-			showError(err)
+			showError(err, program.window)
 			return
 		}
 
@@ -127,7 +127,7 @@ func restoration() {
 		// decode the string
 		snb, err := hex.DecodeString(s)
 		if len(s) >= 65 || err != nil {
-			showError(err)
+			showError(err, program.window)
 			return
 		}
 
@@ -139,17 +139,17 @@ func restoration() {
 		)
 		// show the error if there is one
 		if err != nil {
-			showError(err)
+			showError(err, program.window)
 			return
 		}
 		// save the wallet
 		if err := program.wallet.Save_Wallet(); err != nil {
 			// show the error if there is one
-			showError(err)
+			showError(err, program.window)
 			return
 		}
 		// give the user some feedback
-		showInfo("Restore Wallet", "successfully saved as wallet.db")
+		showInfo("Restore Wallet", "successfully saved as wallet.db", program.window)
 
 		// proceed with the usuals
 		loggedIn()
@@ -164,7 +164,7 @@ func restoration() {
 		)
 		// if there is an error show it
 		if err != nil {
-			showError(err)
+			showError(err, program.window)
 			return
 		}
 
@@ -186,7 +186,7 @@ func restoration() {
 		// decode the string into bytes
 		snb, err := hex.DecodeString(s) // ;)
 		if len(s) >= 65 || err != nil {
-			showError(err)
+			showError(err, program.window)
 			return
 		}
 
@@ -197,14 +197,14 @@ func restoration() {
 		)
 		// show there error if there is one
 		if err != nil {
-			showError(err)
+			showError(err, program.window)
 			return
 		}
 
 		// if the bytes of the two secrets are not equal...
 		if !bytes.Equal(seed.Secret, program.wallet.Secret) {
 			// show the error
-			showError(errors.New("seed and secret are not the same"))
+			showError(errors.New("seed and secret are not the same"), program.window)
 			return
 		}
 		// dump the seed
@@ -212,12 +212,12 @@ func restoration() {
 
 		// save the wallet , or show an error
 		if err := program.wallet.Save_Wallet(); err != nil {
-			showError(err)
+			showError(err, program.window)
 			return
 		}
 
 		// tell the user they have succeeded
-		showInfo("Restore Wallet", "successfully saved as wallet.db")
+		showInfo("Restore Wallet", "successfully saved as wallet.db", program.window)
 
 		// do the loggedIn dance
 		loggedIn()
@@ -225,7 +225,7 @@ func restoration() {
 		// close the splash
 		restore_wallet.Dismiss()
 	} else {
-		showError(errors.New("can't restore from empty fields"))
+		showError(errors.New("can't restore from empty fields"), program.window)
 		return
 	}
 }

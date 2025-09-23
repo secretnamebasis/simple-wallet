@@ -43,10 +43,10 @@ func truncator(a string) string {
 }
 
 // simple way to explore files
-func openExplorer() *dialog.FileDialog {
+func openExplorer(w fyne.Window) *dialog.FileDialog {
 	return dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
 		if err != nil {
-			showError(err)
+			showError(err, w)
 			return
 		}
 		if reader == nil {
@@ -54,14 +54,14 @@ func openExplorer() *dialog.FileDialog {
 		}
 		defer reader.Close()
 		program.entries.file.SetText(reader.URI().Path())
-	}, program.window)
+	}, w)
 }
 
 // simple way to explore files
 func openWalletFile() *dialog.FileDialog {
 	return dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
 		if err != nil {
-			showError(err)
+			showError(err, program.window)
 			return
 		}
 		if reader == nil {
@@ -951,9 +951,9 @@ func getBlockDeserialized(blob string) block.Block {
 }
 
 // simple way to show error
-func showError(e error) { dialog.ShowError(e, program.window) }
+func showError(e error, w fyne.Window) { dialog.ShowError(e, w) }
 
-func showInfo(t, m string) { dialog.ShowInformation(t, m, program.window) }
+func showInfo(t, m string, w fyne.Window) { dialog.ShowInformation(t, m, w) }
 func showInfoFast(t, m string, w fyne.Window) {
 	s := dialog.NewInformation(t, m, w)
 	s.Show()
@@ -989,7 +989,7 @@ func lockScreen() {
 		program.entries.pass.SetText("")
 
 		if !program.wallet.Check_Password(pass) {
-			showError(errors.New("wrong password"))
+			showError(errors.New("wrong password"), program.window)
 			return
 		}
 

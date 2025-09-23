@@ -65,13 +65,13 @@ func save() {
 		crypto.RandomScalarBNRed(),
 	)
 	if err != nil {
-		showError(err)
+		showError(err, program.window)
 
 	} else {
 		// now save the wallet
 		if err := program.wallet.Save_Wallet(); err != nil {
 			// if that doesn't work...
-			showError(err)
+			showError(err, program.window)
 			return
 
 		} else { // follow logged in workflow
@@ -210,11 +210,11 @@ func registration() {
 		// ship the registration transaction over the network
 		if err := program.wallet.SendTransaction(reg_tx); err != nil {
 			// if an error, show it
-			showError(err)
+			showError(err, program.window)
 			return
 		} else {
 			// if successful, shout for joy!
-			showInfo("Registration", "registration successful")
+			showInfo("Registration", "registration successful", program.window)
 
 			// update the display in the go routine
 			fyne.DoAndWait(func() {

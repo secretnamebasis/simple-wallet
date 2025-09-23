@@ -116,7 +116,7 @@ func filesign() {
 			if !program.wallet.Check_Password(pass) {
 
 				// let them know if they were wrong
-				showError(errors.New("wrong password"))
+				showError(errors.New("wrong password"), program.encryption)
 
 				// dump the filepath
 				program.entries.file.SetText("")
@@ -131,7 +131,8 @@ func filesign() {
 				// read the file
 				file, err := os.ReadFile(filename)
 				if err != nil {
-					showError(err)
+					showError(err, program.encryption)
+
 					return
 				}
 
@@ -142,7 +143,8 @@ func filesign() {
 				if !isRegistered(program.wallet.GetAddress().String()) {
 					notice := "you have signed a file as an unregistered user"
 					// notify the user, but continue anyway
-					showInfo("NOTICE", notice)
+					showInfo("NOTICE", notice, program.encryption)
+
 				}
 
 				// make a filename
@@ -155,7 +157,7 @@ func filesign() {
 					"Located in " + save_path
 
 				// notify the user
-				showInfo("Filesign", msg)
+				showInfo("Filesign", msg, program.encryption)
 
 			}
 		}
@@ -201,7 +203,7 @@ func filesign() {
 			if !program.wallet.Check_Password(pass) {
 
 				// show and error when wrong
-				showError(errors.New("wrong password"))
+				showError(errors.New("wrong password"), program.encryption)
 
 				//dump entry
 				program.entries.file.SetText("")
@@ -215,7 +217,7 @@ func filesign() {
 				if !strings.HasSuffix(filename, ".signed") {
 
 					// display error
-					showError(errors.New("not a .signed file"))
+					showError(errors.New("not a .signed file"), program.encryption)
 
 					return
 				}
@@ -223,7 +225,8 @@ func filesign() {
 				// if everything is good so far, read the files
 				file, err := os.ReadFile(filename)
 				if err != nil {
-					showError(err)
+					showError(err, program.encryption)
+
 					return
 				}
 
@@ -237,7 +240,8 @@ func filesign() {
 				if err != nil {
 
 					// show the user
-					showError(err)
+					showError(err, program.encryption)
+
 					return
 				}
 
@@ -245,7 +249,8 @@ func filesign() {
 				if !isRegistered(sign.String()) {
 					notice := "an unregistered user has signed this data"
 					// notify the user, but continue
-					showInfo("NOTICE", notice)
+					showInfo("NOTICE", notice, program.encryption)
+
 				}
 
 				// now trim the .signed from the filename
@@ -414,10 +419,7 @@ func self_crypt() {
 			if !program.wallet.Check_Password(pass) {
 
 				// notify the user
-				showError(errors.New("wrong password"))
-
-				// dump the file path
-				program.entries.file.SetText("")
+				showError(errors.New("wrong password"), program.encryption)
 
 			} else {
 
@@ -430,10 +432,11 @@ func self_crypt() {
 				// check if this is an .enc file
 				if !strings.HasSuffix(filename, ".enc") {
 
-					// notify the user
-					showError(errors.New("not a .enc file"))
-					return
-				}
+						// notify the user
+						showError(errors.New("not a .enc file"), program.encryption)
+
+						return
+					}
 
 				// read the file
 				file, err := os.ReadFile(filename)
@@ -525,8 +528,9 @@ func recipient_crypt() {
 				return
 			}
 			// let's validate the address real quick
-			if err := program.entries.counterparty.Validate(); err != nil {
-				showError(err)
+			if err := counterparty.Validate(); err != nil {
+				showError(err, program.encryption)
+
 				return
 			}
 
@@ -647,25 +651,28 @@ func recipient_crypt() {
 				// get the filename
 				filename := program.entries.file.Text
 
-				// check if it is an .enc file
-				if !strings.HasSuffix(filename, ".enc") {
-					showError(errors.New("not a .enc file"))
-					return
-				}
+					// check if it is an .enc file
+					if !strings.HasSuffix(filename, ".enc") {
+						showError(errors.New("not a .enc file"), program.encryption)
 
-				// read the file
-				file, err := os.ReadFile(filename)
-				if err != nil {
-					showError(err)
-					return
-				}
+						return
+					}
 
-				// check the receiver address
-				addr, err := rpc.NewAddress(program.receiver)
-				if err != nil {
-					showError(err)
-					return
-				}
+					// read the file
+					file, err := os.ReadFile(filename)
+					if err != nil {
+						showError(err, program.encryption)
+
+						return
+					}
+
+					// check the receiver address
+					addr, err := rpc.NewAddress(program.receiver)
+					if err != nil {
+						showError(err, program.encryption)
+
+						return
+					}
 
 				// get the wallet's secret key as a big int
 				secret_key := program.wallet.Get_Keys().Secret.BigInt()
@@ -875,7 +882,8 @@ func integrated_address_generator() {
 			value.Validate() != nil {
 
 			// show them the error
-			showError(errors.New("something isn't working"))
+			showError(errors.New("something isn't working"), program.window)
+
 		}
 
 		// make an address entry
@@ -905,13 +913,13 @@ func integrated_address_generator() {
 			// make a new address struct
 			result, err := rpc.NewAddress(addr.String())
 			if err != nil {
-				showError(err)
+				showError(err, program.window)
 				return
 			}
 
 			// check the pack of the args
 			if _, err := args.CheckPack(transaction.PAYLOAD0_LIMIT); err != nil {
-				showError(err)
+				showError(err, program.window)
 				return
 			}
 			// the result arguments are now the args
@@ -1055,7 +1063,7 @@ func balance_rescan() {
 			// then sync the wallet for DERO
 			if err := program.wallet.Sync_Wallet_Memory_With_Daemon(); err != nil {
 				// if there is an error, notify the user
-				showError(err)
+				showError(err, program.window)
 				return
 			} else {
 				// now range through each token in the cache one at a time
@@ -1071,7 +1079,7 @@ func balance_rescan() {
 						hash := crypto.HashHexToHash(asset.hash)
 						if err = program.wallet.TokenAdd(hash); err != nil {
 							// if err, show it
-							showError(err)
+							showError(err, program.window)
 							// but don't stop, just continue the loop
 							return
 						}
@@ -1079,7 +1087,7 @@ func balance_rescan() {
 						// and then sync scid internally with the daemon
 						if err = program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
 							// if err, show it
-							showError(err)
+							showError(err, program.window)
 							// but don't stop, just continue the loop
 							return
 						}
@@ -1134,7 +1142,7 @@ func asset_scan() {
 			big_map := getSCValues(gnomonSC).VariableStringKeys
 			lenMap := len(big_map)
 			if lenMap == 0 {
-				showError(errors.New("gnomon values are not in memory"))
+				showError(errors.New("gnomon values are not in memory"), program.window)
 				return
 			}
 			for k := range big_map {
@@ -1185,7 +1193,7 @@ func asset_scan() {
 
 						// if there is a "better" balance, we'll let it happen here
 						if err := program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
-							showError(err)
+							showError(err, program.window)
 							continue
 						} // seems like there isn't an error
 
@@ -1212,7 +1220,7 @@ func asset_scan() {
 			})
 			buildAssetHashList()
 			fyne.DoAndWait(func() {
-				showInfo("Asset Scan", "Scan complete")
+				showInfo("Asset Scan", "Scan complete", program.window)
 				syncing.Stop()
 				syncing.Hide()
 				syncro.Dismiss()
@@ -1301,7 +1309,7 @@ func explorer() {
 
 	updateDiffData()
 	if len(diff_map) <= 0 {
-		showError(errors.New("failed to collect data, please check connection and try again"))
+		showError(errors.New("failed to collect data, please check connection and try again"), program.window)
 		return
 	}
 	g := &graph{hd_map: diff_map}
@@ -1980,13 +1988,13 @@ func explorer() {
 			program.application.Clipboard().SetContent(data)
 			results_table.UnselectAll()
 			results_table.Refresh()
-			showInfoFast("Copied", data, program.viewer_window)
+			showInfoFast("Copied", data, program.explorer)
 		} else {
 			data = searchData[id.Row]
 			program.application.Clipboard().SetContent(data)
 			results_table.UnselectAll()
 			results_table.Refresh()
-			showInfoFast("Copied", data, program.viewer_window)
+			showInfoFast("Copied", data, program.explorer)
 		}
 	}
 
@@ -2199,7 +2207,7 @@ func installer() {
 
 			// check the password
 			if !program.wallet.Check_Password(pass) {
-				showError(errors.New("wrong password"))
+				showError(errors.New("wrong password"), program.contracts)
 				program.entries.file.SetText("")
 				return
 			} else {
@@ -2215,7 +2223,7 @@ func installer() {
 					// read the file
 					file, err := os.ReadFile(filename)
 					if err != nil {
-						showError(err)
+						showError(err, program.contracts)
 						return
 					}
 
@@ -2229,7 +2237,7 @@ func installer() {
 				if _, _, err := dvm.ParseSmartContract(upload); err != nil {
 
 					// show them an error if one
-					showError(err)
+					showError(err, program.contracts)
 					return
 				}
 
@@ -2288,7 +2296,7 @@ func installer() {
 				if err != nil {
 
 					// notify the user
-					showError(err)
+					showError(err, program.contracts)
 					return
 				}
 
@@ -2296,7 +2304,7 @@ func installer() {
 				if err := program.wallet.SendTransaction(tx); err != nil {
 
 					// notify the user if err
-					showError(err)
+					showError(err, program.contracts)
 					return
 				}
 
@@ -2311,7 +2319,7 @@ func installer() {
 					program.application.Clipboard().SetContent(tx.GetHash().String())
 
 					// notify the user
-					showInfo("", "txid copied to clipboard")
+					showInfo("", "txid copied to clipboard", program.contracts)
 				}
 
 				// center it
@@ -2322,7 +2330,7 @@ func installer() {
 					container.NewVBox(
 						widget.NewLabel("Contract successfully installed"),
 						txid,
-					), program.window)
+					), program.contracts)
 
 				// resize and show
 				success.Resize(program.size)
@@ -2509,10 +2517,10 @@ func interaction() {
 			case dvm.Uint64:
 				arg_type = "uint64"
 			case dvm.Invalid, dvm.None:
-				showError(errors.New("type is either invalid or none"))
+				showError(errors.New("type is either invalid or none"), program.contracts)
 				return
 			default:
-				showError(errors.New("unknown type"))
+				showError(errors.New("unknown type"), program.contracts)
 				return
 			} // pretty self explanatory
 
@@ -2600,7 +2608,7 @@ func interaction() {
 							best_guess = crypto.HashHexToHash(obj.(*widget.Entry).Text)
 							once = true
 						} else {
-							showError(errors.New("multiple token assets not implemented"))
+							showError(errors.New("multiple token assets not implemented"), program.contracts)
 							return
 						}
 					}
@@ -2613,7 +2621,7 @@ func interaction() {
 					if err != nil {
 
 						// show err if so
-						showError(err)
+						showError(err, program.contracts)
 						return
 					}
 
@@ -2662,7 +2670,7 @@ func interaction() {
 					// parse the float
 					float, err := strconv.ParseFloat(value, 64)
 					if err != nil {
-						showError(err)
+						showError(err, program.contracts)
 						return
 					}
 
@@ -2685,7 +2693,7 @@ func interaction() {
 
 					// show err if so
 					if err != nil {
-						showError(err)
+						showError(err, program.contracts)
 						return
 					}
 
@@ -2696,7 +2704,7 @@ func interaction() {
 					if best_guess.IsZero() {
 
 						// if it is, this is a problem
-						showError(errors.New("please report this error to the develop"))
+						showError(errors.New("please report this error to the develop"), program.contracts)
 						return
 					}
 
@@ -2727,7 +2735,7 @@ func interaction() {
 			string_args, err := sc_args.MarshalBinary()
 			if err != nil {
 				//show the err
-				showError(err)
+				showError(err, program.contracts)
 				// but keep going
 			}
 
@@ -2757,7 +2765,7 @@ func interaction() {
 				program.entries.pass.SetText("")
 
 				if !program.wallet.Check_Password(pass) {
-					showError(errors.New("wrong password"))
+					showError(errors.New("wrong password"), program.contracts)
 					return
 				} else {
 
@@ -2775,13 +2783,13 @@ func interaction() {
 
 					// if we have an err, show it
 					if err != nil {
-						showError(err)
+						showError(err, program.contracts)
 						return
 					}
 
 					// submit the transfer to the daemon
 					if err := program.wallet.SendTransaction(tx); err != nil {
-						showError(err)
+						showError(err, program.contracts)
 						return
 					}
 
@@ -2797,7 +2805,7 @@ func interaction() {
 					// make it copiable
 					txid.OnTapped = func() {
 						program.application.Clipboard().SetContent(tx.GetHash().String())
-						showInfo("", "txid copied to clipboard")
+						showInfo("", "txid copied to clipboard", program.contracts)
 					}
 
 					// make a nice big mesesage
@@ -2812,7 +2820,7 @@ func interaction() {
 						container.NewVBox(
 							notice,
 							txid,
-						), program.window)
+						), program.contracts)
 					// resize and show
 					success.Resize(program.size)
 					success.Show()
