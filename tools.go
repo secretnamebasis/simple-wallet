@@ -1264,12 +1264,15 @@ func explorer() {
 		// concurrency!
 		var wg sync.WaitGroup
 		var mu sync.RWMutex
+		var threads = runtime.GOMAXPROCS(0) - 2
+		var capacity = make(chan struct{}, threads)
 
 		wg.Add(limit)
 		for i := range limit {
 			func(i int) {
 				defer wg.Done()
-				h := program.wallet.Get_Height() - (uint64(i))
+				capacity <- struct{}{}
+				h := uint64(getDaemonInfo().TopoHeight) - (uint64(i))
 
 				_, exists := diff_map[int(h)]
 
@@ -1302,6 +1305,7 @@ func explorer() {
 					return
 				}
 				diff_map[int(bl.Height)] = i
+				<-capacity
 			}(i)
 		}
 		wg.Wait()
