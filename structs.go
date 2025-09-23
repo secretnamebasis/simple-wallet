@@ -21,27 +21,29 @@ type (
 		rpc_server       *rpcserver.RPCServer
 		simulator_server *derodrpc.RPCServer
 
-		node          nodes
-		caches        caches
-		application   fyne.App
-		preferences   fyne.Preferences
-		selections    selections
-		dialogues     dialogues
-		activities    activities
-		toggles       toggles
-		checks        checks
-		lists         lists
-		entries       entries
-		containers    containers
-		hyperlinks    hyperlinks
-		labels        labels
-		buttons       buttons
-		window        fyne.Window
-		viewer_window fyne.Window
-		loggedIn      bool
-		name          string
-		receiver      string
-		size          fyne.Size
+		node        nodes
+		caches      caches
+		application fyne.App
+		preferences fyne.Preferences
+		selections  selections
+		dialogues   dialogues
+		activities  activities
+		toggles     toggles
+		checks      checks
+		lists       lists
+		entries     entries
+		containers  containers
+		hyperlinks  hyperlinks
+		labels      labels
+		buttons     buttons
+		window      fyne.Window
+		encryption  fyne.Window
+		contracts   fyne.Window
+		explorer    fyne.Window
+		loggedIn    bool
+		name        string
+		receiver    string
+		size        fyne.Size
 	}
 
 	nodes struct {
@@ -116,10 +118,8 @@ type (
 		connections,
 		rpc_server,
 		update_password,
-		filesign,
-		fileverify,
-		self_encrypt_decrypt,
-		recipient_encrypt_decrypt,
+		contracts,
+		encryption,
 		token_add,
 		balance_rescan,
 		asset_scan,
