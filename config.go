@@ -165,8 +165,6 @@ func maintain_connection() {
 						program.entries.recipient.Disable()
 						program.buttons.token_add.Disable()
 						program.buttons.balance_rescan.Disable()
-						program.buttons.contract_installer.Disable()
-						program.buttons.contract_interactor.Disable()
 					})
 
 					// and if we are logged in, update to offline mode
@@ -213,8 +211,6 @@ func maintain_connection() {
 					program.entries.recipient.Enable()
 					program.buttons.token_add.Enable()
 					program.buttons.balance_rescan.Enable()
-					program.buttons.contract_installer.Enable()
-					program.buttons.contract_interactor.Enable()
 				})
 				// the above love to bark on signal interrupts
 			}

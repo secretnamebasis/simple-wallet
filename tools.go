@@ -40,13 +40,6 @@ func tools() *fyne.Container {
 	}
 
 	// let's set the functions for each of these links
-	program.buttons.filesign.OnTapped = filesign
-	program.buttons.self_encrypt_decrypt.OnTapped = self_crypt
-	program.buttons.recipient_encrypt_decrypt.OnTapped = recipient_crypt
-	program.buttons.integrated.OnTapped = integrated_address_generator
-	program.buttons.token_add.OnTapped = add_token
-	program.buttons.balance_rescan.OnTapped = balance_rescan
-	program.buttons.asset_scan.OnTapped = asset_scan
 	program.buttons.explorer.OnTapped = explorer
 	program.buttons.contract_installer.OnTapped = installer
 	program.buttons.contract_interactor.OnTapped = interaction
@@ -61,10 +54,8 @@ func tools() *fyne.Container {
 		program.buttons.balance_rescan,
 		program.buttons.asset_scan,
 		program.buttons.explorer,
-		program.buttons.contract_installer,
-		program.buttons.contract_interactor,
+		program.buttons.contracts,
 	)
-	program.containers.toolbox = toolButtons
 
 	// and now, let's hide them
 	program.containers.toolbox.Hide()

@@ -123,10 +123,7 @@ type (
 		token_add,
 		balance_rescan,
 		asset_scan,
-		explorer,
-		integrated,
-		contract_installer,
-		contract_interactor *widget.Button
+		explorer *widget.Button
 	}
 	selections struct {
 		assets *widget.Select
