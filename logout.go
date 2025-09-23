@@ -55,6 +55,11 @@ func logout() {
 			program.caches.info = rpc.GetInfo_Result{}
 			program.caches.pool = rpc.GetTxPool_Result{}
 
+			// close windows if any
+			program.encryption.Close()
+			program.contracts.Close()
+			program.explorer.Close()
+
 		}
 	}
 
