@@ -116,13 +116,16 @@ func filesign() *fyne.Container {
 	// let's make it noticeable that you can select the file
 	program.entries.file.SetPlaceHolder("/path/to/file.txt")
 
+	pass := widget.NewPasswordEntry()
+	pass.SetPlaceHolder("w41137-p@55w0rd")
+
 	// now let's make a sign hyperlink
 	sign := widget.NewHyperlink("filesign", nil)
 
 	// and when the user taps it
 	onTapped := func() {
 		var fs *dialog.FormDialog
-		program.entries.pass.OnSubmitted = func(s string) {
+		pass.OnSubmitted = func(s string) {
 			fs.Submit()
 			fs.Dismiss()
 		}
@@ -134,13 +137,13 @@ func filesign() *fyne.Container {
 			}
 
 			// copy the password
-			pass := program.entries.pass.Text
+			p := pass.Text
 
 			// dump the text
-			program.entries.pass.SetText("")
+			pass.SetText("")
 
 			// check the password first
-			if !program.wallet.Check_Password(pass) {
+			if !program.wallet.Check_Password(p) {
 
 				// let them know if they were wrong
 				showError(errors.New("wrong password"), program.encryption)
@@ -189,7 +192,7 @@ func filesign() *fyne.Container {
 			}
 		}
 		// now create a simple form
-		content := []*widget.FormItem{widget.NewFormItem("", program.entries.pass)}
+		content := []*widget.FormItem{widget.NewFormItem("", pass)}
 
 		// set the content and the callback
 		fs = dialog.NewForm("Sign File?", confirm, dismiss, content, callback, program.encryption)
@@ -208,7 +211,7 @@ func filesign() *fyne.Container {
 	// when they click the link
 	onTapped = func() {
 		var v *dialog.FormDialog
-		program.entries.pass.OnSubmitted = func(s string) {
+		pass.OnSubmitted = func(s string) {
 			v.Submit()
 			v.Dismiss()
 		}
@@ -221,13 +224,13 @@ func filesign() *fyne.Container {
 			}
 
 			// copy the password
-			pass := program.entries.pass.Text
+			p := pass.Text
 
 			// dump the text
-			program.entries.pass.SetText("")
+			pass.SetText("")
 
 			// check the password, every time
-			if !program.wallet.Check_Password(pass) {
+			if !program.wallet.Check_Password(p) {
 
 				// show and error when wrong
 				showError(errors.New("wrong password"), program.encryption)
@@ -300,7 +303,7 @@ func filesign() *fyne.Container {
 		}
 
 		// create a simple form
-		content := []*widget.FormItem{widget.NewFormItem("", program.entries.pass)}
+		content := []*widget.FormItem{widget.NewFormItem("", pass)}
 
 		// set the content and the callback
 		v = dialog.NewForm("Verify File?", confirm, dismiss, content, callback, program.encryption)
