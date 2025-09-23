@@ -50,6 +50,10 @@ func configs() *fyne.Container {
 
 	program.buttons.simulator.OnTapped = simulator
 
+	program.buttons.balance_rescan.OnTapped = balance_rescan
+
+	program.buttons.balance_rescan.Hide()
+
 	return container.NewVBox(
 		program.containers.topbar,
 		layout.NewSpacer(),
@@ -59,6 +63,7 @@ func configs() *fyne.Container {
 				program.buttons.simulator,
 				program.buttons.connections,
 				program.buttons.rpc_server,
+				program.buttons.balance_rescan,
 				program.buttons.update_password,
 			),
 			layout.NewSpacer(),
