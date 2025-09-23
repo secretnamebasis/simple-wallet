@@ -111,15 +111,6 @@ func initialize() {
 		explorer.Show()
 	})
 
-	// here is a simple way to select a file in general
-	program.dialogues.open = openExplorer()
-
-	// let's make an simple way to open files
-	program.entries.file.ActionItem = widget.NewButtonWithIcon("", theme.FolderOpenIcon(), func() {
-		program.dialogues.open.Resize(program.size)
-		program.dialogues.open.Show()
-	})
-
 	// let's make a simple way to login
 	program.hyperlinks.login.OnTapped = loginFunction
 
