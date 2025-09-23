@@ -850,10 +850,15 @@ func balance_rescan() {
 				return
 			} else {
 				// now range through each token in the cache one at a time
+				desired := 1
+				capacity_channel := make(chan struct{}, desired)
 				var wg sync.WaitGroup
 				wg.Add(len(program.caches.assets))
 				for _, asset := range program.caches.assets {
 					go func() {
+						new_job := struct{}{}
+
+						capacity_channel <- new_job
 						defer wg.Done()
 						// assume there could be an error
 						var err error
@@ -874,6 +879,8 @@ func balance_rescan() {
 							// but don't stop, just continue the loop
 							return
 						}
+
+						<-capacity_channel
 					}()
 				}
 				wg.Wait()
