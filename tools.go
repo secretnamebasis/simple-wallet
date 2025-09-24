@@ -89,8 +89,6 @@ func encryption() {
 }
 
 func contracts() {
-	// program.buttons.contract_installer.OnTapped = installer
-	// program.buttons.contract_interactor.OnTapped = interaction
 	program.contracts = fyne.CurrentApp().NewWindow(program.window.Title() + " | contracts ")
 	program.contracts.SetIcon(theme.FileIcon())
 	program.contracts.Resize(program.size)
