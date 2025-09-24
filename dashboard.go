@@ -49,59 +49,64 @@ func keys() {
 		k.Submit()
 	}
 	callback := func(b bool) {
-		if b {
-			// check the password for all sensitive actions
-			if !program.wallet.Check_Password(program.entries.pass.Text) {
-				// if they get is wrong, tell them
-				showError(errors.New("wrong password"), program.window)
-				return
-			} else { // if they get it right
-				headers := []string{
-					"SEED PHRASE",
-					"SECRET KEY",
-					"PUBLIC KEY",
-				}
-				data := []string{
-					program.wallet.GetSeed(),
-					program.wallet.Get_Keys().Secret.Text(16),
-					program.wallet.Get_Keys().Public.StringHex(),
-				}
-				table := widget.NewTable(
-					func() (rows int, cols int) { return 3, 2 },
-					func() fyne.CanvasObject { return widget.NewLabel("") },
-					func(tci widget.TableCellID, co fyne.CanvasObject) {
-						label := co.(*widget.Label)
-						switch tci.Col {
-						case 0:
-							label.SetText(headers[tci.Row])
-						case 1:
-							label.SetText(data[tci.Row])
-							if tci.Row == 0 {
-								label.Wrapping = fyne.TextWrapWord
-							}
-						}
-					},
-				)
+		pass := program.entries.pass.Text
+		program.entries.pass.SetText("")
 
-				table.SetColumnWidth(0, largestMinSize(headers).Width)
-				table.SetRowHeight(0, 75)
-				table.SetColumnWidth(1, largestMinSize(data[1:]).Width)
-				table.Refresh()
-				table.OnSelected = func(id widget.TableCellID) {
-					table.UnselectAll()
-					if id.Col > 0 {
-						program.application.Clipboard().SetContent(data[id.Row])
-						showInfoFast("Copied", "Copied "+headers[id.Row], program.window)
-					}
-				}
-
-				// let's make a dialog window with all the keys included
-				keys := dialog.NewCustom("Keys", dismiss, table, program.window)
-				size := fyne.NewSize(((program.size.Width / 10) * 8), ((program.size.Height / 2) * 1))
-				keys.Resize(size)
-				keys.Show()
-				return
+		if !b { // if they cancel
+			return
+		}
+		// check the password for all sensitive actions
+		if !program.wallet.Check_Password(pass) {
+			// if they get is wrong, tell them
+			showError(errors.New("wrong password"), program.window)
+			return
+		} else { // if they get it right
+			headers := []string{
+				"SEED PHRASE",
+				"SECRET KEY",
+				"PUBLIC KEY",
 			}
+			data := []string{
+				program.wallet.GetSeed(),
+				program.wallet.Get_Keys().Secret.Text(16),
+				program.wallet.Get_Keys().Public.StringHex(),
+			}
+			table := widget.NewTable(
+				func() (rows int, cols int) { return 3, 2 },
+				func() fyne.CanvasObject { return widget.NewLabel("") },
+				func(tci widget.TableCellID, co fyne.CanvasObject) {
+					label := co.(*widget.Label)
+					switch tci.Col {
+					case 0:
+						label.SetText(headers[tci.Row])
+					case 1:
+						label.SetText(data[tci.Row])
+						if tci.Row == 0 {
+							label.Wrapping = fyne.TextWrapWord
+						}
+					}
+				},
+			)
+
+			table.SetColumnWidth(0, largestMinSize(headers).Width)
+			table.SetRowHeight(0, 75)
+			table.SetColumnWidth(1, largestMinSize(data[1:]).Width)
+			table.Refresh()
+			table.OnSelected = func(id widget.TableCellID) {
+				table.UnselectAll()
+				if id.Col > 0 {
+					program.application.Clipboard().SetContent(data[id.Row])
+					showInfoFast("Copied", "Copied "+headers[id.Row], program.window)
+				}
+			}
+
+			// let's make a dialog window with all the keys included
+			keys := dialog.NewCustom("Keys", dismiss, table, program.window)
+			size := fyne.NewSize(((program.size.Width / 10) * 8), ((program.size.Height / 2) * 1))
+			keys.Resize(size)
+			keys.Show()
+			return
+
 		}
 	}
 
@@ -113,8 +118,6 @@ func keys() {
 
 	k.Show()
 
-	// dump password when done
-	program.entries.pass.SetText("")
 }
 func txList() {
 	// here are all the sent entries
