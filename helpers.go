@@ -976,8 +976,14 @@ func lockScreen() {
 
 	content := container.NewVBox(
 		layout.NewSpacer(),
-		program.entries.pass,
-		program.hyperlinks.unlock,
+		container.NewAdaptiveGrid(3,
+			layout.NewSpacer(),
+			container.NewVBox(
+				program.entries.pass,
+				program.hyperlinks.unlock,
+			),
+			layout.NewSpacer(),
+		),
 		layout.NewSpacer(),
 	)
 

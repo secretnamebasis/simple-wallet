@@ -54,7 +54,7 @@ Initial feedback suggested a contract installer/interactor would be useful, and 
 
 You will need Go, and a newer version is recommended. Fyne has its own set of dependencies: [https://docs.fyne.io/started/](https://docs.fyne.io/started/)
 
-If you have handled dependencies and have a properly configured Go environment, you can install `simple-wallet`.
+Be sure to check out the [releases](https://github.com/secretnamebasis/simple-wallet/releases) for linux and windows binaries; maybe one day I will be able to afford a mac...  
 
 If you would like to build from source:
 ```sh
@@ -71,25 +71,25 @@ cd simple-wallet
 go run .
 ```
 
+Or, assuming you have a properly configured `go` environment:
+```sh
+go install github.com/secretnamebasis/simple-wallet@latest
+simple-wallet
+```
+
 # Development
 
-The basic design pattern for this application has been:
-
-- Define a program hyperlink.
-- Construct a dialog for content to display.
-- Make the hyperlink's OnTapped function display the dialog.
-- Load a container with hyperlinks.
+Most of the dev process has been to imbue a GUI with as much of the present wallet client tools as possible, while also introducing some components that make it easier to dev on the DERO blockchain.   
 
 Some other developments that could be useful:
 - Expand the public node list
-- Mobile application for android devices
-- Multiple desktop environments, there have been zero tests in Microsoft, Android or MacOS environments — strongly doubt iOS app would ever happen.
+- Multiple desktop environments, there have been zero tests in Microsoft or MacOS environments — strongly doubt iOS app would ever happen.
 
 There are many additional Dero-related technologies that could be integrated into this program:
 
 - Native DERO tools
   - ~~Explorer~~
-  - Simulator
+  - ~~Simulator~~
   - Miner
   - Daemon
 - Civilware Integrations:
@@ -99,20 +99,22 @@ There are many additional Dero-related technologies that could be integrated int
   - Tela Installer & Server
   - Epoch Management
 
-# Image Gallery 
-| |  |  |
+# Image Gallery
+
+| | | |
 |---|---|---|
-| ![./assets/1-landing.png](./assets/1-landing.png)  | ![./assets/2-connections.png](./assets/2-connections.png)  | ![./assets/3.1-file-explorer.png](./assets/3.1-file-explorer.png)  |
-| ![./assets/3.2-create.png](./assets/3.2-create.png)  | ![./assets/3.3-restore.png](./assets/3.3-restore.png)  | ![./assets/3-login.png](./assets/3-login.png)  |
-| ![./assets/4.10-send_dispatching.png](./assets/4.10-send_dispatching.png)  | ![./assets/4.11-send_dispatched.png](./assets/4.11-send_dispatched.png)  | ![./assets/4.1-home_everything_on.png](./assets/4.1-home_everything_on.png)  |
-| ![./assets/4.2-tx_history.png](./assets/4.2-tx_history.png)  | ![./assets/4.3-tx_detail.png](./assets/4.3-tx_detail.png)  | ![./assets/4.4-asset_list.png](./assets/4.4-asset_list.png)  |
-| ![./assets/4.5-asset_history.png](./assets/4.5-asset_history.png)  | ![./assets/4.6-token_detail.png](./assets/4.6-token_detail.png)  | ![./assets/4.7-keys_check_password.png](./assets/4.7-keys_check_password.png)  |
-| ![./assets/4.8-send.png](./assets/4.8-send.png)  | ![./assets/4.9-send_password_confirmation.png](./assets/4.9-send_password_confirmation.png)  | ![./assets/4-home.png](./assets/4-home.png)  |
-| ![./assets/5.10-contract-interactor_functions.png](./assets/5.10-contract-interactor_functions.png)  | ![./assets/5.1-filesign-fileverify.png](./assets/5.1-filesign-fileverify.png)  | ![./assets/5.2-integrated-address.png](./assets/5.2-integrated-address.png)  |
-| ![./assets/5.3-self-crypt.png](./assets/5.3-self-crypt.png)  | ![./assets/5.4-recipient-crypt.png](./assets/5.4-recipient-crypt.png)  | ![./assets/5.5-token_add.png](./assets/5.5-token_add.png)  |
-| ![./assets/5.6-token_add_success.png](./assets/5.6-token_add_success.png)  | ![./assets/5.7-balance-rescan.png](./assets/5.7-balance-rescan.png)  | ![./assets/5.8-contract-installer.png](./assets/5.8-contract-installer.png)  |
-| ![./assets/5.9-contract-interactor.png](./assets/5.9-contract-interactor.png)  | ![./assets/5-tools.png](./assets/5-tools.png)  | ![./assets/6.1-rpc-server.png](./assets/6.1-rpc-server.png) | ![./assets/6-configs.png](./assets/6-configs.png)  |
-| ![./assets/7-lockscreen.png](./assets/7-lockscreen.png)  |   |   |
+| ![](assets/1-landing.png) | ![](assets/2-connections.png) | ![](assets/3-login.png) |
+| ![](assets/3.1-file-explorer.png) | ![](assets/3.2-create.png) | ![](assets/3.3-restore.png) |
+| ![](assets/4-home.png) | ![](assets/4.1-integrated-address.png) | ![](assets/4.2-tx_history.png) |
+| ![](assets/4.3-tx_detail.png) | ![](assets/4.4-asset_list.png) | ![](assets/4.5-token_detail.png) |
+| ![](assets/4.6-asset_history.png) | ![](assets/4.7-keys_check_password.png) | ![](assets/4.8-send.png) |
+| ![](assets/4.9-send_password_confirmation.png) | ![](assets/4.10-send_dispatching.png) | ![](assets/4.11-send_dispatched.png) |
+| ![](assets/5-tools.png) | ![](assets/5.1-filesign-fileverify.png) | ![](assets/5.3-self-crypt.png) |
+| ![](assets/5.4-recipient-crypt.png) | ![](assets/5.6-balance-rescan.png) | ![](assets/5.7-balance-rescan-progress.png) |
+| ![](assets/5.8-contract-installer.png) | ![](assets/5.9-contract-interactor.png) | ![](assets/6-configs.png) |
+| ![](assets/6.1-rpc-server.png) | ![](assets/6.2-simulator.png) | ![](assets/6.3-update-password.png) |
+| ![](assets/7-lockscreen.png) | | |
+
 
 # Contributing
 There's really only one rule for contributing to projects I maintain: have fun learning! Anyone is welcome to contribute as much as they'd like, or they can fork the project at any time to create their own version of simple-wallet.
