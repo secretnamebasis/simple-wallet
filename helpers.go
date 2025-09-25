@@ -139,6 +139,7 @@ func isLoggedIn() {
 				program.preferences.SetBool("loggedIn", false)
 				program.labels.loggedin.SetText("WALLET: 🔴")
 			})
+			continue
 		}
 		if !program.preferences.Bool("loggedIn") {
 			program.preferences.SetBool("loggedIn", true)
