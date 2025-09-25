@@ -978,7 +978,7 @@ func explorer() {
 	diff_map := map[int]int{}
 	updateDiffData := func() {
 		// don't do more than this...
-		const limit = 100
+		const limit = 10
 
 		// concurrency!
 		var wg sync.WaitGroup
@@ -1063,8 +1063,6 @@ func explorer() {
 	searchBlockchain := func(s string) {
 		results_table.ScrollToTop()
 		results_table.ScrollToLeading()
-		// You should probably log or handle this error
-		// results_index = nil
 		searchHeaders = []string{"NO BLOCK DATA"}
 		searchData = []string{"NO DATA"}
 

@@ -4,31 +4,12 @@ This is a simple Dero wallet built using Fyne.
 
 **This software is alpha stage software, use only for testing and evaluation purposes.**
 
-## Caveats
-
-This program uses the following derohe version: 
-
-`{"Version": "3.5.3-140.DEROHE.STARGATE+13062023"}`
-
-It has been demonstrated to contain a re-use of randomness vulnerability affecting transaction data privacy that makes it possible to decrypt transaction data. **As such, there are no claims of privacy or security with this program. It is intended for testing and evaluation purposes only.**
-
-# Why I made simple-wallet 
-
-I woke up one day with the distinct impression I wanted a wallet that was simple, yet feature-full. 
-
-The core focus was to bring a few underlying Dero tools to the surface: 
-- file signing/verification
-- self/recipient encryption/decryption
-- integrated address generation 
-
-Initial feedback suggested a contract installer/interactor would be useful, and a Pong server would be a fun addition — historically speaking, I enjoy Pong servers. :)
-
 # Features
-- Easy to read topbar: 
-    - "BLOCK" Block Beight 
-    - "NODE" Node Connection 
-    - "WALLET" Wallet Logged-In 
-    - "RPC" RPC Server 
+- Easy-to-read topbar: 
+    - "BLOCK" - Block Beight 
+    - "NODE" - Node Connection 
+    - "WALLET" - Wallet Logged-In 
+    - "RPC" - RPC Server 
 - "🔒" Lockscreen Button
 - Create/Login/Restore Wallets
 - Transaction History
@@ -38,15 +19,18 @@ Initial feedback suggested a contract installer/interactor would be useful, and 
 - Public Node Auto-Connect
 - Simulator Launcher
 - RPC Server
+- Integrated Address Generation
+- Token Adding
+- Asset Scanner - via Gnomon Smart Contact
+- Balance Rescaning
 - Dero Tools:
+  - ENCRYPTION TOOLS
     - File Signing/Verification
-    - Integrated Address Generation
     - Self-Encryption/Decryption
     - Recipient Encryption/Decryption
-    - Token Adding
-    - Balance Rescan
-    - Asset Scanner - via gnomon smart contact
-    - Blockchain Explorer
+  - EXPLORE BLOCKCHAIN
+    - Nifty Difficulty Graph
+  - SMART CONTRACTS
     - Contract Installer
     - Contract Interactor
 

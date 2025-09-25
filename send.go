@@ -123,24 +123,24 @@ func sendForm() {
 		}
 
 		// if they are asking for a specific asset, let's use it
-		if addr.Arguments.Has(rpc.RPC_ASSET, rpc.DataHash) {
-			showError(errors.New("currently unsupported"), program.window)
-			return
-			// obtain the value interface
-			// value := addr.Arguments.Value(rpc.RPC_ASSET, rpc.DataHash)
+		// if addr.Arguments.Has(rpc.Rpc, rpc.DataHash) {
+		// 	showError(errors.New("currently unsupported"), program.window)
+		// 	return
+		// obtain the value interface
+		// value := addr.Arguments.Value(rpc.RPC_ASSET, rpc.DataHash)
 
-			// coerce the value into a crypto hash
-			// asset := value.(crypto.Hash)
+		// coerce the value into a crypto hash
+		// asset := value.(crypto.Hash)
 
-			// stringify the hash
-			// asset_string := asset.String()
+		// stringify the hash
+		// asset_string := asset.String()
 
-			// // set the asset string as the selection
-			// program.selections.assets.SetSelected(asset_string)
+		// // set the asset string as the selection
+		// program.selections.assets.SetSelected(asset_string)
 
-			// // disable the widget to prevent error
-			// program.selections.assets.Disable()
-		}
+		// // disable the widget to prevent error
+		// program.selections.assets.Disable()
+		// }
 
 		// if they have a specific port... use it
 		if addr.Arguments.Has(rpc.RPC_DESTINATION_PORT, rpc.DataUint64) {

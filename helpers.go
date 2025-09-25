@@ -1216,9 +1216,9 @@ func makeGraph(hd_map map[int]int, w, h float32) fyne.CanvasObject {
 	for i := first_height; i <= last_height; i += ticks {
 
 		// continue if height modulus 10 is not 0... essentially, all but the tenth block
-		if i%10 != 0 {
-			continue
-		}
+		// if i%10 != 0 { // reports of stalls?
+		// 	continue
+		// }
 
 		// get the working value
 		value := float32((i - first_height))
