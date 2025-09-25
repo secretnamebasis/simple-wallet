@@ -193,10 +193,12 @@ func maintain_connection() {
 
 				// obviously registration is different
 				if program.preferences.Bool("loggedIn") {
-					if !program.wallet.IsRegistered() && !program.activities.registration.Visible() {
+					if !program.wallet.IsRegistered() {
+						program.buttons.register.Enable()
+					}
+					if !program.activities.registration.Visible() {
 						// and let them register
 						program.buttons.register.Show()
-						program.buttons.register.Enable()
 					}
 				}
 			})
