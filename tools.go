@@ -1063,8 +1063,6 @@ func explorer() {
 	searchBlockchain := func(s string) {
 		results_table.ScrollToTop()
 		results_table.ScrollToLeading()
-		// You should probably log or handle this error
-		// results_index = nil
 		searchHeaders = []string{"NO BLOCK DATA"}
 		searchData = []string{"NO DATA"}
 
