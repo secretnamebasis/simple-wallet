@@ -140,6 +140,9 @@ func isLoggedIn() {
 				program.labels.loggedin.SetText("WALLET: 🔴")
 			})
 		}
+		if !program.preferences.Bool("loggedIn") {
+			program.preferences.SetBool("loggedIn", true)
+		}
 		mu.Unlock()
 	}
 }
@@ -241,6 +244,11 @@ func updateBalance() {
 				bal, previous_bal = 0, 0
 			})
 		} else {
+			// check if there is a wallet first
+			if program.wallet == nil {
+				return
+			}
+
 			if bal == 0 && program.wallet.IsRegistered() {
 				fyne.DoAndWait(func() {
 					// update it
@@ -250,6 +258,7 @@ func updateBalance() {
 			} else if bal == 0 && !program.wallet.IsRegistered() {
 				fyne.DoAndWait(func() {
 					// update it
+					program.labels.loggedin.SetText("WALLET: 🟢")
 					program.labels.balance.SetText("unregistered")
 
 				})
