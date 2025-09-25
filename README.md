@@ -77,7 +77,7 @@ There are many additional Dero-related technologies that could be integrated int
   - Miner
   - Daemon
 - Civilware Integrations:
-  - ENCRYPTED_DEFAULT_PAYLOAD_CBOR_V2
+  - ~~ENCRYPTED_DEFAULT_PAYLOAD_CBOR_V2~~
   - ~~Gnomon integration~~ 
   - XSWD Websocket
   - Tela Installer & Server
