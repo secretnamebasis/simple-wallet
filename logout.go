@@ -28,8 +28,9 @@ func logout() {
 				program.entries.username.SetText("")
 				program.entries.password.SetText("")
 
-				// toggle the server
-				program.toggles.server.SetSelected("off") // just in case
+				// toggle the servers off
+				program.toggles.ws_server.SetSelected("off")
+				program.toggles.rpc_server.SetSelected("off")
 
 				// clear the rpc server from memory
 				program.rpc_server = nil

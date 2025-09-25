@@ -16,6 +16,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
+	"github.com/creachadair/jrpc2"
 	"github.com/deroproject/derohe/blockchain"
 	derodrpc "github.com/deroproject/derohe/cmd/derod/rpc"
 	"github.com/deroproject/derohe/config"
@@ -25,6 +26,7 @@ import (
 	"github.com/deroproject/derohe/transaction"
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/deroproject/derohe/walletapi/rpcserver"
+	"github.com/deroproject/derohe/walletapi/xswd"
 )
 
 func configs() *fyne.Container {
@@ -35,6 +37,7 @@ func configs() *fyne.Container {
 		program.buttons.connections.OnTapped = connections
 		program.window.SetContent(program.containers.configs)
 	}
+	program.buttons.ws_server.OnTapped = ws_server
 
 	// let's make a simple way to manage the rpc server
 	program.buttons.rpc_server.OnTapped = rpc_server
@@ -62,6 +65,7 @@ func configs() *fyne.Container {
 			container.NewVBox(
 				program.buttons.simulator,
 				program.buttons.connections,
+				program.buttons.ws_server,
 				program.buttons.rpc_server,
 				program.buttons.balance_rescan,
 				program.buttons.update_password,
@@ -470,19 +474,75 @@ func connections() {
 	connect.Show()
 }
 
+func ws_server() {
+
+	// let's position toggle horizontally
+	program.toggles.ws_server.Horizontal = true
+
+	// simple options to choose from
+	program.toggles.ws_server.Options = []string{
+		"off", "on",
+	}
+	onChanged := func(s string) {
+		switch s {
+		case "on":
+			program.toggles.ws_server.SetSelected("on")
+			// initial connection disallows requests, consider ...withPort option to set forceAsk to false
+			program.ws_server = xswd.NewXSWDServerWithPort(44326, program.wallet, false, []string{},
+				func(data *xswd.ApplicationData) bool {
+					fmt.Printf("%+v\n", data)
+					fmt.Println(data)
+					return true
+				},
+				func(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permission {
+					fmt.Printf("%+v %+v\n", data, r)
+					return xswd.Allow
+				},
+			)
+			fmt.Println(program.ws_server.IsRunning())
+			go func() {
+				for range time.NewTicker(time.Second).C {
+					for _, a := range program.ws_server.GetApplications() {
+						if a.Id != "" {
+							fmt.Printf("%+v\n", a)
+						}
+					}
+				}
+			}()
+		case "off":
+			program.toggles.ws_server.SetSelected("off")
+			program.ws_server.Stop()
+			// default:
+		}
+	}
+	program.toggles.ws_server.OnChanged = onChanged
+	// load up the widgets into a container
+	content := container.NewVBox(
+		layout.NewSpacer(),
+		container.NewCenter(program.toggles.ws_server),
+		layout.NewSpacer(),
+	)
+
+	// let's build a walkthru for the user, resize and show
+	ws := dialog.NewCustom("ws server", dismiss, content, program.window)
+	ws.Resize(program.size)
+	ws.Show()
+}
+
 func rpc_server() {
 
 	// so here are some creds
 	program.entries.username.SetPlaceHolder("username")
 	program.entries.password.SetPlaceHolder("p@55w0rd")
+
 	// obviously, passwords are passwords
 	program.entries.password.Password = true
 
 	// let's position toggle horizontally
-	program.toggles.server.Horizontal = true
+	program.toggles.rpc_server.Horizontal = true
 
 	// simple options to choose from
-	program.toggles.server.Options = []string{
+	program.toggles.rpc_server.Options = []string{
 		"off", "on",
 	}
 
@@ -495,7 +555,7 @@ func rpc_server() {
 			var err error
 
 			// and let's set the server as "on"
-			program.toggles.server.SetSelected("on")
+			program.toggles.rpc_server.SetSelected("on")
 
 			// let's gather the creds from the text entries
 
@@ -531,7 +591,7 @@ func rpc_server() {
 		case "off": // but if the rpc server toggle is off
 
 			// make sure it is off
-			program.toggles.server.SetSelected("off")
+			program.toggles.rpc_server.SetSelected("off")
 
 			// and make sure to check if the server argument is in memory
 			if globals.Arguments["--rpc-server"] != nil &&
@@ -556,11 +616,11 @@ func rpc_server() {
 		}
 	}
 	// set the on changed function
-	program.toggles.server.OnChanged = onChanged
+	program.toggles.rpc_server.OnChanged = onChanged
 
 	// if there isn't anything toggled, set to off
-	if program.toggles.server.Selected == "" {
-		program.toggles.server.SetSelected("off")
+	if program.toggles.rpc_server.Selected == "" {
+		program.toggles.rpc_server.SetSelected("off")
 	}
 
 	// make a notice
@@ -575,7 +635,7 @@ RPC server runs at http://127.0.0.1:10103
 		layout.NewSpacer(),
 		notice,
 		program.entries.username, program.entries.password,
-		container.NewCenter(program.toggles.server),
+		container.NewCenter(program.toggles.rpc_server),
 		layout.NewSpacer(),
 	)
 
@@ -826,7 +886,8 @@ func simulator() {
 				"0fd7f8db0ed6cbe3bf300258619d8d4a2ff8132ef3c896f6e3fa65a6c92bdf9a",
 			}
 			// the rpc servers are going to be turned on automatically
-			program.toggles.server.Disable()
+			// program.toggles.ws_server.Disable() // do we disable here? I was pretty sure the simulator doesn't auto turn on...
+			program.toggles.rpc_server.Disable()
 			program.entries.username.Disable()
 			program.entries.password.Disable()
 			program.buttons.update_password.Disable()
@@ -924,7 +985,7 @@ func simulator() {
 					go r.RPCServer_Stop()
 				}
 			}
-			program.toggles.server.Enable()
+			program.toggles.rpc_server.Enable()
 			program.entries.username.Enable()
 			program.entries.password.Enable()
 			program.buttons.update_password.Enable()

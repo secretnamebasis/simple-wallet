@@ -18,10 +18,13 @@ func topbar() *fyne.Container {
 			// we always want to know if we are connected
 			program.labels.connection,
 
-			// and we also always want to know if we are logged in
+			// we also always want to know if we are logged in
 			program.labels.loggedin,
 
-			// lastly, we want to see if this server is on
+			// as well as if the web socket
+			program.labels.ws_server,
+
+			// also want to see if the rpc server is on
 			program.labels.rpc_server,
 		),
 	)
