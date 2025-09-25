@@ -644,6 +644,9 @@ func recipient_crypt() *fyne.Container {
 
 	counterparty := widget.NewEntry()
 	counterparty.SetPlaceHolder("counterparty address: dero...")
+	// let's make sure that we validate the address we use
+	counterparty.Validator = addressValidator
+
 	pass := widget.NewPasswordEntry()
 	pass.SetPlaceHolder("w41137-p@55w0rd")
 
@@ -668,6 +671,8 @@ func recipient_crypt() *fyne.Container {
 
 				return
 			}
+			recipient := program.receiver
+			program.receiver = ""
 
 			// get the pass
 			p := pass.Text
@@ -699,7 +704,7 @@ func recipient_crypt() *fyne.Container {
 					}
 
 					// let's check the receiver
-					addr, err := rpc.NewAddress(program.receiver)
+					addr, err := rpc.NewAddress(recipient)
 					if err != nil {
 						// show the user the error
 						showError(err, program.encryption)
@@ -741,7 +746,7 @@ func recipient_crypt() *fyne.Container {
 				} else if !entry.Disabled() {
 					text := entry.Text
 					// let's check the receiver
-					addr, err := rpc.NewAddress(program.receiver)
+					addr, err := rpc.NewAddress(recipient)
 					if err != nil {
 						// show the user the error
 						showError(err, program.encryption)
@@ -802,6 +807,10 @@ func recipient_crypt() *fyne.Container {
 
 				return
 			}
+
+			recipient := program.receiver
+			program.receiver = ""
+
 			// get the pass
 			p := pass.Text
 
@@ -835,7 +844,7 @@ func recipient_crypt() *fyne.Container {
 					}
 
 					// check the receiver address
-					addr, err := rpc.NewAddress(program.receiver)
+					addr, err := rpc.NewAddress(recipient)
 					if err != nil {
 						showError(err, program.encryption)
 
@@ -884,7 +893,7 @@ func recipient_crypt() *fyne.Container {
 				} else if !entry.Disabled() {
 					text := entry.Text
 					// let's check the receiver
-					addr, err := rpc.NewAddress(program.receiver)
+					addr, err := rpc.NewAddress(recipient)
 					if err != nil {
 						// show the user the error
 						showError(err, program.encryption)
@@ -926,9 +935,6 @@ func recipient_crypt() *fyne.Container {
 
 	// set the onTapped callback
 	decrypt.OnTapped = onTapped
-
-	// let's make sure that we validate the address we use
-	counterparty.Validator = addressValidator
 
 	// let's also make a notice
 	notice := "Asymetrically encrypt/decrypt files and text. "
@@ -2640,43 +2646,44 @@ func addressValidator(s string) (err error) {
 	// any changes to the string should immediately update the receiver string
 	program.receiver = ""
 
-	// if less than 4 char...
-	if s != "" && len(s) < 4 {
-		return errors.New("cannot be less than 5 char")
-	}
-
-	// first check to see if it is an address
-	addr, err := rpc.NewAddress(s)
-	// if it is not an address...
-	if err != nil {
+	switch {
+	case s == "":
+		return nil
+	case len(s) != 64:
+		if len(s) < 5 {
+			return errors.New("cannot be less than 5 char, sry capt")
+		}
 		// check to see if it is a name
 		a, err := program.wallet.NameToAddress(s)
-		if err != nil {
-			// she barks
-			// fmt.Println(err)
+		if err != nil && strings.Contains(err.Error(), "leaf not found") {
+			return errors.New("invalid DERO NameAddress")
 		}
-		// if a valid , they are the receiver
 		if a != "" {
 			program.receiver = a
+		} else {
+			return errors.New("invalid DERO NameAddress")
 		}
+	case len(s) == 64:
+		addr, err := rpc.NewAddress(s)
+		if err != nil {
+			return errors.New("invalid DERO address")
+		}
+		if addr.IsIntegratedAddress() {
 
-		// now if the address is an integrated address...
-	} else if addr.IsIntegratedAddress() {
+			// the base of that address is what we'll use as the receiver
+			program.receiver = addr.BaseAddress().String()
 
-		// the base of that address is what we'll use as the receiver
-		program.receiver = addr.BaseAddress().String()
+		} else if addr.String() != "" && // if the addr isn't empty
+			!addr.IsIntegratedAddress() { // now if it is not an integrated address
 
-	} else if addr.String() != "" && // if the addr isn't empty
-		!addr.IsIntegratedAddress() { // now if it is not an integrated address
-
-		// set the receiver
-		program.receiver = addr.String()
+			// set the receiver
+			program.receiver = addr.String()
+		}
 	}
 
 	// at this point, we should be fairly confident
 	if program.receiver == "" {
 		err = errors.New("error obtaining receiver")
-
 		return err
 	}
 
@@ -2684,7 +2691,6 @@ func addressValidator(s string) (err error) {
 	// let's see if the receiver is not registered
 	if !isRegistered(program.receiver) {
 		err = errors.New("unregistered address")
-
 		return err
 	}
 
