@@ -134,14 +134,21 @@ func isLoggedIn() {
 	var mu sync.Mutex
 	for range ticker.C {
 		mu.Lock()
+		if program.wallet == nil {
+			program.preferences.SetBool("loggedIn", false)
+			break
+		}
+		if program.ws_server != nil { // don't save the listeners into the wallet file
+			program.preferences.SetBool("loggedIn", true)
+			continue
+		}
 		if err := program.wallet.Save_Wallet(); err != nil {
 			fyne.DoAndWait(func() {
-				program.preferences.SetBool("loggedIn", false)
-				program.labels.loggedin.SetText("WALLET: 🔴")
+				program.labels.loggedin.SetText("WALLET: 🟡") // signalling an error
 			})
 			continue
 		}
-		if !program.preferences.Bool("loggedIn") {
+		if !program.preferences.Bool("loggedIn") && program.wallet != nil {
 			program.preferences.SetBool("loggedIn", true)
 		}
 		mu.Unlock()
