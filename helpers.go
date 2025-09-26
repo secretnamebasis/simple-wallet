@@ -277,11 +277,6 @@ func updateBalance() {
 				return
 			}
 
-			go func() {
-				program.caches.info = getDaemonInfo()
-				program.caches.pool = getTxPool()
-			}()
-
 			// get the balance
 			if !program.preferences.Bool("loggedIn") {
 				break
