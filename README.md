@@ -9,6 +9,7 @@ This is a simple Dero wallet built using Fyne.
     - "BLOCK" - Block Beight 
     - "NODE" - Node Connection 
     - "WALLET" - Wallet Logged-In 
+    - "WS" - WS Server 
     - "RPC" - RPC Server 
 - "🔒" Lockscreen Button
 - Create/Login/Restore Wallets
@@ -79,7 +80,7 @@ There are many additional Dero-related technologies that could be integrated int
 - Civilware Integrations:
   - ~~ENCRYPTED_DEFAULT_PAYLOAD_CBOR_V2~~
   - ~~Gnomon integration~~ 
-  - XSWD Websocket
+  - ~~XSWD Websocket~~
   - Tela Installer & Server
   - Epoch Management
 

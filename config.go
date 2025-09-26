@@ -606,13 +606,22 @@ func ws_server() {
 	// load up the widgets into a container
 	content := container.NewVBox(
 		layout.NewSpacer(),
+		makeCenteredWrappedLabel(`
+The WS Server allows for external apps to connect with the wallet. 
+
+Application requests will arrive as pop-ups for confirmation or dismissal.
+
+Only have ON when necessary.
+
+WS Server runs at ws://127.0.0.1:44326/xswd 
+		`),
 		container.NewCenter(program.toggles.ws_server),
 		layout.NewSpacer(),
 	)
 
 	// let's build a walkthru for the user, resize and show
 	ws := dialog.NewCustom("ws server", dismiss, content, program.window)
-	// ws.Resize(program.size)
+	ws.Resize(fyne.NewSize(program.size.Width/3, program.size.Height/2))
 	ws.Show()
 }
 
@@ -714,7 +723,7 @@ func rpc_server() {
 	notice := makeCenteredWrappedLabel(`
 The RPC Server allows for external apps to connect with the wallet. Be conscientious with credentials, and only have ON when necessary.
 
-RPC server runs at http://127.0.0.1:10103 
+RPC server runs at http://127.0.0.1:10103/json_rpc 
 	`)
 
 	// load up the widgets into a container
