@@ -723,7 +723,7 @@ func rpc_server() {
 	notice := makeCenteredWrappedLabel(`
 The RPC Server allows for external apps to connect with the wallet. Be conscientious with credentials, and only have ON when necessary.
 
-RPC server runs at http://127.0.0.1:10103 
+RPC server runs at http://127.0.0.1:10103/json_rpc 
 	`)
 
 	// load up the widgets into a container
