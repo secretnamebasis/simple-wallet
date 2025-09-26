@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -506,7 +507,9 @@ func ws_server() {
 					)
 					// range through the permissions if any
 					for permission, request := range data.Permissions {
-						content.Add(widget.NewLabel(permission + " " + request.String()))
+						label := widget.NewLabel(permission + " " + request.String())
+						label.Wrapping = fyne.TextWrapBreak
+						content.Add(label)
 					}
 
 					// we are going to wait on a choice
@@ -529,8 +532,9 @@ func ws_server() {
 						program.window,
 					)
 					// show it
+					pop.Resize(fyne.NewSize(program.size.Width/3, program.size.Height/2))
 					pop.Show()
-
+					program.window.Show()
 					// and block (eg. wait) for the choice
 					return <-choice
 				},
@@ -539,14 +543,14 @@ func ws_server() {
 				// do you allow it, do you reject it
 				func(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permission {
 					// let's serve up some content
-					content := container.NewAdaptiveGrid(1,
+					content := container.NewBorder(container.NewAdaptiveGrid(1,
 						widget.NewLabel(truncator(data.Id)),
 						widget.NewLabel(data.Name),
 						widget.NewLabel(data.Description),
 						widget.NewLabel(data.Url),
 						widget.NewLabel(r.Method()),
-					)
-
+					), nil, nil, nil)
+					tall := false
 					// if it has params, process them
 					if r.HasParams() {
 						var params rpc.EventNotification
@@ -561,7 +565,44 @@ func ws_server() {
 							// return xswd.Deny
 						}
 						// add param string to the request
-						content.Add(widget.NewLabel(r.ParamString()))
+						fmt.Println("EVENT", params.Event, "VALUE", params.Value)
+						label := widget.NewLabel("")
+						switch r.Method() {
+						case "scinvoke":
+							p := rpc.SC_Invoke_Params{}
+							if err := json.Unmarshal([]byte(r.ParamString()), &p); err != nil {
+								showError(err, program.window)
+								break
+							}
+							pretty, err := json.MarshalIndent(p, "", "  ")
+							if err != nil {
+								showError(err, program.window)
+								break
+							}
+							label.SetText(string(pretty))
+							label.Wrapping = fyne.TextWrapWord
+							tall = true
+						case "transfer":
+							p := rpc.Transfer_Params{}
+							if err := json.Unmarshal([]byte(r.ParamString()), &p); err != nil {
+								showError(err, program.window)
+								break
+							}
+							pretty, err := json.MarshalIndent(p, "", "  ")
+							if err != nil {
+								showError(err, program.window)
+								break
+							}
+							label.SetText(string(pretty))
+							label.Wrapping = fyne.TextWrapWord
+							tall = true
+						default:
+							label.SetText(r.ParamString())
+							label.Wrapping = fyne.TextWrapBreak
+						}
+						scroll := container.NewScroll(label)
+						// scroll.Direction = container.ScrollHorizontalOnly
+						content.Add(scroll)
 					}
 					// we are going to wait for a choice
 					choice := make(chan bool)
@@ -582,8 +623,13 @@ func ws_server() {
 						program.window,
 					)
 					// show it
+					if tall {
+						pop.Resize(fyne.NewSize(program.size.Width/3, program.size.Height))
+					} else {
+						pop.Resize(fyne.NewSize(program.size.Width/3, program.size.Height/2))
+					}
 					pop.Show()
-
+					program.window.Show()
 					// now wait for the choice
 					if <-choice { // if accepted...
 						return xswd.Allow
