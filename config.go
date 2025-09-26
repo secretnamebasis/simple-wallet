@@ -23,6 +23,7 @@ import (
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/globals"
 	"github.com/deroproject/derohe/p2p"
+	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/transaction"
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/deroproject/derohe/walletapi/rpcserver"
@@ -489,31 +490,115 @@ func ws_server() {
 		switch s {
 		case "on":
 			program.toggles.ws_server.SetSelected("on")
-			// initial connection disallows requests, consider ...withPort option to set forceAsk to false
+			program.labels.ws_server.SetText("WS: 🟢")
 			program.ws_server = xswd.NewXSWDServerWithPort(44326, program.wallet, false, []string{},
+				// this component handles the application portion
+				// we are receiving application data from the source
+				// and we are granting permission based on the data they give us
+				// this is essentially an authorization request for an application
 				func(data *xswd.ApplicationData) bool {
-					fmt.Printf("%+v\n", data)
-					fmt.Println(data)
-					return true
-				},
-				func(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permission {
-					fmt.Printf("%+v %+v\n", data, r)
-					return xswd.Allow
-				},
-			)
-			fmt.Println(program.ws_server.IsRunning())
-			go func() {
-				for range time.NewTicker(time.Second).C {
-					for _, a := range program.ws_server.GetApplications() {
-						if a.Id != "" {
-							fmt.Printf("%+v\n", a)
+					// let's serve up the data
+					content := container.NewAdaptiveGrid(1,
+						widget.NewLabel(truncator(data.Id)),
+						widget.NewLabel(data.Name),
+						widget.NewLabel(data.Description),
+						widget.NewLabel(data.Url),
+					)
+					// range through the permissions if any
+					for permission, request := range data.Permissions {
+						content.Add(widget.NewLabel(permission + " " + request.String()))
+					}
+
+					// we are going to wait on a choice
+					choice := make(chan bool)
+
+					// create a callback function
+					callback := func(b bool) {
+						if b { // if they hit confirm, they have accepted
+							choice <- accept
+						} else { // otherwise... rejected
+							choice <- reject // default is to reject everything
 						}
 					}
-				}
-			}()
+
+					// create a pop-up like dialog
+					pop := dialog.NewCustomConfirm(
+						"New WebSocket Request",
+						confirm, dismiss,
+						content, callback,
+						program.window,
+					)
+					// show it
+					pop.Show()
+
+					// and block (eg. wait) for the choice
+					return <-choice
+				},
+				// this is a method request that is extended to the underlying API
+				// we are going to make it as simple as it gets:
+				// do you allow it, do you reject it
+				func(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permission {
+					// let's serve up some content
+					content := container.NewAdaptiveGrid(1,
+						widget.NewLabel(truncator(data.Id)),
+						widget.NewLabel(data.Name),
+						widget.NewLabel(data.Description),
+						widget.NewLabel(data.Url),
+						widget.NewLabel(r.Method()),
+					)
+
+					// if it has params, process them
+					if r.HasParams() {
+						var params rpc.EventNotification
+
+						// un-marshal the params
+						if err := r.UnmarshalParams(&params); err != nil {
+
+							// if the params fail, serve the error
+							showError(err, program.window)
+
+							// // and then deny the request
+							// return xswd.Deny
+						}
+						// add param string to the request
+						content.Add(widget.NewLabel(r.ParamString()))
+					}
+					// we are going to wait for a choice
+					choice := make(chan bool)
+
+					// we are going to have
+					callback := func(b bool) {
+						if b { // if they say confirm, accept
+							choice <- accept
+						} else { // if they dismiss, reject
+							choice <- reject
+						}
+					}
+					// build a pop-up
+					pop := dialog.NewCustomConfirm(
+						"New WebSocket Request",
+						confirm, dismiss,
+						content, callback,
+						program.window,
+					)
+					// show it
+					pop.Show()
+
+					// now wait for the choice
+					if <-choice { // if accepted...
+						return xswd.Allow
+					}
+
+					// default is to deny
+					return xswd.Deny
+				},
+			)
 		case "off":
 			program.toggles.ws_server.SetSelected("off")
-			program.ws_server.Stop()
+			program.labels.ws_server.SetText("WS: 🔴")
+			if program.ws_server != nil {
+				program.ws_server.Stop()
+			}
 			// default:
 		}
 	}
@@ -527,7 +612,7 @@ func ws_server() {
 
 	// let's build a walkthru for the user, resize and show
 	ws := dialog.NewCustom("ws server", dismiss, content, program.window)
-	ws.Resize(program.size)
+	// ws.Resize(program.size)
 	ws.Show()
 }
 
@@ -643,7 +728,7 @@ RPC server runs at http://127.0.0.1:10103
 
 	// let's build a walkthru for the user, resize and show
 	rpc := dialog.NewCustom("rpc server", dismiss, content, program.window)
-	rpc.Resize(program.size)
+	rpc.Resize(fyne.NewSize(program.size.Width/3, program.size.Height/2))
 	rpc.Show()
 }
 
