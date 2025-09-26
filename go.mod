@@ -4,6 +4,7 @@ go 1.24.4
 
 require (
 	fyne.io/fyne/v2 v2.6.3
+	github.com/creachadair/jrpc2 v0.35.4
 	github.com/deroproject/derohe v0.0.0-20250813215012-9b6a8b82c839
 	github.com/ybbus/jsonrpc/v3 v3.1.6
 	golang.org/x/image v0.24.0
@@ -20,7 +21,6 @@ require (
 	github.com/cenkalti/rpc2 v1.0.4 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/coder/websocket v1.8.14 // indirect
-	github.com/creachadair/jrpc2 v0.36.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dchest/siphash v1.2.3 // indirect
 	github.com/deroproject/graviton v0.0.0-20220130070622-2c248a53b2e1 // indirect
@@ -71,6 +71,7 @@ require (
 	github.com/valyala/histogram v1.2.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xtaci/kcp-go/v5 v5.6.2 // indirect
+	github.com/ybbus/jsonrpc v2.1.2+incompatible // indirect
 	github.com/yuin/goldmark v1.7.8 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect

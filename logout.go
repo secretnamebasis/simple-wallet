@@ -10,67 +10,65 @@ func logout() {
 	// update the header
 	updateHeader(program.hyperlinks.logout)
 
-	// if there is a wallet in memory and it saves
-	if program.wallet != nil && program.wallet.Save_Wallet() == nil {
-
-		// and as long as we are logged in...
-		if program.preferences.Bool("loggedIn") {
-
-			// and as long as there is an rpc server in memory
-			if program.rpc_server != nil && globals.Arguments["--rpc-server"] != nil {
-				// stop the rpc server
-				program.rpc_server.RPCServer_Stop()
-
-				// make it noticable
-				program.labels.rpc_server.SetText("RPC: 🔴")
-
-				// dump the creds
-				program.entries.username.SetText("")
-				program.entries.password.SetText("")
-
-				// toggle the server
-				program.toggles.server.SetSelected("off") // just in case
-
-				// clear the rpc server from memory
-				program.rpc_server = nil
-
-				delete(globals.Arguments, "--rpc-server")
-				delete(globals.Arguments, "--rpc-login")
-				delete(globals.Arguments, "--rpc-bind")
-			}
-
-			// close out the wallet
-			program.wallet.Close_Encrypted_Wallet()
-
-			// dump it from memory
-			program.wallet = nil
-
-			// reset the balance
-			program.labels.balance.SetText("BALANCE: 0")
-
-			program.labels.loggedin.SetText("WALLET: 🔴")
-
-			// clear the cache
-			program.caches.assets = []asset{}
-			program.caches.info = rpc.GetInfo_Result{}
-			program.caches.pool = rpc.GetTxPool_Result{}
-
-			// close windows if any
-			if program.encryption != nil {
-				program.encryption.Close()
-			}
-			if program.contracts != nil {
-				program.contracts.Close()
-			}
-			if program.explorer != nil {
-				program.explorer.Close()
-			}
-
-		}
-	}
-
 	// the wallet is no longer logged in
 	program.preferences.SetBool("loggedIn", false)
+
+	// if there is a wallet in memory and it saves
+	if program.wallet != nil {
+
+		// and as long as there is an rpc server in memory
+		if program.rpc_server != nil && globals.Arguments["--rpc-server"] != nil {
+			// stop the rpc server
+			program.rpc_server.RPCServer_Stop()
+
+			// make it noticable
+			program.labels.rpc_server.SetText("RPC: 🔴")
+
+			// dump the creds
+			program.entries.username.SetText("")
+			program.entries.password.SetText("")
+
+			// toggle the servers off
+			program.toggles.rpc_server.SetSelected("off")
+
+			// clear the rpc server from memory
+			program.rpc_server = nil
+
+			delete(globals.Arguments, "--rpc-server")
+			delete(globals.Arguments, "--rpc-login")
+			delete(globals.Arguments, "--rpc-bind")
+		}
+		if program.ws_server != nil {
+			program.ws_server.Stop()
+			program.toggles.ws_server.SetSelected("off")
+
+		}
+
+		// close out the wallet
+		program.wallet.Close_Encrypted_Wallet()
+
+		// reset the balance
+		program.labels.balance.SetText("BALANCE: 0")
+
+		program.labels.loggedin.SetText("WALLET: 🔴")
+
+		// clear the cache
+		program.caches.assets = []asset{}
+		program.caches.info = rpc.GetInfo_Result{}
+		program.caches.pool = rpc.GetTxPool_Result{}
+
+		// close windows if any
+		if program.encryption != nil {
+			program.encryption.Close()
+		}
+		if program.contracts != nil {
+			program.contracts.Close()
+		}
+		if program.explorer != nil {
+			program.explorer.Close()
+		}
+
+	}
 
 	// there is the off chance that they log out before they are registered
 	if program.containers.register.Visible() {

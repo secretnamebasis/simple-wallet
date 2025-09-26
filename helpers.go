@@ -107,7 +107,7 @@ func createPreferred() {
 		os.Create(filename)
 		// really
 	} else {
-		file, err := os.Open(filename)
+		file, err := os.Open(filename + ".conf")
 		if err != nil {
 
 			// we shouldn't report an err here...
@@ -134,13 +134,21 @@ func isLoggedIn() {
 	var mu sync.Mutex
 	for range ticker.C {
 		mu.Lock()
+		if program.wallet == nil {
+			program.preferences.SetBool("loggedIn", false)
+			break
+		}
+		if program.ws_server != nil { // don't save the listeners into the wallet file
+			program.preferences.SetBool("loggedIn", true)
+			continue
+		}
 		if err := program.wallet.Save_Wallet(); err != nil {
 			fyne.DoAndWait(func() {
-				program.preferences.SetBool("loggedIn", false)
-				program.labels.loggedin.SetText("WALLET: 🔴")
+				program.labels.loggedin.SetText("WALLET: 🟡") // signalling an error
 			})
+			continue
 		}
-		if !program.preferences.Bool("loggedIn") {
+		if !program.preferences.Bool("loggedIn") && program.wallet != nil {
 			program.preferences.SetBool("loggedIn", true)
 		}
 		mu.Unlock()
@@ -243,6 +251,7 @@ func updateBalance() {
 				program.labels.balance.SetText(rpc.FormatMoney(0))
 				bal, previous_bal = 0, 0
 			})
+			return
 		} else {
 			// check if there is a wallet first
 			if program.wallet == nil {
@@ -268,11 +277,6 @@ func updateBalance() {
 				return
 			}
 
-			go func() {
-				program.caches.info = getDaemonInfo()
-				program.caches.pool = getTxPool()
-			}()
-
 			// get the balance
 			if !program.preferences.Bool("loggedIn") {
 				break
@@ -294,6 +298,14 @@ func updateBalance() {
 			}
 		}
 	}
+}
+func updateCaches() {
+
+	for range time.NewTicker(time.Second * 2).C {
+		program.caches.info = getDaemonInfo()
+		program.caches.pool = getTxPool()
+	}
+
 }
 
 // simple way to get all transfers
@@ -1660,172 +1672,4 @@ it is recommended that you use a full node for best success.`
 	scan.Resize(program.size)
 	scan.Show()
 
-}
-
-func balance_rescan() {
-	// nice big notice
-	big_notice :=
-		"This action will clear all transfer history and balances. " +
-			"Balances are nearly instant in resync; however... " +
-			"Tx history depends on node status, eg pruned/full... " +
-			"Some txs may not be available at your node connection. " +
-			"For full history, and privacy, run a full node starting at block 0 upto current topoheight. " +
-			"This operation could take a long time with many token assets and transfers. "
-
-	// create a callback function
-	callback := func(b bool) {
-		// if they cancel
-		if !b {
-			return
-		}
-
-		// start a sync activity widget
-		// syncing := widget.NewActivity()
-		// syncing.Start()
-		notice := makeCenteredWrappedLabel("Beginning Scan")
-		prog := widget.NewProgressBar()
-		content := container.NewVBox(
-			layout.NewSpacer(),
-			prog,
-			// syncing,
-			notice,
-			layout.NewSpacer(),
-		)
-		// set it to a splash screen
-		syncro := dialog.NewCustomWithoutButtons("syncing", content, program.window)
-
-		// resize and show
-		syncro.Resize(program.size)
-		syncro.Show()
-
-		// rebuild the hash list
-		buildAssetHashList()
-
-		prog.Min = 0
-		prog.Max = 1
-
-		// as a go routine
-		go func() {
-
-			// clean the wallet
-			program.wallet.Clean()
-
-			// it will be helpful to know when we are done
-			var done bool
-
-			// as a go routine...
-			go func() {
-
-				// keep track of the start
-				var start int
-
-				// now we are going to have this spin every second
-				ticker := time.NewTicker(time.Millisecond * 300)
-				for range ticker.C {
-					h := getDaemonInfo().Height
-
-					// if we are done, break this loop
-					if done {
-						break
-					}
-
-					// get transfers
-					transfers := getTransfersByHeight(
-						uint64(start), uint64(h),
-						crypto.ZEROHASH,
-						true, true, true,
-					)
-
-					// measure them
-					current_len := len(transfers)
-
-					if current_len == 0 {
-						continue
-					}
-
-					// set the start higher up the chain
-					end_of_index := current_len - 1
-					start = int(transfers[end_of_index].Height)
-					ratio := float64(start) / float64(h)
-					fyne.DoAndWait(func() {
-						prog.SetValue(ratio)
-					})
-
-					// now spin through the transfers at the point of difference
-					for _, each := range transfers {
-
-						// update the notice
-						fyne.DoAndWait(func() {
-							notice.SetText("Blockheight: " + strconv.Itoa(int(each.Height)) + " Timestamp: " + each.Time.String())
-						})
-
-						// take a small breather between updates
-						time.Sleep(time.Millisecond)
-					}
-
-					// set notice to a default
-					// fyne.DoAndWait(func() {
-					// 	notice.SetText("Retrieving more txs")
-					// })
-				}
-			}()
-
-			// then sync the wallet for DERO
-			if err := program.wallet.Sync_Wallet_Memory_With_Daemon(); err != nil {
-				// if there is an error, notify the user
-				showError(err, program.window)
-				return
-			} else {
-				// now range through each token in the cache one at a time
-				desired := 1
-				capacity_channel := make(chan struct{}, desired)
-				var wg sync.WaitGroup
-				wg.Add(len(program.caches.assets))
-				for _, asset := range program.caches.assets {
-					go func() {
-						new_job := struct{}{}
-
-						capacity_channel <- new_job
-						defer wg.Done()
-						// assume there could be an error
-						var err error
-
-						// then add each scid back to the map
-						hash := crypto.HashHexToHash(asset.hash)
-						if err = program.wallet.TokenAdd(hash); err != nil {
-							// if err, show it
-							showError(err, program.window)
-							// but don't stop, just continue the loop
-							return
-						}
-
-						// and then sync scid internally with the daemon
-						if err = program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
-							// if err, show it
-							showError(err, program.window)
-							// but don't stop, just continue the loop
-							return
-						}
-
-						<-capacity_channel
-					}()
-				}
-				wg.Wait()
-			}
-			// when done, shut down the sync status in the go routine
-			fyne.DoAndWait(func() {
-				done = true
-				// syncing.Stop()
-				syncro.Dismiss()
-			})
-		}()
-
-	}
-
-	// here is the rescan dialog
-	rescan := dialog.NewConfirm("Balance Rescan", big_notice, callback, program.window) // set to the main window
-
-	// resize and show
-	rescan.Resize(program.size)
-	rescan.Show()
 }

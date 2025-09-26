@@ -11,6 +11,7 @@ import (
 	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/deroproject/derohe/walletapi/rpcserver"
+	"github.com/deroproject/derohe/walletapi/xswd"
 )
 
 // leveraging go's strong types is extremely helpful
@@ -18,6 +19,7 @@ import (
 type (
 	components struct {
 		wallet           *walletapi.Wallet_Disk
+		ws_server        *xswd.XSWD
 		rpc_server       *rpcserver.RPCServer
 		simulator_server *derodrpc.RPCServer
 
@@ -68,7 +70,6 @@ type (
 	}
 
 	dialogues struct {
-		open  *dialog.FileDialog
 		login *dialog.ConfirmDialog
 	}
 	checks struct {
@@ -76,9 +77,10 @@ type (
 	}
 
 	toggles struct {
-		server    *widget.RadioGroup
-		network   *widget.RadioGroup
-		simulator *widget.RadioGroup
+		rpc_server *widget.RadioGroup
+		ws_server  *widget.RadioGroup
+		network    *widget.RadioGroup
+		simulator  *widget.RadioGroup
 	}
 	containers struct {
 		topbar,
@@ -116,6 +118,7 @@ type (
 		send,
 		simulator,
 		connections,
+		ws_server,
 		rpc_server,
 		update_password,
 		contracts,
@@ -156,6 +159,7 @@ type (
 		height,
 		connection,
 		rpc_server,
+		ws_server,
 		balance,
 		counter,
 		notice,

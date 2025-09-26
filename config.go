@@ -16,15 +16,18 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
+	"github.com/creachadair/jrpc2"
 	"github.com/deroproject/derohe/blockchain"
 	derodrpc "github.com/deroproject/derohe/cmd/derod/rpc"
 	"github.com/deroproject/derohe/config"
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/globals"
 	"github.com/deroproject/derohe/p2p"
+	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/transaction"
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/deroproject/derohe/walletapi/rpcserver"
+	"github.com/deroproject/derohe/walletapi/xswd"
 )
 
 func configs() *fyne.Container {
@@ -35,6 +38,7 @@ func configs() *fyne.Container {
 		program.buttons.connections.OnTapped = connections
 		program.window.SetContent(program.containers.configs)
 	}
+	program.buttons.ws_server.OnTapped = ws_server
 
 	// let's make a simple way to manage the rpc server
 	program.buttons.rpc_server.OnTapped = rpc_server
@@ -62,6 +66,7 @@ func configs() *fyne.Container {
 			container.NewVBox(
 				program.buttons.simulator,
 				program.buttons.connections,
+				program.buttons.ws_server,
 				program.buttons.rpc_server,
 				program.buttons.balance_rescan,
 				program.buttons.update_password,
@@ -188,7 +193,7 @@ func maintain_connection() {
 				program.labels.connection.SetText("NODE: 🟢")
 
 				// obviously registration is different
-				if program.preferences.Bool("loggedIn") {
+				if program.preferences.Bool("loggedIn") && program.wallet != nil {
 					if !program.wallet.IsRegistered() {
 						program.buttons.register.Enable()
 					}
@@ -383,7 +388,7 @@ func connections() {
 			name string
 		}{ip: endpoint, name: "preferred"}
 
-		file, err := os.Create("preferred")
+		file, err := os.Create("preferred.conf")
 		if err != nil {
 			showError(err, program.window)
 			return
@@ -472,19 +477,159 @@ func connections() {
 	connect.Show()
 }
 
+func ws_server() {
+
+	// let's position toggle horizontally
+	program.toggles.ws_server.Horizontal = true
+
+	// simple options to choose from
+	program.toggles.ws_server.Options = []string{
+		"off", "on",
+	}
+	onChanged := func(s string) {
+		switch s {
+		case "on":
+			program.toggles.ws_server.SetSelected("on")
+			program.labels.ws_server.SetText("WS: 🟢")
+			program.ws_server = xswd.NewXSWDServerWithPort(44326, program.wallet, false, []string{},
+				// this component handles the application portion
+				// we are receiving application data from the source
+				// and we are granting permission based on the data they give us
+				// this is essentially an authorization request for an application
+				func(data *xswd.ApplicationData) bool {
+					// let's serve up the data
+					content := container.NewAdaptiveGrid(1,
+						widget.NewLabel(truncator(data.Id)),
+						widget.NewLabel(data.Name),
+						widget.NewLabel(data.Description),
+						widget.NewLabel(data.Url),
+					)
+					// range through the permissions if any
+					for permission, request := range data.Permissions {
+						content.Add(widget.NewLabel(permission + " " + request.String()))
+					}
+
+					// we are going to wait on a choice
+					choice := make(chan bool)
+
+					// create a callback function
+					callback := func(b bool) {
+						if b { // if they hit confirm, they have accepted
+							choice <- accept
+						} else { // otherwise... rejected
+							choice <- reject // default is to reject everything
+						}
+					}
+
+					// create a pop-up like dialog
+					pop := dialog.NewCustomConfirm(
+						"New WebSocket Request",
+						confirm, dismiss,
+						content, callback,
+						program.window,
+					)
+					// show it
+					pop.Show()
+
+					// and block (eg. wait) for the choice
+					return <-choice
+				},
+				// this is a method request that is extended to the underlying API
+				// we are going to make it as simple as it gets:
+				// do you allow it, do you reject it
+				func(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permission {
+					// let's serve up some content
+					content := container.NewAdaptiveGrid(1,
+						widget.NewLabel(truncator(data.Id)),
+						widget.NewLabel(data.Name),
+						widget.NewLabel(data.Description),
+						widget.NewLabel(data.Url),
+						widget.NewLabel(r.Method()),
+					)
+
+					// if it has params, process them
+					if r.HasParams() {
+						var params rpc.EventNotification
+
+						// un-marshal the params
+						if err := r.UnmarshalParams(&params); err != nil {
+
+							// if the params fail, serve the error
+							showError(err, program.window)
+
+							// // and then deny the request
+							// return xswd.Deny
+						}
+						// add param string to the request
+						content.Add(widget.NewLabel(r.ParamString()))
+					}
+					// we are going to wait for a choice
+					choice := make(chan bool)
+
+					// we are going to have
+					callback := func(b bool) {
+						if b { // if they say confirm, accept
+							choice <- accept
+						} else { // if they dismiss, reject
+							choice <- reject
+						}
+					}
+					// build a pop-up
+					pop := dialog.NewCustomConfirm(
+						"New WebSocket Request",
+						confirm, dismiss,
+						content, callback,
+						program.window,
+					)
+					// show it
+					pop.Show()
+
+					// now wait for the choice
+					if <-choice { // if accepted...
+						return xswd.Allow
+					}
+
+					// default is to deny
+					return xswd.Deny
+				},
+			)
+		case "off":
+			program.toggles.ws_server.SetSelected("off")
+			program.labels.ws_server.SetText("WS: 🔴")
+			if program.ws_server != nil {
+				program.ws_server.Stop()
+			}
+			// default:
+		}
+	}
+	program.toggles.ws_server.OnChanged = onChanged
+	// load up the widgets into a container
+	content := container.NewVBox(
+		layout.NewSpacer(),
+		container.NewCenter(program.toggles.ws_server),
+		layout.NewSpacer(),
+	)
+
+	// let's build a walkthru for the user, resize and show
+	ws := dialog.NewCustom("ws server", dismiss, content, program.window)
+	// ws.Resize(program.size)
+	ws.Show()
+}
+
 func rpc_server() {
 
 	// so here are some creds
 	program.entries.username.SetPlaceHolder("username")
 	program.entries.password.SetPlaceHolder("p@55w0rd")
+
 	// obviously, passwords are passwords
 	program.entries.password.Password = true
 
 	// let's position toggle horizontally
-	program.toggles.server.Horizontal = true
+	program.toggles.rpc_server.Horizontal = true
 
 	// simple options to choose from
-	program.toggles.server.Options = []string{
+	program.toggles.rpc_server.Options = []string{
 		"off", "on",
 	}
 
@@ -497,7 +642,7 @@ func rpc_server() {
 			var err error
 
 			// and let's set the server as "on"
-			program.toggles.server.SetSelected("on")
+			program.toggles.rpc_server.SetSelected("on")
 
 			// let's gather the creds from the text entries
 
@@ -533,7 +678,7 @@ func rpc_server() {
 		case "off": // but if the rpc server toggle is off
 
 			// make sure it is off
-			program.toggles.server.SetSelected("off")
+			program.toggles.rpc_server.SetSelected("off")
 
 			// and make sure to check if the server argument is in memory
 			if globals.Arguments["--rpc-server"] != nil &&
@@ -558,11 +703,11 @@ func rpc_server() {
 		}
 	}
 	// set the on changed function
-	program.toggles.server.OnChanged = onChanged
+	program.toggles.rpc_server.OnChanged = onChanged
 
 	// if there isn't anything toggled, set to off
-	if program.toggles.server.Selected == "" {
-		program.toggles.server.SetSelected("off")
+	if program.toggles.rpc_server.Selected == "" {
+		program.toggles.rpc_server.SetSelected("off")
 	}
 
 	// make a notice
@@ -577,13 +722,13 @@ RPC server runs at http://127.0.0.1:10103
 		layout.NewSpacer(),
 		notice,
 		program.entries.username, program.entries.password,
-		container.NewCenter(program.toggles.server),
+		container.NewCenter(program.toggles.rpc_server),
 		layout.NewSpacer(),
 	)
 
 	// let's build a walkthru for the user, resize and show
 	rpc := dialog.NewCustom("rpc server", dismiss, content, program.window)
-	rpc.Resize(program.size)
+	rpc.Resize(fyne.NewSize(program.size.Width/3, program.size.Height/2))
 	rpc.Show()
 }
 
@@ -828,7 +973,8 @@ func simulator() {
 				"0fd7f8db0ed6cbe3bf300258619d8d4a2ff8132ef3c896f6e3fa65a6c92bdf9a",
 			}
 			// the rpc servers are going to be turned on automatically
-			program.toggles.server.Disable()
+			// program.toggles.ws_server.Disable() // do we disable here? I was pretty sure the simulator doesn't auto turn on...
+			program.toggles.rpc_server.Disable()
 			program.entries.username.Disable()
 			program.entries.password.Disable()
 			program.buttons.update_password.Disable()
@@ -926,7 +1072,7 @@ func simulator() {
 					go r.RPCServer_Stop()
 				}
 			}
-			program.toggles.server.Enable()
+			program.toggles.rpc_server.Enable()
 			program.entries.username.Enable()
 			program.entries.password.Enable()
 			program.buttons.update_password.Enable()
@@ -954,4 +1100,176 @@ func simulator() {
 	simulate := dialog.NewCustom("simulator server", dismiss, content, program.window)
 	simulate.Resize(program.size)
 	simulate.Show()
+}
+
+func balance_rescan() {
+	// nice big notice
+	big_notice :=
+		"This action will clear all transfer history and balances. " +
+			"Balances are nearly instant in resync; however... " +
+			"Tx history depends on node status, eg pruned/full... " +
+			"Some txs may not be available at your node connection. " +
+			"For full history, and privacy, run a full node starting at block 0 upto current topoheight. " +
+			"This operation could take a long time with many token assets and transfers. "
+
+	// create a callback function
+	callback := func(b bool) {
+		// if they cancel
+		if !b {
+			return
+		}
+
+		// start a sync activity widget
+		// syncing := widget.NewActivity()
+		// syncing.Start()
+		notice := makeCenteredWrappedLabel("Beginning Scan")
+		prog := widget.NewProgressBar()
+		content := container.NewVBox(
+			layout.NewSpacer(),
+			prog,
+			// syncing,
+			notice,
+			layout.NewSpacer(),
+		)
+		// set it to a splash screen
+		syncro := dialog.NewCustomWithoutButtons("syncing", content, program.window)
+
+		// resize and show
+		syncro.Resize(program.size)
+		syncro.Show()
+
+		// rebuild the hash list
+		buildAssetHashList()
+
+		prog.Min = 0
+		prog.Max = 1
+
+		// as a go routine
+		go func() {
+
+			// clean the wallet
+			program.wallet.Clean()
+
+			// it will be helpful to know when we are done
+			var done bool
+
+			// as a go routine...
+			go func() {
+
+				// keep track of the start
+				var start int
+
+				// now we are going to have this spin every second
+				ticker := time.NewTicker(time.Millisecond * 300)
+				for range ticker.C {
+					h := getDaemonInfo().Height
+
+					// if we are done, break this loop
+					if done {
+						break
+					}
+
+					// get transfers
+					transfers := getTransfersByHeight(
+						uint64(start), uint64(h),
+						crypto.ZEROHASH,
+						true, true, true,
+					)
+
+					// measure them
+					current_len := len(transfers)
+
+					if current_len == 0 {
+						continue
+					}
+
+					// set the start higher up the chain
+					end_of_index := current_len - 1
+					start = int(transfers[end_of_index].Height)
+					ratio := float64(start) / float64(h)
+					fyne.DoAndWait(func() {
+						prog.SetValue(ratio)
+					})
+
+					// now spin through the transfers at the point of difference
+					for _, each := range transfers {
+
+						// update the notice
+						fyne.DoAndWait(func() {
+							notice.SetText("Blockheight: " + strconv.Itoa(int(each.Height)) + " Timestamp: " + each.Time.String())
+						})
+
+						// take a small breather between updates
+						time.Sleep(time.Millisecond)
+					}
+
+				}
+			}()
+			// set notice to a default
+			fyne.DoAndWait(func() {
+				notice.SetText("Syncing tokens")
+			})
+			// then sync the wallet for DERO
+			if err := program.wallet.Sync_Wallet_Memory_With_Daemon(); err != nil {
+				// if there is an error, notify the user
+				showError(err, program.window)
+				syncro.Dismiss()
+				return
+			} else {
+				// now range through each token in the cache one at a time
+				desired := 1
+				capacity_channel := make(chan struct{}, desired)
+				var wg sync.WaitGroup
+				wg.Add(len(program.caches.assets))
+				for _, asset := range program.caches.assets {
+					go func() {
+						new_job := struct{}{}
+
+						capacity_channel <- new_job
+						defer wg.Done()
+						// assume there could be an error
+						var err error
+
+						// then add each scid back to the map
+						hash := crypto.HashHexToHash(asset.hash)
+						if err = program.wallet.TokenAdd(hash); err != nil {
+							// if err, show it
+							showError(err, program.window)
+							// but don't stop, just continue the loop
+							return
+						}
+						// set notice to a default
+						fyne.DoAndWait(func() {
+							notice.SetText("Syncing " + asset.hash)
+						})
+						// and then sync scid internally with the daemon
+						if err = program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
+							// if err, show it
+							showError(err, program.window)
+							syncro.Dismiss()
+							// but don't stop, just continue the loop
+							return
+						}
+
+						<-capacity_channel
+					}()
+				}
+				wg.Wait()
+			}
+			// when done, shut down the sync status in the go routine
+			fyne.DoAndWait(func() {
+				done = true
+				// syncing.Stop()
+				syncro.Dismiss()
+			})
+		}()
+
+	}
+
+	// here is the rescan dialog
+	rescan := dialog.NewConfirm("Balance Rescan", big_notice, callback, program.window) // set to the main window
+
+	// resize and show
+	rescan.Resize(program.size)
+	rescan.Show()
 }

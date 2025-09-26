@@ -30,6 +30,10 @@ const timeout = time.Second * 9 // the world is a really big place
 // simple way to identify gnomon
 const gnomonSC = `a05395bb0cf77adc850928b0db00eb5ca7a9ccbafd9a38d021c8d299ad5ce1a4`
 
+// simple way to accept or reject things
+const reject = false
+const accept = true
+
 // not to be confused with an app, this is a program:
 var program = components{
 	activities: activities{
@@ -40,9 +44,10 @@ var program = components{
 		asset_list:   new(widget.List),
 	},
 	toggles: toggles{
-		server:    widget.NewRadioGroup([]string{}, nil),
-		network:   widget.NewRadioGroup([]string{}, nil),
-		simulator: widget.NewRadioGroup([]string{}, nil),
+		ws_server:  widget.NewRadioGroup([]string{}, nil),
+		rpc_server: widget.NewRadioGroup([]string{}, nil),
+		network:    widget.NewRadioGroup([]string{}, nil),
+		simulator:  widget.NewRadioGroup([]string{}, nil),
 	},
 	checks: checks{
 		replyback: widget.NewCheck("replyback?", nil),
@@ -55,6 +60,7 @@ var program = components{
 		assets:          widget.NewButton("ASSETS", nil),
 		keys:            widget.NewButton("KEYS", nil),
 		transactions:    widget.NewButton("TXS", nil),
+		ws_server:       widget.NewButton("WS SERVER", nil),
 		rpc_server:      widget.NewButton("RPC SERVER", nil),
 		update_password: widget.NewButton("UPDATE PASSWORD", nil),
 		simulator:       widget.NewButton("SIMULATOR", nil),
@@ -87,6 +93,7 @@ var program = components{
 		height:     widget.NewLabel("BLOCK: 0000000"),
 		connection: widget.NewLabel("NODE: 🔴"),
 		loggedin:   widget.NewLabel("WALLET: 🔴"),
+		ws_server:  widget.NewLabel("WS: 🔴"),
 		rpc_server: widget.NewLabel("RPC: 🔴"),
 		notice:     widget.NewLabel(""),
 		balance:    widget.NewLabel("0.00000"),

@@ -62,6 +62,8 @@ func loggedIn() {
 	// update balance every second
 	go updateBalance()
 
+	go updateCaches()
+
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
