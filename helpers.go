@@ -244,6 +244,7 @@ func updateBalance() {
 				program.labels.balance.SetText(rpc.FormatMoney(0))
 				bal, previous_bal = 0, 0
 			})
+			return
 		} else {
 			// check if there is a wallet first
 			if program.wallet == nil {
