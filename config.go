@@ -192,7 +192,7 @@ func maintain_connection() {
 				program.labels.connection.SetText("NODE: 🟢")
 
 				// obviously registration is different
-				if program.preferences.Bool("loggedIn") {
+				if program.preferences.Bool("loggedIn") && program.wallet != nil {
 					if !program.wallet.IsRegistered() {
 						program.buttons.register.Enable()
 					}
