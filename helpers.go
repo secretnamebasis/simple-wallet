@@ -107,7 +107,7 @@ func createPreferred() {
 		os.Create(filename)
 		// really
 	} else {
-		file, err := os.Open(filename)
+		file, err := os.Open(filename + ".conf")
 		if err != nil {
 
 			// we shouldn't report an err here...

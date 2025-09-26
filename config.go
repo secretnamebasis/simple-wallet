@@ -387,7 +387,7 @@ func connections() {
 			name string
 		}{ip: endpoint, name: "preferred"}
 
-		file, err := os.Create("preferred")
+		file, err := os.Create("preferred.conf")
 		if err != nil {
 			showError(err, program.window)
 			return
