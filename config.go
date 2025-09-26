@@ -606,6 +606,15 @@ func ws_server() {
 	// load up the widgets into a container
 	content := container.NewVBox(
 		layout.NewSpacer(),
+		makeCenteredWrappedLabel(`
+The WS Server allows for external apps to connect with the wallet. 
+
+Application requests will arrive as pop-ups for confirmation or dismissal.
+
+Only have ON when necessary.
+
+WS Server runs at ws://127.0.0.1:44326/xswd 
+		`),
 		container.NewCenter(program.toggles.ws_server),
 		layout.NewSpacer(),
 	)
