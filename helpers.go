@@ -296,6 +296,14 @@ func updateBalance() {
 		}
 	}
 }
+func updateCaches() {
+
+	for range time.NewTicker(time.Second * 2).C {
+		program.caches.info = getDaemonInfo()
+		program.caches.pool = getTxPool()
+	}
+
+}
 
 // simple way to get all transfers
 func getTransfersByHeight(min, max uint64, hash crypto.Hash, coin, in, out bool) []rpc.Entry {
