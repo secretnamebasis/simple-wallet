@@ -621,7 +621,7 @@ WS Server runs at ws://127.0.0.1:44326/xswd
 
 	// let's build a walkthru for the user, resize and show
 	ws := dialog.NewCustom("ws server", dismiss, content, program.window)
-	// ws.Resize(program.size)
+	ws.Resize(fyne.NewSize(program.size.Width/3, program.size.Height/2))
 	ws.Show()
 }
 
