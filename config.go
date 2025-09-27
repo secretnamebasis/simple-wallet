@@ -639,6 +639,11 @@ func ws_server() {
 					return xswd.Deny
 				},
 			)
+			if program.ws_server != nil && program.ws_server.IsRunning() {
+				// assuming there are now errors here...
+				program.toggles.ws_server.SetSelected("on")
+				program.labels.ws_server.SetText("WS: 🟢")
+			}
 		case "off":
 			program.toggles.ws_server.SetSelected("off")
 			program.labels.ws_server.SetText("WS: 🔴")
