@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"runtime"
 	"slices"
 	"sort"
 	"strconv"
@@ -989,14 +988,11 @@ func explorer() {
 		// concurrency!
 		var wg sync.WaitGroup
 		var mu sync.RWMutex
-		var threads = runtime.GOMAXPROCS(0) - 2
-		var capacity = make(chan struct{}, threads)
 
 		wg.Add(limit)
 		for i := range limit {
 			func(i int) {
 				defer wg.Done()
-				capacity <- struct{}{}
 				h := uint64(getDaemonInfo().TopoHeight) - (uint64(i))
 
 				_, exists := diff_map[int(h)]
@@ -1025,12 +1021,13 @@ func explorer() {
 					return
 				}
 
-				i, e := strconv.Atoi(tx.Block_Header.Difficulty)
+				d, e := strconv.Atoi(tx.Block_Header.Difficulty)
 				if e != nil {
 					return
 				}
-				diff_map[int(bl.Height)] = i
-				<-capacity
+				mu.Lock()
+				diff_map[int(bl.Height)] = d
+				mu.Unlock()
 			}(i)
 		}
 		wg.Wait()
