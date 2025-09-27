@@ -225,6 +225,7 @@ func loggedIn() {
 
 	// show buttons
 	program.buttons.rpc_server.Show()
+	program.buttons.ws_server.Show()
 	program.buttons.assets.Show()
 	program.buttons.send.Show()
 	program.buttons.update_password.Show()

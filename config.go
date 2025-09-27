@@ -39,7 +39,10 @@ func configs() *fyne.Container {
 		program.buttons.connections.OnTapped = connections
 		program.window.SetContent(program.containers.configs)
 	}
+	// let's make a simple way to connect via websocket
 	program.buttons.ws_server.OnTapped = ws_server
+	// and we'll hide it for now
+	program.buttons.ws_server.Hide()
 
 	// let's make a simple way to manage the rpc server
 	program.buttons.rpc_server.OnTapped = rpc_server
