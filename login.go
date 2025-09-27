@@ -264,6 +264,8 @@ func loginOpenFile() {
 }
 
 func loginFunction() {
+
+	pass := widget.NewPasswordEntry()
 	// first, let's check to see if we are logged-in
 	if program.preferences.Bool("loggedIn") {
 		// do the ole switcheroo
@@ -274,10 +276,10 @@ func loginFunction() {
 
 	// here is a simple way to find their existing wallet
 	program.entries.wallet.SetPlaceHolder("/path/to/wallet.db")
-	program.entries.pass.SetPlaceHolder("w41137-p@55w0rd")
+	pass.SetPlaceHolder("w41137-p@55w0rd")
 
 	// OnSubmitted accepts TypedKey Return as submission
-	program.entries.pass.OnSubmitted = func(s string) {
+	pass.OnSubmitted = func(s string) {
 		program.dialogues.login.Confirm()
 	}
 
@@ -295,7 +297,7 @@ func loginFunction() {
 		container.NewVBox(
 
 			container.NewVBox(program.entries.wallet),
-			program.entries.pass,
+			pass,
 			container.NewAdaptiveGrid(2,
 				container.NewCenter(program.hyperlinks.create),
 				container.NewCenter(program.hyperlinks.restore),
@@ -308,11 +310,11 @@ func loginFunction() {
 	open_wallet := func(b bool) {
 		// get these entries
 		filename := program.entries.wallet.Text
-		password := program.entries.pass.Text
+		password := pass.Text
 
 		// be sure to dump the entries
 		program.entries.wallet.SetText("")
-		program.entries.pass.SetText("")
+		pass.SetText("")
 
 		if !b { // in case they cancel
 			return
