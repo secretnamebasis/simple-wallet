@@ -150,6 +150,7 @@ type (
 		amount,
 		dst,
 		comment,
+		port,
 		secret,
 		public *widget.Entry
 	}

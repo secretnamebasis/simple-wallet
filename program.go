@@ -122,6 +122,7 @@ Please do not leave this page.
 		amount:       widget.NewEntry(),
 		dst:          widget.NewEntry(),
 		comment:      widget.NewEntry(),
+		port:         widget.NewEntry(),
 	},
 	selections: selections{
 		assets: widget.NewSelect([]string{""}, func(s string) {}),
