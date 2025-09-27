@@ -49,7 +49,7 @@ func create() {
 	new_account.Show()
 }
 
-func save() {
+func create_account(password string) {
 	var err error
 	// get entries
 	filename := program.entries.wallet.Text
