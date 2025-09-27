@@ -22,6 +22,8 @@ func create() {
 		program.entries.wallet.SetText("")
 	}
 
+	pass.SetText(randomWords(4, "-"))
+
 	content := container.NewVBox(
 		layout.NewSpacer(),
 		program.entries.wallet,

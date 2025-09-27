@@ -732,6 +732,9 @@ func rpc_server() {
 
 	// so here are some creds
 	program.entries.username.SetPlaceHolder("username")
+	if program.entries.password.Text == "" {
+		program.entries.password.SetText(randomWords(4, "-"))
+	}
 	program.entries.password.SetPlaceHolder("p@55w0rd")
 
 	// obviously, passwords are passwords

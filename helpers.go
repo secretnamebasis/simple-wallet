@@ -32,6 +32,7 @@ import (
 	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/transaction"
 	"github.com/deroproject/derohe/walletapi"
+	"github.com/deroproject/derohe/walletapi/mnemonics"
 	"github.com/ybbus/jsonrpc/v3"
 	"golang.org/x/image/draw"
 )
@@ -1672,4 +1673,16 @@ it is recommended that you use a full node for best success.`
 	scan.Resize(program.size)
 	scan.Show()
 
+}
+
+// for count append random words with a separator
+func randomWords(count int, sep string) (words string) {
+	for i := range count {
+		r := rand.Intn(len(mnemonics.Mnemonics_English.Words))
+		words += mnemonics.Mnemonics_English.Words[r]
+		if i != count-1 {
+			words += sep
+		}
+	}
+	return
 }
