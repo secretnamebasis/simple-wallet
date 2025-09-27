@@ -151,9 +151,7 @@ type (
 		dst,
 		comment,
 		secret,
-		public,
-		seed_placeholder,
-		secret_placeholder *widget.Entry
+		public *widget.Entry
 	}
 	labels struct {
 		height,
