@@ -15,8 +15,6 @@ import (
 	"github.com/deroproject/derohe/walletapi"
 )
 
-var new_account *dialog.CustomDialog
-
 func create() {
 	program.dialogues.login.Dismiss()
 
@@ -33,19 +31,33 @@ func create() {
 		layout.NewSpacer(),
 	)
 
-	new_account = dialog.NewCustom("Create Wallet", dismiss,
+	new_account := dialog.NewCustom("Create Wallet", dismiss,
 		content, program.window)
 
 	// if they press enter, it is as if they pressed save
-	program.entries.pass.OnSubmitted = func(s string) {
+	pass.OnSubmitted = func(s string) {
 		new_account.Dismiss()
-		save()
+		create_account(s)
+		// dump entries
+		program.entries.wallet.SetText("")
+		pass.SetText("")
 	}
 
 	program.hyperlinks.save.Alignment = fyne.TextAlignCenter
-	program.hyperlinks.save.OnTapped = save
+	program.hyperlinks.save.OnTapped = func() {
+		create_account(pass.Text)
+		// dump entries
+		program.entries.wallet.SetText("")
+		pass.SetText("")
+		new_account.Dismiss()
+
+	}
 
 	new_account.Resize(fyne.NewSize(program.size.Width/3, program.size.Height/3))
+	new_account.SetOnClosed(func() {
+		// don't want to write over every password field
+		pass.SetText("")
+	})
 	new_account.Show()
 }
 
@@ -76,8 +88,6 @@ func create_account(password string) {
 
 		} else { // follow logged in workflow
 			loggedIn()
-
-			new_account.Dismiss()
 			updateHeader(program.hyperlinks.home)
 			setContentAsHome()
 		}
