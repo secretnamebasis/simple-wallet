@@ -2115,7 +2115,7 @@ func installer() *fyne.Container {
 	}
 
 	// see, notice
-	notice := makeCenteredWrappedLabel("anonymous installs might effect intended SC functionality")
+	notice := makeCenteredWrappedLabel("anonymous installs might affect intended SC functionality")
 
 	form := widget.NewForm(
 		widget.NewFormItem("", file_entry),
@@ -2331,7 +2331,7 @@ func interaction() *fyne.Container {
 		}
 
 		// now make a nice notice
-		notice := makeCenteredWrappedLabel("anonymous interactions might effect intended SC functionality")
+		notice := makeCenteredWrappedLabel("anonymous interactions might affect intended SC functionality")
 
 		// make a splash box
 		splash := container.NewVBox(widget.NewLabel(func_names[id]), notice, isAnonymous, args, entries)

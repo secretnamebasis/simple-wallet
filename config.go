@@ -480,6 +480,12 @@ func connections() {
 
 func ws_server() {
 
+	if !program.entries.port.Disabled() {
+		program.entries.port.SetText("44326")
+	}
+
+	notice := makeCenteredWrappedLabel("WS Server runs at ws://127.0.0.1:" + program.entries.port.Text + "/xswd")
+
 	// let's position toggle horizontally
 	program.toggles.ws_server.Horizontal = true
 
@@ -490,27 +496,56 @@ func ws_server() {
 	onChanged := func(s string) {
 		switch s {
 		case "on":
-			program.toggles.ws_server.SetSelected("on")
-			program.labels.ws_server.SetText("WS: 🟢")
-			program.ws_server = xswd.NewXSWDServerWithPort(44326, program.wallet, false, []string{},
+
+			var p int
+			var err error
+			port := program.entries.port.Text
+			if port != "" {
+				p, err = strconv.Atoi(port)
+				if err != nil {
+					showError(err, program.window)
+					program.toggles.ws_server.SetSelected("off")
+					return
+				} else if p < 10000 {
+					showError(errors.New("port must be above 10000"), program.window)
+					program.toggles.ws_server.SetSelected("off")
+					return
+				}
+			}
+			notice.SetText("WS Server runs at ws://127.0.0.1:" + program.entries.port.Text + "/xswd")
+			program.entries.port.Disable()
+			forceAsk := false
+			noStore := []string{""}
+			program.ws_server = xswd.NewXSWDServerWithPort(p, program.wallet,
+				forceAsk, // apps can ask for permission on initial connection
+				noStore,  // as a result, 'always allow' on initial connection is possible
+
 				// this component handles the application portion
 				// we are receiving application data from the source
 				// and we are granting permission based on the data they give us
 				// this is essentially an authorization request for an application
 				func(data *xswd.ApplicationData) bool {
 					// let's serve up the data
-					content := container.NewAdaptiveGrid(1,
-						widget.NewLabel(truncator(data.Id)),
-						widget.NewLabel(data.Name),
-						widget.NewLabel(data.Description),
-						widget.NewLabel(data.Url),
-					)
+
+					text := truncator(data.Id) + "\n" +
+						data.Name + "\n" +
+						data.Description + "\n" +
+						data.Url + "\n"
+
 					// range through the permissions if any
-					for permission, request := range data.Permissions {
-						label := widget.NewLabel(permission + " " + request.String())
-						label.Wrapping = fyne.TextWrapBreak
-						content.Add(label)
+					permissions := container.NewAdaptiveGrid(1)
+					if len(data.Permissions) > 0 {
+						permit := ""
+						for permission, request := range data.Permissions {
+							permit += permission + " " + request.String() + "\n"
+						}
+						text += "PERMISSIONS REQUESTS:"
+						permissions.Add(widget.NewLabel(permit))
 					}
+					label := widget.NewLabel(text)
+					label.Wrapping = fyne.TextWrapBreak
+					app := container.NewAdaptiveGrid(1, label)
+					content := container.NewBorder(app, nil, nil, nil, container.NewScroll(permissions))
 
 					// we are going to wait on a choice
 					choice := make(chan bool)
@@ -532,9 +567,12 @@ func ws_server() {
 						program.window,
 					)
 					// show it
-					pop.Resize(fyne.NewSize(program.size.Width/3, program.size.Height/2))
+					pop.Resize(fyne.NewSize(program.size.Width/2, program.size.Height/2))
 					pop.Show()
-					program.window.Show()
+					fyne.DoAndWait(func() {
+						program.window.Show()
+
+					})
 					// and block (eg. wait) for the choice
 					return <-choice
 				},
@@ -543,13 +581,15 @@ func ws_server() {
 				// do you allow it, do you reject it
 				func(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permission {
 					// let's serve up some content
-					content := container.NewBorder(container.NewAdaptiveGrid(1,
-						widget.NewLabel(truncator(data.Id)),
-						widget.NewLabel(data.Name),
-						widget.NewLabel(data.Description),
-						widget.NewLabel(data.Url),
-						widget.NewLabel(r.Method()),
-					), nil, nil, nil)
+
+					text := truncator(data.Id) + "\n" +
+						data.Name + "\n" +
+						data.Description + "\n" +
+						data.Url + "\n" +
+						r.Method() + "\n"
+					label := widget.NewLabel(text)
+					app := container.NewAdaptiveGrid(1, label)
+					content := container.NewBorder(app, nil, nil, nil)
 					tall := false
 					// if it has params, process them
 					if r.HasParams() {
@@ -565,7 +605,6 @@ func ws_server() {
 							// return xswd.Deny
 						}
 						// add param string to the request
-						fmt.Println("EVENT", params.Event, "VALUE", params.Value)
 						label := widget.NewLabel("")
 						switch r.Method() {
 						case "scinvoke":
@@ -624,12 +663,14 @@ func ws_server() {
 					)
 					// show it
 					if tall {
-						pop.Resize(fyne.NewSize(program.size.Width/3, program.size.Height))
+						pop.Resize(fyne.NewSize(program.size.Width/2, program.size.Height))
 					} else {
-						pop.Resize(fyne.NewSize(program.size.Width/3, program.size.Height/2))
+						pop.Resize(fyne.NewSize(program.size.Width/2, program.size.Height/2))
 					}
 					pop.Show()
-					program.window.Show()
+					fyne.DoAndWait(func() {
+						program.window.Show()
+					})
 					// now wait for the choice
 					if <-choice { // if accepted...
 						return xswd.Allow
@@ -639,16 +680,29 @@ func ws_server() {
 					return xswd.Deny
 				},
 			)
+			if program.ws_server != nil && program.ws_server.IsRunning() {
+				// assuming there are now errors here...
+				program.toggles.ws_server.SetSelected("on")
+				program.labels.ws_server.SetText("WS: 🟢")
+			}
 		case "off":
 			program.toggles.ws_server.SetSelected("off")
 			program.labels.ws_server.SetText("WS: 🔴")
 			if program.ws_server != nil {
 				program.ws_server.Stop()
 			}
+			program.entries.port.Enable()
 			// default:
 		}
 	}
+
 	program.toggles.ws_server.OnChanged = onChanged
+
+	// if there isn't anything toggled, set to off
+	if program.toggles.ws_server.Selected == "" {
+		program.toggles.ws_server.SetSelected("off")
+	}
+
 	// load up the widgets into a container
 	content := container.NewVBox(
 		layout.NewSpacer(),
@@ -658,9 +712,9 @@ The WS Server allows for external apps to connect with the wallet.
 Application requests will arrive as pop-ups for confirmation or dismissal.
 
 Only have ON when necessary.
-
-WS Server runs at ws://127.0.0.1:44326/xswd 
 		`),
+		program.entries.port,
+		notice,
 		container.NewCenter(program.toggles.ws_server),
 		layout.NewSpacer(),
 	)
