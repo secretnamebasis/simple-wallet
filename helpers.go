@@ -1678,7 +1678,7 @@ it is recommended that you use a full node for best success.`
 // for count append random words with a separator
 func randomWords(count int, sep string) (words string) {
 	for i := range count {
-		r := rand.Intn(len(mnemonics.Mnemonics_English.Words))
+		r := rand.Intn(len(mnemonics.Mnemonics_English.Words) - 1)
 		words += mnemonics.Mnemonics_English.Words[r]
 		if i != count-1 {
 			words += sep
