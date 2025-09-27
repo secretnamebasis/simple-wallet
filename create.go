@@ -17,16 +17,15 @@ import (
 
 func create() {
 	program.dialogues.login.Dismiss()
-
-	if program.entries.wallet.Text != "" || program.entries.pass.Text != "" {
+	pass := widget.NewPasswordEntry()
+	if program.entries.wallet.Text != "" || pass.Text != "" {
 		program.entries.wallet.SetText("")
-		program.entries.pass.SetText("")
 	}
 
 	content := container.NewVBox(
 		layout.NewSpacer(),
 		program.entries.wallet,
-		program.entries.pass,
+		pass,
 		program.hyperlinks.save,
 		layout.NewSpacer(),
 	)
@@ -65,11 +64,6 @@ func create_account(password string) {
 	var err error
 	// get entries
 	filename := program.entries.wallet.Text
-	password := program.entries.pass.Text
-
-	// dump entries
-	program.entries.wallet.SetText("")
-	program.entries.pass.SetText("")
 
 	program.wallet, err = walletapi.Create_Encrypted_Wallet(
 		filename,
