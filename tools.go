@@ -992,7 +992,7 @@ func explorer() {
 	diff_map := map[int]int{}
 	updateDiffData := func() {
 		// don't do more than this...
-		const limit = 10
+		const limit = 100
 
 		// concurrency!
 		var wg sync.WaitGroup
