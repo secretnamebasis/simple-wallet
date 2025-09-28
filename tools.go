@@ -2653,7 +2653,7 @@ func addressValidator(s string) (err error) {
 	switch {
 	case s == "":
 		return nil
-	case len(s) != 64:
+	case len(s) != 66:
 		if len(s) < 5 {
 			return errors.New("cannot be less than 5 char, sry capt")
 		}
@@ -2667,7 +2667,7 @@ func addressValidator(s string) (err error) {
 		} else {
 			return errors.New("invalid DERO NameAddress")
 		}
-	case len(s) == 64:
+	case len(s) == 66:
 		addr, err := rpc.NewAddress(s)
 		if err != nil {
 			return errors.New("invalid DERO address")
