@@ -93,7 +93,7 @@ func contracts() {
 	program.contracts.Resize(program.size)
 	tabs := container.NewAppTabs(
 		container.NewTabItem("Contract Installer", installer()),
-		container.NewTabItem("Contract interactor", interaction()),
+		container.NewTabItem("Contract Interactor", interaction()),
 	)
 	program.contracts.SetContent(tabs)
 
@@ -963,6 +963,15 @@ func recipient_crypt() *fyne.Container {
 
 // this is going to be a rudimentary explorer at first
 func explorer() {
+
+	program.explorer = fyne.CurrentApp().NewWindow(program.name + " | viewer ")
+	program.explorer.Resize(program.size)
+	program.explorer.SetIcon(theme.SearchIcon())
+	notice := makeCenteredWrappedLabel("LOADING EXPLORER...\npls hodl")
+	program.explorer.SetContent(container.NewAdaptiveGrid(1,
+		notice,
+	))
+	program.explorer.Show()
 	// let's start with the stats tab
 	stats := []string{
 		strconv.Itoa(int(program.caches.info.Height)),
@@ -983,7 +992,7 @@ func explorer() {
 	diff_map := map[int]int{}
 	updateDiffData := func() {
 		// don't do more than this...
-		const limit = 10
+		const limit = 100
 
 		// concurrency!
 		var wg sync.WaitGroup
@@ -1814,9 +1823,7 @@ func explorer() {
 	)
 
 	tabs.SetTabLocation(container.TabLocationLeading)
-	program.explorer = fyne.CurrentApp().NewWindow(program.name + " | viewer ")
-	program.explorer.Resize(program.size)
-	program.explorer.SetIcon(theme.SearchIcon())
+
 	explore := dialog.NewCustomWithoutButtons("Explorer",
 		tabs,
 		program.explorer,
@@ -1825,7 +1832,7 @@ func explorer() {
 		updating = false
 		explore.Dismiss()
 	})
-	program.explorer.Show()
+
 	explore.Resize(program.size)
 	explore.Show()
 }
@@ -2646,7 +2653,7 @@ func addressValidator(s string) (err error) {
 	switch {
 	case s == "":
 		return nil
-	case len(s) != 64:
+	case len(s) != 66:
 		if len(s) < 5 {
 			return errors.New("cannot be less than 5 char, sry capt")
 		}
@@ -2660,7 +2667,7 @@ func addressValidator(s string) (err error) {
 		} else {
 			return errors.New("invalid DERO NameAddress")
 		}
-	case len(s) == 64:
+	case len(s) == 66:
 		addr, err := rpc.NewAddress(s)
 		if err != nil {
 			return errors.New("invalid DERO address")

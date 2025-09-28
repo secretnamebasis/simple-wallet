@@ -8,6 +8,7 @@ import (
 	"image"
 	"image/color"
 	"io"
+	"maps"
 	"math"
 	"math/rand"
 	"net/http"
@@ -1039,6 +1040,10 @@ func lockScreen() {
 }
 
 func makeGraph(hd_map map[int]int, w, h float32) fyne.CanvasObject {
+	// let's make a clone in case it changes while making the graph
+	hd := make(map[int]int, len(hd_map))
+	maps.Copy(hd, hd_map)
+
 	// the graph is upside down...
 	// remember?
 	// 0,0 +1 +2 +3 +4 >
@@ -1058,7 +1063,7 @@ func makeGraph(hd_map map[int]int, w, h float32) fyne.CanvasObject {
 	graph_width := w - left_padding - right_padding
 	graph_height := h - top_padding - bottom_padding
 
-	if len(hd_map) == 0 {
+	if len(hd) == 0 {
 		return canvas.NewText("No data", color.Black)
 	}
 
@@ -1069,7 +1074,7 @@ func makeGraph(hd_map map[int]int, w, h float32) fyne.CanvasObject {
 	var first_height, last_height, max_difficulty int
 
 	// range, append and process
-	for h, d := range hd_map {
+	for h, d := range hd {
 		heights = append(heights, h)
 		max_difficulty = max(d, max_difficulty)
 	}
@@ -1137,7 +1142,7 @@ func makeGraph(hd_map map[int]int, w, h float32) fyne.CanvasObject {
 		x := (float32(i) * horizontal_scaling) + (left_padding)
 
 		// let's get the difficulty from the map
-		difficulty := hd_map[height]
+		difficulty := hd[height]
 
 		// now place it on the y plane
 		y := (invert * float32(difficulty) * vertical_scaling) + (graph_height + top_padding)
@@ -1238,9 +1243,9 @@ func makeGraph(hd_map map[int]int, w, h float32) fyne.CanvasObject {
 	for i := first_height; i <= last_height; i += ticks {
 
 		// continue if height modulus 10 is not 0... essentially, all but the tenth block
-		// if i%10 != 0 { // reports of stalls?
-		// 	continue
-		// }
+		if i%10 != 0 { // reports of stalls?
+			continue
+		}
 
 		// get the working value
 		value := float32((i - first_height))
@@ -1678,7 +1683,7 @@ it is recommended that you use a full node for best success.`
 // for count append random words with a separator
 func randomWords(count int, sep string) (words string) {
 	for i := range count {
-		r := rand.Intn(len(mnemonics.Mnemonics_English.Words))
+		r := rand.Intn(len(mnemonics.Mnemonics_English.Words) - 1)
 		words += mnemonics.Mnemonics_English.Words[r]
 		if i != count-1 {
 			words += sep

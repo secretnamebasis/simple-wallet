@@ -111,7 +111,7 @@ Please do not leave this page.
 		wallet:       widget.NewEntry(),
 		file:         widget.NewEntry(),
 		username:     widget.NewEntry(),
-		password:     widget.NewPasswordEntry(),
+		password:     widget.NewEntry(),
 		node:         widget.NewEntry(),
 		pass:         widget.NewEntry(),
 		seed:         widget.NewEntry(),
