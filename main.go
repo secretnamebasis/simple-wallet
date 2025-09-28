@@ -138,7 +138,7 @@ func initialize() {
 	// these text fields are treated like passwords
 	// that way, their visibility can be toggled
 	// and fyne won't call on the app before it is launched
-	program.entries.pass.Password = true
+	program.entries.pass = widget.NewPasswordEntry()
 
 	// almost nothing simpler than home.
 	program.containers.home = home()
