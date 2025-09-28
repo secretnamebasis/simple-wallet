@@ -93,7 +93,7 @@ func contracts() {
 	program.contracts.Resize(program.size)
 	tabs := container.NewAppTabs(
 		container.NewTabItem("Contract Installer", installer()),
-		container.NewTabItem("Contract interactor", interaction()),
+		container.NewTabItem("Contract Interactor", interaction()),
 	)
 	program.contracts.SetContent(tabs)
 
