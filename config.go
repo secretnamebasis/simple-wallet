@@ -23,6 +23,7 @@ import (
 	"github.com/deroproject/derohe/config"
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/globals"
+	"github.com/deroproject/derohe/metrics"
 	"github.com/deroproject/derohe/p2p"
 	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/transaction"
@@ -1124,7 +1125,7 @@ func simulator() {
 			wg.Wait()
 
 			// now let's go mine a block
-			single_block := func() {
+			single_block := func() error {
 				// every block has a id, or a hash
 				var blid crypto.Hash
 
@@ -1132,7 +1133,7 @@ func simulator() {
 					// using the genesis wallet, get a block and miniblock template
 					bl, mbl, _, _, err := program.caches.simulator_chain.Create_new_block_template_mining(genesis_wallet.GetAddress())
 					if err != nil {
-						panic(err)
+						return err
 					}
 					// now let's get the timestamp of the block
 					ts := bl.Timestamp
@@ -1141,14 +1142,20 @@ func simulator() {
 
 					// and let's just accept it as is
 					if _, blid, _, err = program.caches.simulator_chain.Accept_new_block(ts, serial); err != nil {
-						panic(err)
+						msg := "please completely restart wallet software to create new simulation"
+						return errors.New(msg)
 					} else if !blid.IsZero() {
 						// assuming that the hash is not zero, break the loop
 						break
 					}
 				}
+				return nil
 			}
-			single_block() // mined genesis
+			if err := single_block(); err != nil {
+				showError(err, program.window)
+				program.toggles.simulator.SetSelected("off")
+				return
+			} // mined genesis
 			single_block() // let's advance the blocks
 			single_block() // registrations get loaded into the pool
 			single_block() // need them to all get processed
@@ -1162,6 +1169,9 @@ func simulator() {
 			go func() {
 				last := time.Now()
 				for {
+					if program.toggles.simulator.Selected == "off" {
+						return
+					}
 					bl, _, _, _, err := program.caches.simulator_chain.Create_new_block_template_mining(genesis_wallet.GetAddress())
 					if err != nil {
 						continue
@@ -1179,6 +1189,7 @@ func simulator() {
 			// let's see if it works?.. lol
 		case "off":
 			program.toggles.simulator.SetSelected("off")
+			metrics.Set.UnregisterAllMetrics()
 			if program.simulator_server != nil {
 				program.simulator_server.RPCServer_Stop()
 				p2p.P2P_Shutdown()
@@ -1186,6 +1197,8 @@ func simulator() {
 				for _, r := range program.caches.simulator_rpcservers {
 					go r.RPCServer_Stop()
 				}
+				program.caches.simulator_chain = nil
+				program.simulator_server = nil
 			}
 			program.toggles.rpc_server.Enable()
 			program.entries.username.Enable()
@@ -1196,13 +1209,15 @@ func simulator() {
 	}
 
 	notice := makeCenteredWrappedLabel(`
-	The simulator provides a convenient place to simulate the DERO blockchain for testing and evaluation purposes.
+The simulator provides a convenient place to simulate the DERO blockchain for testing and evaluation purposes.
+
+You will need to completely shut down the wallet to create a new simulator. This prevents duplicate block histories.
 	
-	The simulator rpc runs on 127.0.0.1:20000 and you will need to change connections to 'simulator' in order to access the simulated network.
+The simulator rpc runs on 127.0.0.1:20000 and you will need to change connections to 'simulator' in order to access the simulated network.
 	
-	21 simulator wallets can be found in the ` + globals.GetDataDirectory() + ` folder and have no password. 
+21 simulator wallets can be found in the ` + globals.GetDataDirectory() + ` folder and have no password. 
 	
-	The wallets are started with rpc servers on with no username and password and can be found starting on 127.0.0.1:30000 and up, eg 30000 is wallet 0, 30001 is wallet 1, etc`)
+The wallets are started with rpc servers on with no username and password and can be found starting on 127.0.0.1:30000 and up, eg 30000 is wallet 0, 30001 is wallet 1, etc`)
 	// load up the widgets into a container
 	content := container.NewVBox(
 		layout.NewSpacer(),
