@@ -66,6 +66,7 @@ var program = components{
 		rpc_server:      widget.NewButton("RPC SERVER", nil),
 		update_password: widget.NewButton("UPDATE PASSWORD", nil),
 		simulator:       widget.NewButton("SIMULATOR", nil),
+		simulation:      widget.NewButton("TURN SIMULATOR ON", nil),
 		connections:     widget.NewButton("CONNECTIONS", nil),
 		balance_rescan:  widget.NewButton("BALANCE RESCAN", nil),
 		asset_scan:      widget.NewButton("ASSET SCAN", nil),
@@ -105,10 +106,13 @@ Registration POW takes time 20min-2hrs...
 If on battery, plug your computer in.
 Please do not leave this page.
 			`),
-		address: widget.NewLabel("ADDRESS: "),
-		seed:    widget.NewLabel("SEED PHRASE"),
-		secret:  widget.NewLabel("SECRET KEY"),
-		public:  widget.NewLabel("PUBLIC KEY"),
+		address:   widget.NewLabel("ADDRESS: "),
+		seed:      widget.NewLabel("SEED PHRASE"),
+		secret:    widget.NewLabel("SECRET KEY"),
+		public:    widget.NewLabel("PUBLIC KEY"),
+		mainnet:   makeCenteredWrappedLabel("mainnet"),
+		testnet:   makeCenteredWrappedLabel("testnet"),
+		simulator: makeCenteredWrappedLabel("simulator"),
 	},
 	entries: entries{
 		wallet:       widget.NewEntry(),
@@ -129,6 +133,13 @@ Please do not leave this page.
 	},
 	selections: selections{
 		assets: widget.NewSelect([]string{""}, func(s string) {}),
+	},
+	tables: tables{
+		connections: widget.NewTable(
+			func() (rows int, cols int) { return 0, 0 },
+			func() fyne.CanvasObject { return widget.NewLabel("") },
+			func(tci widget.TableCellID, co fyne.CanvasObject) {},
+		),
 	},
 	rpc_server: new(rpcserver.RPCServer),
 	wallet:     new(walletapi.Wallet_Disk),
