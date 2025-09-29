@@ -147,7 +147,7 @@ func initialize() {
 	program.containers.configs = configs()
 
 	// here is a simple way to get started
-	// program.preferences.SetBool("mainnet", true)
+	program.preferences.SetBool("mainnet", true)
 	program.sliders.network.OnChanged = slide_network
 	program.sliders.network.SetValue(0.1337) // mainnet
 
