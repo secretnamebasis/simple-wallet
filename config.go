@@ -196,7 +196,8 @@ func maintain_connection() {
 			fyne.DoAndWait(func() {
 
 				program.labels.connection.SetText("NODE: 🟢")
-
+				program.labels.current_node.SetText("Current Node: " + program.node.current)
+				program.labels.current_node.Refresh()
 				// obviously registration is different
 				if program.preferences.Bool("loggedIn") && program.wallet != nil {
 					if !program.wallet.IsRegistered() {
@@ -235,11 +236,18 @@ func maintain_connection() {
 }
 
 func connections() {
+	mainnet := makeCenteredWrappedLabel("mainnet")
+	testnet := makeCenteredWrappedLabel("testnet")
+	simulator := makeCenteredWrappedLabel("simulator")
+	slide := widget.NewSlider(0.0, 1.0)
+
+	slide.Step = 0.0001
+	slide.Orientation = widget.Horizontal
 
 	var msg string = "Auto-connects to "
 	// post up the current node
-	current_node := makeCenteredWrappedLabel("")
-	current_node.SetText("Current Node: " + program.node.current)
+	program.labels.current_node = makeCenteredWrappedLabel("")
+	program.labels.current_node.SetText("Current Node: " + program.node.current)
 
 	// make a way for them to enter and address
 	form_entry := widget.NewEntry()
@@ -289,12 +297,12 @@ func connections() {
 	set_label := func() {
 		var opts string
 		// let's show off a list
-		switch program.toggles.network.Selected {
-		case "mainnet":
+		switch {
+		case slide.Value < 0.33:
 			opts = "preferred if set, then localhost, then the fastest public node:\n\n"
-		case "testnet":
+		case slide.Value > 0.33 && slide.Value < 0.66:
 			opts = program.node.current
-		case "simulator":
+		case slide.Value > 0.66:
 			opts = program.node.current
 		}
 
@@ -303,71 +311,73 @@ func connections() {
 
 	set_label()
 
-	changed := func(s string) {
-		switch s {
-		case "mainnet":
-			program.toggles.network.SetSelected("mainnet")
+	slide.OnChangeEnded = func(f float64) {
+		if slide.Value >= 0 && slide.Value < 0.33 {
+			mainnet.TextStyle.Bold = true
+			testnet.TextStyle.Bold = false
+			simulator.TextStyle.Bold = false
+			mainnet.Refresh()
+			testnet.Refresh()
+			simulator.Refresh()
+			slide.SetValue(0.1337)
 			table.Show()
 			globals.Arguments["--testnet"] = false
 			globals.Arguments["--simulator"] = false
 			program.preferences.SetBool("mainnet", true)
-			program.node.current = "127.0.0.1:10102"
 			form_entry.PlaceHolder = "127.0.0.1:10102"
-			current_node.SetText("Current Node: " + program.node.current)
+			program.node.current = program.node.list[0].ip // if not set up, it will roll through
+			program.labels.current_node.SetText("Current Node: " + program.node.current)
 			form_entry.Refresh()
 			globals.InitNetwork()
 			set_label()
-		case "testnet":
-			program.toggles.network.SetSelected("testnet")
+		}
+		if slide.Value > 0.33 && slide.Value < 0.66 {
+			mainnet.TextStyle.Bold = false
+			testnet.TextStyle.Bold = true
+			simulator.TextStyle.Bold = false
+			mainnet.Refresh()
+			testnet.Refresh()
+			simulator.Refresh()
+
+			slide.SetValue(0.5)
 			table.Hide()
 			globals.Arguments["--testnet"] = true
 			globals.Arguments["--simulator"] = false
 			program.preferences.SetBool("mainnet", false)
 			program.node.current = "127.0.0.1:40402"
 			form_entry.PlaceHolder = program.node.current
-			current_node.SetText("Current Node: " + program.node.current)
+			program.labels.current_node.SetText("Current Node: " + program.node.current)
 			label.ParseMarkdown(msg)
 			form_entry.Refresh()
 			globals.InitNetwork()
 			set_label()
-		case "simulator":
-			program.toggles.network.SetSelected("simulator")
+		}
+		if slide.Value > 0.66 && slide.Value <= 1 {
+			mainnet.TextStyle.Bold = false
+			testnet.TextStyle.Bold = false
+			simulator.TextStyle.Bold = true
+			mainnet.Refresh()
+			testnet.Refresh()
+			simulator.Refresh()
+			slide.SetValue(0.85)
 			table.Hide()
 			globals.Arguments["--testnet"] = true
 			globals.Arguments["--simulator"] = true
 			program.preferences.SetBool("mainnet", false)
 			program.node.current = "127.0.0.1:20000"
 			form_entry.PlaceHolder = program.node.current
-			current_node.SetText("Current Node: " + program.node.current)
+			program.labels.current_node.SetText("Current Node: " + program.node.current)
 			form_entry.Refresh()
 			label.ParseMarkdown(msg)
 			globals.InitNetwork()
 			set_label()
 		}
 	}
-	options := []string{"mainnet", "testnet", "simulator"}
-
-	program.toggles.network.Options = options
-
-	program.toggles.network.OnChanged = changed
-
-	switch program.toggles.network.Selected {
-	case "mainnet":
-		table.Show()
-	case "testnet":
-		table.Hide()
-	case "simulator":
-		table.Hide()
-	default:
-		program.toggles.network.SetSelected("mainnet")
-	}
-
-	program.toggles.network.Horizontal = true
 
 	if program.preferences.Bool("loggedIn") {
-		program.toggles.network.Disable()
+		slide.Disable()
 	} else {
-		program.toggles.network.Enable()
+		slide.Enable()
 	}
 
 	save := widget.NewHyperlink("save connection", nil)
@@ -441,7 +451,7 @@ func connections() {
 		program.node.current = endpoint
 
 		// change the label
-		current_node.SetText("Current Node: " + program.node.current)
+		program.labels.current_node.SetText("Current Node: " + program.node.current)
 
 		// set the walletapi endpoint for the maintain_connection function
 		walletapi.Daemon_Endpoint = program.node.current
@@ -462,10 +472,11 @@ func connections() {
 	// walk the user through the process
 	content := container.NewBorder(
 		container.NewVBox(
-			container.NewCenter(program.toggles.network),
+			container.NewAdaptiveGrid(3, mainnet, testnet, simulator),
+			slide,
 			form_entry,
 			container.NewAdaptiveGrid(2, save, set),
-			current_node,
+			program.labels.current_node,
 			label,
 		),
 		nil,
@@ -473,7 +484,8 @@ func connections() {
 		nil,
 		centered,
 	)
-
+	slide.SetValue(0.1337)
+	slide.Refresh()
 	connect := dialog.NewCustom("Custom Node Connection", dismiss, content, program.window)
 
 	// resize and show
@@ -956,7 +968,7 @@ func simulator() {
 		switch s {
 		case "on":
 			program.toggles.simulator.SetSelected("on")
-			program.preferences.SetBool("mainnet", false)
+
 			// let's turn on a simulation of the blockchain
 			// before we get started, let's clear something up
 			globals.Arguments = nil // now that we have taken care of that...
@@ -1056,11 +1068,10 @@ func simulator() {
 
 			p2p.P2P_Init(simulation)
 			// we should probably consider the "toggle" very seriously
-			simulator_server, err := derodrpc.RPCServer_Start(simulation)
+			program.simulator_server, err = derodrpc.RPCServer_Start(simulation)
 			if err != nil {
 				panic(err)
 			}
-			fmt.Println(simulator_server)
 			// and let's simulate a bunch of users
 			program.caches.simulator_wallets = []*walletapi.Wallet_Disk{}
 			program.caches.simulator_rpcservers = []*rpcserver.RPCServer{}

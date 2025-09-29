@@ -110,7 +110,7 @@ func restoration() {
 	} else if isSecret { // in the event that they use a secret hex key
 
 		var network string
-		if program.toggles.network.Selected == "mainnet" {
+		if program.sliders.network.Value == 0.1337 {
 			// use the base network
 			network = "0"
 		}
@@ -169,7 +169,7 @@ func restoration() {
 		}
 
 		var network string
-		if program.toggles.network.Selected == "mainnet" {
+		if program.sliders.network.Value == 0.1337 {
 			// use the base network
 			network = "0"
 		}

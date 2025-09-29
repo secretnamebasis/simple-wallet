@@ -31,6 +31,7 @@ type (
 		dialogues   dialogues
 		activities  activities
 		toggles     toggles
+		sliders     sliders
 		checks      checks
 		lists       lists
 		entries     entries
@@ -76,10 +77,12 @@ type (
 		replyback *widget.Check
 	}
 
+	sliders struct {
+		network *widget.Slider
+	}
 	toggles struct {
 		rpc_server *widget.RadioGroup
 		ws_server  *widget.RadioGroup
-		network    *widget.RadioGroup
 		simulator  *widget.RadioGroup
 	}
 	containers struct {
@@ -157,6 +160,7 @@ type (
 	labels struct {
 		height,
 		connection,
+		current_node,
 		rpc_server,
 		ws_server,
 		balance,

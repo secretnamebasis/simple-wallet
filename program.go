@@ -43,10 +43,12 @@ var program = components{
 		transactions: new(widget.List),
 		asset_list:   new(widget.List),
 	},
+	sliders: sliders{
+		network: widget.NewSlider(0.0, 1.0),
+	},
 	toggles: toggles{
 		ws_server:  widget.NewRadioGroup([]string{}, nil),
 		rpc_server: widget.NewRadioGroup([]string{}, nil),
-		network:    widget.NewRadioGroup([]string{}, nil),
 		simulator:  widget.NewRadioGroup([]string{}, nil),
 	},
 	checks: checks{
@@ -90,13 +92,14 @@ var program = components{
 		save:       widget.NewHyperlink("save", nil),
 	},
 	labels: labels{
-		height:     widget.NewLabel("BLOCK: 0000000"),
-		connection: widget.NewLabel("NODE: 🔴"),
-		loggedin:   widget.NewLabel("WALLET: 🔴"),
-		ws_server:  widget.NewLabel("WS: 🔴"),
-		rpc_server: widget.NewLabel("RPC: 🔴"),
-		notice:     widget.NewLabel(""),
-		balance:    widget.NewLabel("0.00000"),
+		height:       widget.NewLabel("BLOCK: 0000000"),
+		connection:   widget.NewLabel("NODE: 🔴"),
+		loggedin:     widget.NewLabel("WALLET: 🔴"),
+		ws_server:    widget.NewLabel("WS: 🔴"),
+		rpc_server:   widget.NewLabel("RPC: 🔴"),
+		current_node: widget.NewLabel(""),
+		notice:       widget.NewLabel(""),
+		balance:      widget.NewLabel("0.00000"),
 		counter: makeCenteredWrappedLabel(`
 Registration POW takes time 20min-2hrs...
 If on battery, plug your computer in.
