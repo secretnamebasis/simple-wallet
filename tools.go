@@ -336,7 +336,7 @@ func self_crypt() *fyne.Container {
 	entry := widget.NewEntry()
 	entry.SetPlaceHolder("text to encrypt/decrypt")
 	entry.MultiLine = true
-
+	entry.Wrapping = fyne.TextWrapWord
 	// another round of make sure this works XD
 	file_entry := widget.NewEntry()
 	file_entry.SetPlaceHolder("/path/to/file.txt")
@@ -609,6 +609,7 @@ func recipient_crypt() *fyne.Container {
 	entry := widget.NewEntry()
 	entry.MultiLine = true
 	entry.SetPlaceHolder("text to be encrypted / decrypted")
+	entry.Wrapping = fyne.TextWrapWord
 
 	// let's make a simple way to open a file
 	file_entry := widget.NewEntry()

@@ -10,9 +10,6 @@ func logout() {
 	// update the header
 	updateHeader(program.hyperlinks.logout)
 
-	// the wallet is no longer logged in
-	program.preferences.SetBool("loggedIn", false)
-
 	// if there is a wallet in memory and it saves
 	if program.wallet != nil {
 
@@ -46,6 +43,7 @@ func logout() {
 
 		// close out the wallet
 		program.wallet.Close_Encrypted_Wallet()
+		program.wallet = nil // completely remove the wallet
 
 		// reset the balance
 		program.labels.balance.SetText("BALANCE: 0")
@@ -122,6 +120,9 @@ func logout() {
 	updateHeader(program.hyperlinks.home)
 
 	program.window.SetTitle(program.name)
+
+	// now we are logged out
+	program.preferences.SetBool("loggedIn", false)
 
 	// show home
 	setContentAsHome()

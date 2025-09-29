@@ -30,6 +30,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"github.com/deroproject/derohe/block"
 	"github.com/deroproject/derohe/cryptography/crypto"
+	"github.com/deroproject/derohe/globals"
 	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/transaction"
 	"github.com/deroproject/derohe/walletapi"
@@ -1690,4 +1691,81 @@ func randomWords(count int, sep string) (words string) {
 		}
 	}
 	return
+}
+
+func setText(txt string, text *widget.Label) {
+	var opts string
+	// let's show off a list
+	switch {
+	case program.sliders.network.Value < 0.33:
+		opts = "preferred if set, then localhost, then the fastest public node:\n\n"
+	case program.sliders.network.Value > 0.33 && program.sliders.network.Value < 0.66:
+		opts = program.node.current
+	case program.sliders.network.Value > 0.66:
+		opts = program.node.current
+	}
+
+	text.SetText(txt + opts)
+}
+
+func slide_network(f float64) {
+	var msg string = "Auto-connects to "
+	if program.sliders.network.Value >= 0 && program.sliders.network.Value < 0.33 {
+		program.labels.mainnet.TextStyle.Bold = true
+		program.labels.testnet.TextStyle.Bold = false
+		program.labels.simulator.TextStyle.Bold = false
+		program.labels.mainnet.Refresh()
+		program.labels.testnet.Refresh()
+		program.labels.simulator.Refresh()
+		program.sliders.network.SetValue(0.1337)
+		program.tables.connections.Show()
+		globals.Arguments["--testnet"] = false
+		globals.Arguments["--simulator"] = false
+		program.preferences.SetBool("mainnet", true)
+		program.entries.node.PlaceHolder = "127.0.0.1:10102"
+		program.node.current = program.node.list[0].ip // if not set up, it will roll through
+		program.labels.current_node.SetText("Current Node: " + program.node.current)
+		program.entries.node.Refresh()
+		globals.InitNetwork()
+		setText(msg, program.labels.notice)
+	}
+	if program.sliders.network.Value > 0.33 && program.sliders.network.Value < 0.66 {
+		program.labels.mainnet.TextStyle.Bold = false
+		program.labels.testnet.TextStyle.Bold = true
+		program.labels.simulator.TextStyle.Bold = false
+		program.labels.mainnet.Refresh()
+		program.labels.testnet.Refresh()
+		program.labels.simulator.Refresh()
+
+		program.sliders.network.SetValue(0.5)
+		program.tables.connections.Hide()
+		globals.Arguments["--testnet"] = true
+		globals.Arguments["--simulator"] = false
+		program.preferences.SetBool("mainnet", false)
+		program.node.current = "127.0.0.1:40402"
+		program.entries.node.PlaceHolder = program.node.current
+		program.labels.current_node.SetText("Current Node: " + program.node.current)
+		program.entries.node.Refresh()
+		globals.InitNetwork()
+		setText(msg, program.labels.notice)
+	}
+	if program.sliders.network.Value > 0.66 && program.sliders.network.Value <= 1 {
+		program.labels.mainnet.TextStyle.Bold = false
+		program.labels.testnet.TextStyle.Bold = false
+		program.labels.simulator.TextStyle.Bold = true
+		program.labels.mainnet.Refresh()
+		program.labels.testnet.Refresh()
+		program.labels.simulator.Refresh()
+		program.sliders.network.SetValue(0.85)
+		program.tables.connections.Hide()
+		globals.Arguments["--testnet"] = true
+		globals.Arguments["--simulator"] = true
+		program.preferences.SetBool("mainnet", false)
+		program.node.current = "127.0.0.1:20000"
+		program.entries.node.PlaceHolder = program.node.current
+		program.labels.current_node.SetText("Current Node: " + program.node.current)
+		program.entries.node.Refresh()
+		globals.InitNetwork()
+		setText(msg, program.labels.notice)
+	}
 }

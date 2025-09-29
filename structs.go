@@ -28,9 +28,11 @@ type (
 		application fyne.App
 		preferences fyne.Preferences
 		selections  selections
+		tables      tables
 		dialogues   dialogues
 		activities  activities
 		toggles     toggles
+		sliders     sliders
 		checks      checks
 		lists       lists
 		entries     entries
@@ -76,10 +78,12 @@ type (
 		replyback *widget.Check
 	}
 
+	sliders struct {
+		network *widget.Slider
+	}
 	toggles struct {
 		rpc_server *widget.RadioGroup
 		ws_server  *widget.RadioGroup
-		network    *widget.RadioGroup
 		simulator  *widget.RadioGroup
 	}
 	containers struct {
@@ -117,6 +121,7 @@ type (
 		keys,
 		send,
 		simulator,
+		simulation,
 		connections,
 		ws_server,
 		rpc_server,
@@ -127,6 +132,9 @@ type (
 		balance_rescan,
 		asset_scan,
 		explorer *widget.Button
+	}
+	tables struct {
+		connections *widget.Table
 	}
 	selections struct {
 		assets *widget.Select
@@ -157,11 +165,15 @@ type (
 	labels struct {
 		height,
 		connection,
+		current_node,
 		rpc_server,
 		ws_server,
 		balance,
 		counter,
 		notice,
+		mainnet,
+		testnet,
+		simulator,
 		loggedin,
 		address,
 		seed,

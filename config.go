@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/deroproject/derohe/config"
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/globals"
+	"github.com/deroproject/derohe/metrics"
 	"github.com/deroproject/derohe/p2p"
 	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/transaction"
@@ -166,7 +168,12 @@ func maintain_connection() {
 					fyne.DoAndWait(func() {
 
 						// then notify the user
-						showError(err, program.window)
+						if strings.Contains(err.Error(), "Mainnet/TestNet") {
+							showError(errors.New("please visit connections page and select appropriate network"), program.window)
+						} else {
+							showError(err, program.window)
+
+						}
 						// update the label
 						program.labels.connection.SetText("NODE: 🔴")
 						program.labels.height.SetText("BLOCK: 0000000")
@@ -195,7 +202,8 @@ func maintain_connection() {
 			fyne.DoAndWait(func() {
 
 				program.labels.connection.SetText("NODE: 🟢")
-
+				program.labels.current_node.SetText("Current Node: " + program.node.current)
+				program.labels.current_node.Refresh()
 				// obviously registration is different
 				if program.preferences.Bool("loggedIn") && program.wallet != nil {
 					if !program.wallet.IsRegistered() {
@@ -235,18 +243,15 @@ func maintain_connection() {
 
 func connections() {
 
-	var msg string = "Auto-connects to "
-	// post up the current node
-	current_node := makeCenteredWrappedLabel("")
-	current_node.SetText("Current Node: " + program.node.current)
+	program.sliders.network.Step = 0.0001
+	program.sliders.network.Orientation = widget.Horizontal
 
-	// make a way for them to enter and address
-	form_entry := widget.NewEntry()
+	// post up the current node
+	program.labels.current_node = makeCenteredWrappedLabel("")
+	program.labels.current_node.SetText("Current Node: " + program.node.current)
 
 	// build a pleasing and simple list
-	label := widget.NewRichTextFromMarkdown("") // wrap it
-	label.Wrapping = fyne.TextWrapWord
-	table := widget.NewTable(
+	program.tables.connections = widget.NewTable(
 		func() (rows int, cols int) { return len(program.node.list), 2 },
 		func() fyne.CanvasObject { return widget.NewLabel("") },
 		func(tci widget.TableCellID, co fyne.CanvasObject) {
@@ -264,10 +269,10 @@ func connections() {
 		},
 	)
 	for i := range 2 {
-		table.SetColumnWidth(i, 200)
+		program.tables.connections.SetColumnWidth(i, 200)
 	}
-	table.HideSeparators = true
-	table.OnSelected = func(id widget.TableCellID) {
+	program.tables.connections.HideSeparators = true
+	program.tables.connections.OnSelected = func(id widget.TableCellID) {
 		var data string
 		if id.Col == 0 && id.Row > 1 {
 			data = program.node.list[id.Row].name
@@ -279,94 +284,16 @@ func connections() {
 		}
 		if data != "" {
 			program.application.Clipboard().SetContent(data)
-			table.UnselectAll()
-			table.Refresh()
+			program.tables.connections.UnselectAll()
+			program.tables.connections.Refresh()
 			showInfoFast("Copied", data, program.window)
 		}
 	}
 
-	set_label := func() {
-		var opts string
-		// let's show off a list
-		switch program.toggles.network.Selected {
-		case "mainnet":
-			opts = "preferred if set, then localhost, then the fastest public node:\n\n"
-		case "testnet":
-			opts = program.node.current
-		case "simulator":
-			opts = program.node.current
-		}
-
-		label.ParseMarkdown(msg + opts)
-	}
-
-	set_label()
-
-	changed := func(s string) {
-		switch s {
-		case "mainnet":
-			program.toggles.network.SetSelected("mainnet")
-			table.Show()
-			globals.Arguments["--testnet"] = false
-			globals.Arguments["--simulator"] = false
-			program.preferences.SetBool("mainnet", true)
-			program.node.current = "127.0.0.1:10102"
-			form_entry.PlaceHolder = "127.0.0.1:10102"
-			current_node.SetText("Current Node: " + program.node.current)
-			form_entry.Refresh()
-			globals.InitNetwork()
-			set_label()
-		case "testnet":
-			program.toggles.network.SetSelected("testnet")
-			table.Hide()
-			globals.Arguments["--testnet"] = true
-			globals.Arguments["--simulator"] = false
-			program.preferences.SetBool("mainnet", false)
-			program.node.current = "127.0.0.1:40402"
-			form_entry.PlaceHolder = program.node.current
-			current_node.SetText("Current Node: " + program.node.current)
-			label.ParseMarkdown(msg)
-			form_entry.Refresh()
-			globals.InitNetwork()
-			set_label()
-		case "simulator":
-			program.toggles.network.SetSelected("simulator")
-			table.Hide()
-			globals.Arguments["--testnet"] = true
-			globals.Arguments["--simulator"] = true
-			program.preferences.SetBool("mainnet", false)
-			program.node.current = "127.0.0.1:20000"
-			form_entry.PlaceHolder = program.node.current
-			current_node.SetText("Current Node: " + program.node.current)
-			form_entry.Refresh()
-			label.ParseMarkdown(msg)
-			globals.InitNetwork()
-			set_label()
-		}
-	}
-	options := []string{"mainnet", "testnet", "simulator"}
-
-	program.toggles.network.Options = options
-
-	program.toggles.network.OnChanged = changed
-
-	switch program.toggles.network.Selected {
-	case "mainnet":
-		table.Show()
-	case "testnet":
-		table.Hide()
-	case "simulator":
-		table.Hide()
-	default:
-		program.toggles.network.SetSelected("mainnet")
-	}
-
-	program.toggles.network.Horizontal = true
-
 	if program.preferences.Bool("loggedIn") {
-		program.toggles.network.Disable()
+		program.sliders.network.Disable()
 	} else {
-		program.toggles.network.Enable()
+		program.sliders.network.Enable()
 	}
 
 	save := widget.NewHyperlink("save connection", nil)
@@ -375,12 +302,12 @@ func connections() {
 
 	save.OnTapped = func() {
 		// obviously...
-		if form_entry.Text == "" {
+		if program.entries.node.Text == "" {
 			showError(errors.New("cannot be empty"), program.window)
 			return
 		}
-		endpoint := form_entry.Text
-		// form_entry.SetText("")
+		endpoint := program.entries.node.Text
+		// program.entries.node.SetText("")
 
 		// test the connection point
 		if err := testConnection(endpoint); err != nil {
@@ -404,7 +331,7 @@ func connections() {
 		path, _ := filepath.Abs(file.Name())
 
 		showInfo("Saved Preferred", "node endpoint saved to "+path, program.window)
-		table.Refresh()
+		program.tables.connections.Refresh()
 	}
 	// make a way for them to set the node endpoint
 	set := widget.NewHyperlink("set connection", nil)
@@ -414,13 +341,13 @@ func connections() {
 	onTapped := func() {
 
 		// obviously...
-		if form_entry.Text == "" {
+		if program.entries.node.Text == "" {
 			showError(errors.New("cannot be empty"), program.window)
 			return
 		}
 
-		// copy the form_entry
-		endpoint := form_entry.Text
+		// copy the program.entries.node
+		endpoint := program.entries.node.Text
 
 		// test the connection point
 		if err := testConnection(endpoint); err != nil {
@@ -440,7 +367,7 @@ func connections() {
 		program.node.current = endpoint
 
 		// change the label
-		current_node.SetText("Current Node: " + program.node.current)
+		program.labels.current_node.SetText("Current Node: " + program.node.current)
 
 		// set the walletapi endpoint for the maintain_connection function
 		walletapi.Daemon_Endpoint = program.node.current
@@ -449,30 +376,34 @@ func connections() {
 	// set the on tapped function
 	set.OnTapped = onTapped
 
-	form_entry.OnSubmitted = func(s string) {
+	program.entries.node.OnSubmitted = func(s string) {
 		onTapped()
 	}
 
 	desiredSize := fyne.NewSize(450, 200)
 
-	fixedSizeTable := container.NewGridWrap(desiredSize, table)
+	fixedSizeTable := container.NewGridWrap(desiredSize, program.tables.connections)
 	centered := container.NewCenter(fixedSizeTable)
 
 	// walk the user through the process
 	content := container.NewBorder(
 		container.NewVBox(
-			container.NewCenter(program.toggles.network),
-			form_entry,
+			container.NewAdaptiveGrid(3, program.labels.mainnet, program.labels.testnet, program.labels.simulator),
+			program.sliders.network,
+			program.entries.node,
 			container.NewAdaptiveGrid(2, save, set),
-			current_node,
-			label,
+			program.labels.current_node,
+			program.labels.notice,
 		),
 		nil,
 		nil,
 		nil,
 		centered,
 	)
-
+	if program.sliders.network.Value < 0.5 {
+		program.sliders.network.SetValue(0.1337)
+	}
+	program.sliders.network.Refresh()
 	connect := dialog.NewCustom("Custom Node Connection", dismiss, content, program.window)
 
 	// resize and show
@@ -939,23 +870,26 @@ func passwordUpdate() {
 }
 
 func simulator() {
-	if program.toggles.simulator.Selected == "" {
-		program.toggles.simulator.SetSelected("off")
-	}
-	program.toggles.simulator.Horizontal = true
-	program.toggles.simulator.Options = []string{
-		"off",
-		"on",
-	}
-	program.toggles.simulator.Required = true
-	program.toggles.simulator.OnChanged = func(s string) {
-		if s == "" {
-			program.toggles.simulator.SetSelected("off")
-		}
-		switch s {
-		case "on":
-			program.toggles.simulator.SetSelected("on")
-			program.preferences.SetBool("mainnet", false)
+
+	// program.toggles.simulator.Horizontal = true
+	// program.toggles.simulator.Options = []string{
+	// 	"off",
+	// 	"on",
+	// }
+	// program.toggles.simulator.Required = true
+	program.buttons.simulation.OnTapped = func() {
+		if strings.Contains(program.buttons.simulation.Text, "ON") {
+
+			go func() {
+				fyne.DoAndWait(func() {
+					program.buttons.simulation.SetText("TURN SIMULATOR OFF")
+					program.buttons.simulation.Refresh()
+					program.sliders.network.Step = 0.0001
+					program.sliders.network.SetValue(0.85)
+				})
+			}()
+
+			// program.preferences.SetBool("mainnet", false)
 			// let's turn on a simulation of the blockchain
 			// before we get started, let's clear something up
 			globals.Arguments = nil // now that we have taken care of that...
@@ -981,7 +915,7 @@ func simulator() {
 				}
 
 				// set the network
-				wallet.SetNetwork(program.preferences.Bool("mainnet"))
+				wallet.SetNetwork(false)
 
 				// save
 				wallet.Save_Wallet()
@@ -1026,8 +960,8 @@ func simulator() {
 			// here is a list of arguments
 			globals.Arguments = map[string]interface{}{
 				"--rpc-bind":  daemon_endpoint,
-				"--testnet":   !program.preferences.Bool("mainnet"), // F*** IT, WE'LL DO IT LIVE!
-				"--simulator": true,                                 // obviously
+				"--testnet":   true,
+				"--simulator": true, // obviously
 				"--p2p-bind":  ":0",
 			}
 
@@ -1055,11 +989,10 @@ func simulator() {
 
 			p2p.P2P_Init(simulation)
 			// we should probably consider the "toggle" very seriously
-			simulator_server, err := derodrpc.RPCServer_Start(simulation)
+			program.simulator_server, err = derodrpc.RPCServer_Start(simulation)
 			if err != nil {
 				panic(err)
 			}
-			fmt.Println(simulator_server)
 			// and let's simulate a bunch of users
 			program.caches.simulator_wallets = []*walletapi.Wallet_Disk{}
 			program.caches.simulator_rpcservers = []*rpcserver.RPCServer{}
@@ -1092,39 +1025,32 @@ func simulator() {
 			program.toggles.rpc_server.Disable()
 			program.entries.username.Disable()
 			program.entries.password.Disable()
-			program.buttons.update_password.Disable()
-			var wg sync.WaitGroup
-			wg.Add(len(simulation_seeds))
 			for i, seed := range simulation_seeds {
-				go func() {
-					defer wg.Done()
-					n := "simulation_wallet_" + strconv.Itoa(i) + ".db"
-					wallet := create_wallet(n, seed)
-					if err := program.caches.simulator_chain.Add_TX_To_Pool(wallet.GetRegistrationTX()); err != nil {
-						panic(err)
-					}
-					// point the wallet at the daemon
-					wallet.SetDaemonAddress(daemon_endpoint)
-					wallet.SetOnlineMode() // turn it on
+				n := "simulation_wallet_" + strconv.Itoa(i) + ".db"
+				wallet := create_wallet(n, seed)
+				if err := program.caches.simulator_chain.Add_TX_To_Pool(wallet.GetRegistrationTX()); err != nil {
+					panic(err)
+				}
+				// point the wallet at the daemon
+				wallet.SetDaemonAddress(daemon_endpoint)
+				wallet.SetOnlineMode() // turn it on
 
-					// choose where the wallet will serve from
-					wallet_endpoint := "127.0.0.1:" + strconv.Itoa(30000+i)
-					globals.Arguments["--rpc-bind"] = wallet_endpoint
+				// choose where the wallet will serve from
+				wallet_endpoint := "127.0.0.1:" + strconv.Itoa(30000+i)
+				globals.Arguments["--rpc-bind"] = wallet_endpoint
 
-					// now start the server endpoint
-					if r, err := rpcserver.RPCServer_Start(wallet, n); err != nil {
-						panic(err)
-					} else {
-						program.caches.simulator_rpcservers = append(program.caches.simulator_rpcservers, r)
-					}
-					program.caches.simulator_wallets = append(program.caches.simulator_wallets, wallet)
-					time.Sleep(time.Millisecond * 20) // little breathing room
-				}()
+				// now start the server endpoint
+				if r, err := rpcserver.RPCServer_Start(wallet, n); err != nil {
+					panic(err)
+				} else {
+					program.caches.simulator_rpcservers = append(program.caches.simulator_rpcservers, r)
+				}
+				program.caches.simulator_wallets = append(program.caches.simulator_wallets, wallet)
+				time.Sleep(time.Millisecond * 20) // little breathing room
 			}
-			wg.Wait()
 
 			// now let's go mine a block
-			single_block := func() {
+			single_block := func() error {
 				// every block has a id, or a hash
 				var blid crypto.Hash
 
@@ -1132,7 +1058,7 @@ func simulator() {
 					// using the genesis wallet, get a block and miniblock template
 					bl, mbl, _, _, err := program.caches.simulator_chain.Create_new_block_template_mining(genesis_wallet.GetAddress())
 					if err != nil {
-						panic(err)
+						return err
 					}
 					// now let's get the timestamp of the block
 					ts := bl.Timestamp
@@ -1141,14 +1067,25 @@ func simulator() {
 
 					// and let's just accept it as is
 					if _, blid, _, err = program.caches.simulator_chain.Accept_new_block(ts, serial); err != nil {
-						panic(err)
+						msg := "please completely restart wallet software to create new simulation"
+						return errors.New(msg)
 					} else if !blid.IsZero() {
 						// assuming that the hash is not zero, break the loop
 						break
 					}
 				}
+				return nil
 			}
-			single_block() // mined genesis
+			if err := single_block(); err != nil {
+				showError(err, program.window)
+				fyne.DoAndWait(func() {
+
+					program.sliders.network.Step = 0.0001
+					program.sliders.network.SetValue(0.15)
+					program.sliders.network.Refresh()
+				})
+				return
+			} // mined genesis
 			single_block() // let's advance the blocks
 			single_block() // registrations get loaded into the pool
 			single_block() // need them to all get processed
@@ -1162,6 +1099,9 @@ func simulator() {
 			go func() {
 				last := time.Now()
 				for {
+					if program.caches.simulator_chain == nil {
+						return
+					}
 					bl, _, _, _, err := program.caches.simulator_chain.Create_new_block_template_mining(genesis_wallet.GetAddress())
 					if err != nil {
 						continue
@@ -1175,10 +1115,22 @@ func simulator() {
 					time.Sleep(time.Second)
 				}
 			}()
+
 			// we aren't logging so... not sure why we would start a cron...
 			// let's see if it works?.. lol
-		case "off":
-			program.toggles.simulator.SetSelected("off")
+		}
+
+		if strings.Contains(program.buttons.simulation.Text, "OFF") {
+			go func() {
+				fyne.DoAndWait(func() {
+					program.buttons.simulation.SetText("RESTART WALLET TO LAUNCH AGAIN")
+					program.buttons.simulation.Disable()
+					program.sliders.network.Step = 0.0001
+					program.sliders.network.SetValue(0.15)
+					program.sliders.network.Refresh()
+				})
+			}()
+			metrics.Set.UnregisterAllMetrics()
 			if program.simulator_server != nil {
 				program.simulator_server.RPCServer_Stop()
 				p2p.P2P_Shutdown()
@@ -1186,28 +1138,33 @@ func simulator() {
 				for _, r := range program.caches.simulator_rpcservers {
 					go r.RPCServer_Stop()
 				}
+				program.caches.simulator_chain = nil
+				program.simulator_server = nil
 			}
 			program.toggles.rpc_server.Enable()
 			program.entries.username.Enable()
 			program.entries.password.Enable()
-			program.buttons.update_password.Enable()
-		default:
+
 		}
 	}
 
-	notice := makeCenteredWrappedLabel(`
-	The simulator provides a convenient place to simulate the DERO blockchain for testing and evaluation purposes.
+	notice := widget.NewLabel(`
+The simulator provides a convenient place to simulate the DERO blockchain for testing and evaluation purposes.
+
+You will need to completely shut down the wallet to create a new simulator. This prevents duplicate block histories.
 	
-	The simulator rpc runs on 127.0.0.1:20000 and you will need to change connections to 'simulator' in order to access the simulated network.
+The simulator rpc runs on 127.0.0.1:20000 and you will need to change connections to 'simulator' in order to access the simulated network.
 	
-	21 simulator wallets can be found in the ` + globals.GetDataDirectory() + ` folder and have no password. 
+There are 21 simulator wallets that can be found in folder and have no wallet password: 
+` + globals.GetDataDirectory() + `. 
 	
-	The wallets are started with rpc servers on with no username and password and can be found starting on 127.0.0.1:30000 and up, eg 30000 is wallet 0, 30001 is wallet 1, etc`)
+The wallets are started with rpc servers on with no username and password and can be found starting on 127.0.0.1:30000 and up, eg 30000 is wallet 0, 30001 is wallet 1, etc`)
+	notice.Wrapping = fyne.TextWrapWord
 	// load up the widgets into a container
 	content := container.NewVBox(
 		layout.NewSpacer(),
 		notice,
-		container.NewCenter(program.toggles.simulator),
+		container.NewCenter(program.buttons.simulation),
 		layout.NewSpacer(),
 	)
 
