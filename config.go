@@ -167,7 +167,12 @@ func maintain_connection() {
 					fyne.DoAndWait(func() {
 
 						// then notify the user
-						showError(err, program.window)
+						if strings.Contains(err.Error(), "Mainnet/TestNet") {
+							showError(errors.New("please visit connections page and select appropriate network"), program.window)
+						} else {
+							showError(err, program.window)
+
+						}
 						// update the label
 						program.labels.connection.SetText("NODE: 🔴")
 						program.labels.height.SetText("BLOCK: 0000000")
