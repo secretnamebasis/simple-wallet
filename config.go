@@ -657,6 +657,13 @@ Only have ON when necessary.
 	ws := dialog.NewCustom("ws server", dismiss, content, program.window)
 	ws.Resize(fyne.NewSize(program.size.Width/3, program.size.Height/2))
 	ws.Show()
+	ws.SetOnClosed(func() {
+		// let's be clear about the software
+		program.labels.notice = makeCenteredWrappedLabel(`
+THIS SOFTWARE IS ALPHA STAGE SOFTWARE
+USE ONLY FOR TESTING & EVALUATION PURPOSES 
+`)
+	})
 }
 
 func rpc_server() {
@@ -988,6 +995,8 @@ func simulator() {
 			simulation["chain"] = program.caches.simulator_chain
 
 			p2p.P2P_Init(simulation)
+
+			go derodrpc.Getwork_server()
 			// we should probably consider the "toggle" very seriously
 			program.simulator_server, err = derodrpc.RPCServer_Start(simulation)
 			if err != nil {
