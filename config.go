@@ -995,6 +995,8 @@ func simulator() {
 			simulation["chain"] = program.caches.simulator_chain
 
 			p2p.P2P_Init(simulation)
+
+			go derodrpc.Getwork_server()
 			// we should probably consider the "toggle" very seriously
 			program.simulator_server, err = derodrpc.RPCServer_Start(simulation)
 			if err != nil {
