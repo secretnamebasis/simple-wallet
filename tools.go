@@ -1427,8 +1427,8 @@ func explorer() {
 				buildBlockResults(r)
 			}
 		}
-
-		results_table.SetColumnWidth(0, largestMinSize(searchHeaders).Width)
+		scaling := float32(1.2)
+		results_table.SetColumnWidth(0, (largestMinSize(searchHeaders).Width * scaling))
 		results_table.SetColumnWidth(1, largestMinSize(searchData).Width)
 		results_table.Refresh()
 	}
