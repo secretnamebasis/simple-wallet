@@ -79,6 +79,7 @@ type (
 	}
 
 	sliders struct {
+		notifications,
 		network *widget.Slider
 	}
 	toggles struct {
@@ -130,6 +131,7 @@ type (
 		encryption,
 		token_add,
 		balance_rescan,
+		notifications,
 		asset_scan,
 		explorer *widget.Button
 	}

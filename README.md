@@ -24,6 +24,7 @@ This is a simple Dero wallet built using Fyne.
 - Token Adding
 - Asset Scanner - via Gnomon Smart Contact
 - Balance Rescaning
+- New Entry Notification Settings
 - Dero Tools:
   - ENCRYPTION TOOLS
     - File Signing/Verification

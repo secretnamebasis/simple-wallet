@@ -1427,8 +1427,8 @@ func explorer() {
 				buildBlockResults(r)
 			}
 		}
-
-		results_table.SetColumnWidth(0, largestMinSize(searchHeaders).Width)
+		scaling := float32(1.2)
+		results_table.SetColumnWidth(0, (largestMinSize(searchHeaders).Width * scaling))
 		results_table.SetColumnWidth(1, largestMinSize(searchData).Width)
 		results_table.Refresh()
 	}
@@ -1825,17 +1825,11 @@ func explorer() {
 
 	tabs.SetTabLocation(container.TabLocationLeading)
 
-	explore := dialog.NewCustomWithoutButtons("Explorer",
-		tabs,
-		program.explorer,
-	)
 	program.explorer.SetOnClosed(func() {
 		updating = false
-		explore.Dismiss()
 	})
+	program.explorer.SetContent(tabs)
 
-	explore.Resize(program.size)
-	explore.Show()
 }
 
 func installer() *fyne.Container {

@@ -44,7 +44,8 @@ var program = components{
 		asset_list:   new(widget.List),
 	},
 	sliders: sliders{
-		network: widget.NewSlider(0.0, 1.0),
+		notifications: widget.NewSlider(0.0, 1.0),
+		network:       widget.NewSlider(0.0, 1.0),
 	},
 	toggles: toggles{
 		ws_server:  widget.NewRadioGroup([]string{}, nil),
@@ -69,6 +70,7 @@ var program = components{
 		simulation:      widget.NewButton("TURN SIMULATOR ON", nil),
 		connections:     widget.NewButton("CONNECTIONS", nil),
 		balance_rescan:  widget.NewButton("BALANCE RESCAN", nil),
+		notifications:   widget.NewButton("NOTIFICATIONS", nil),
 		asset_scan:      widget.NewButton("ASSET SCAN", nil),
 		token_add:       widget.NewButton("TOKEN ADD", nil),
 		explorer:        widget.NewButton("EXPLORE BLOCKCHAIN", nil),
