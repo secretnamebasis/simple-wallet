@@ -163,6 +163,9 @@ func notificationNewEntry() {
 	// and because we aren't doing any fancy websocket stuff...
 	var old_len int
 	for range ticker.C { // range that ticker
+		if !program.preferences.Bool("notifications") {
+			continue
+		}
 		// check if we are still logged in
 		if !program.preferences.Bool("loggedIn") {
 			return

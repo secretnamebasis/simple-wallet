@@ -85,6 +85,8 @@ func run() {
 }
 
 func initialize() {
+	// let's make sure those notifications are off at start :)
+	program.sliders.notifications.SetValue(.235)
 
 	// let's start with the bottom of the application
 	program.containers.bottombar = bottombar()

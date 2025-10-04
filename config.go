@@ -64,6 +64,9 @@ func configs() *fyne.Container {
 
 	program.buttons.balance_rescan.Hide()
 
+	// let's take care of those pesky notifications
+	program.buttons.notifications.OnTapped = notifications
+
 	return container.NewVBox(
 		program.containers.topbar,
 		layout.NewSpacer(),
@@ -76,6 +79,7 @@ func configs() *fyne.Container {
 				program.buttons.rpc_server,
 				program.buttons.balance_rescan,
 				program.buttons.update_password,
+				program.buttons.notifications,
 			),
 			layout.NewSpacer(),
 		),
@@ -1353,4 +1357,77 @@ func balance_rescan() {
 	// resize and show
 	rescan.Resize(program.size)
 	rescan.Show()
+}
+
+func notifications() {
+	notice := `
+There is a entry notification system for monitoring inbound/outbound transfers.
+
+By default, this system is off; this is to preserve the sanity of the devs. 
+
+You are welcome to turn it on and off as you would like. 
+	`
+	program.sliders.notifications.Step = 0.0001
+	on, off := widget.NewLabel("ON"), widget.NewLabel("OFF")
+	if program.sliders.notifications.Value < 0.50 {
+		go func() {
+			fyne.DoAndWait(func() {
+				program.sliders.notifications.SetValue(0.235)
+				program.sliders.notifications.Refresh()
+				on.TextStyle.Bold = false
+				off.TextStyle.Bold = true
+				on.Refresh()
+				off.Refresh()
+			})
+		}()
+	}
+	program.sliders.notifications.OnChanged = func(f float64) {
+		switch {
+		case f < 0.50:
+			program.preferences.SetBool("notifications", false)
+		case f > 0.50:
+			program.preferences.SetBool("notifications", true)
+		}
+	}
+	program.sliders.notifications.OnChangeEnded = func(f float64) {
+		switch {
+		case f < 0.50:
+			program.sliders.notifications.SetValue(0.235)
+			go func() {
+				fyne.DoAndWait(func() {
+					on.TextStyle.Bold = false
+					off.TextStyle.Bold = true
+					on.Refresh()
+					off.Refresh()
+				})
+			}()
+		case f > 0.50:
+			program.sliders.notifications.SetValue(0.765)
+
+			go func() {
+				fyne.DoAndWait(func() {
+					on.TextStyle.Bold = true
+					off.TextStyle.Bold = false
+					on.Refresh()
+					off.Refresh()
+				})
+			}()
+		}
+	}
+	program.sliders.notifications.Orientation = widget.Horizontal
+	content := container.NewAdaptiveGrid(1,
+		widget.NewLabel(notice),
+		container.NewVBox(
+			program.sliders.notifications,
+			container.NewAdaptiveGrid(2,
+				container.NewCenter(off),
+				container.NewCenter(on),
+			),
+		),
+	)
+
+	d := dialog.NewCustom("Notifications", dismiss, content, program.window)
+
+	d.Resize(password_size)
+	d.Show()
 }
