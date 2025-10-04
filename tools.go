@@ -1825,17 +1825,11 @@ func explorer() {
 
 	tabs.SetTabLocation(container.TabLocationLeading)
 
-	explore := dialog.NewCustomWithoutButtons("Explorer",
-		tabs,
-		program.explorer,
-	)
 	program.explorer.SetOnClosed(func() {
 		updating = false
-		explore.Dismiss()
 	})
+	program.explorer.SetContent(tabs)
 
-	explore.Resize(program.size)
-	explore.Show()
 }
 
 func installer() *fyne.Container {
