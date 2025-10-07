@@ -882,12 +882,6 @@ func passwordUpdate() {
 
 func simulator() {
 
-	// program.toggles.simulator.Horizontal = true
-	// program.toggles.simulator.Options = []string{
-	// 	"off",
-	// 	"on",
-	// }
-	// program.toggles.simulator.Required = true
 	program.buttons.simulation.OnTapped = func() {
 		if strings.Contains(program.buttons.simulation.Text, "ON") {
 
