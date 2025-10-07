@@ -1152,7 +1152,9 @@ func simulator() {
 			program.toggles.rpc_server.Enable()
 			program.entries.username.Enable()
 			program.entries.password.Enable()
-
+			if program.preferences.Bool("loggedIn") {
+				logout()
+			}
 		}
 	}
 
