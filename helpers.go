@@ -106,8 +106,8 @@ func createPreferred() {
 		name string
 	}{name: filename}
 
-	if _, err := os.Stat(filename); err != nil {
-		os.Create(filename)
+	if _, err := os.Stat(filename + ".conf"); err != nil {
+		os.Create(filename + ".conf")
 		// really
 	} else {
 		file, err := os.Open(filename + ".conf")
