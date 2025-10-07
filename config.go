@@ -882,12 +882,6 @@ func passwordUpdate() {
 
 func simulator() {
 
-	// program.toggles.simulator.Horizontal = true
-	// program.toggles.simulator.Options = []string{
-	// 	"off",
-	// 	"on",
-	// }
-	// program.toggles.simulator.Required = true
 	program.buttons.simulation.OnTapped = func() {
 		if strings.Contains(program.buttons.simulation.Text, "ON") {
 
@@ -972,6 +966,7 @@ func simulator() {
 			globals.Arguments = map[string]interface{}{
 				"--rpc-bind":  daemon_endpoint,
 				"--testnet":   true,
+				"--debug":     true, // to get more info
 				"--simulator": true, // obviously
 				"--p2p-bind":  ":0",
 			}
@@ -1157,7 +1152,9 @@ func simulator() {
 			program.toggles.rpc_server.Enable()
 			program.entries.username.Enable()
 			program.entries.password.Enable()
-
+			if program.preferences.Bool("loggedIn") {
+				logout()
+			}
 		}
 	}
 
