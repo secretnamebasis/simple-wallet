@@ -972,6 +972,7 @@ func simulator() {
 			globals.Arguments = map[string]interface{}{
 				"--rpc-bind":  daemon_endpoint,
 				"--testnet":   true,
+				"--debug":     true, // to get more info
 				"--simulator": true, // obviously
 				"--p2p-bind":  ":0",
 			}
