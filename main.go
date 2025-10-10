@@ -3,7 +3,9 @@ package main
 import (
 	"crypto/rand"
 	"fmt"
+	m_rand "math/rand"
 	"os"
+	"strconv"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -14,12 +16,12 @@ import (
 
 // main caller
 func main() {
-	fmt.Println(`let's start with a simple design philosophy:
-
-	"When it comes to programs [...],
-	both programmers and compilers should remember the advice:
-	don't be clever." - Credit to: https://go.dev/ref/mem`)
-
+	msg := "let's start with a simple design philosophy:\n\n"
+	msg += "	\"When it comes to programs [...], \n"
+	msg += "	both programmers and compilers should remember the advice: \n"
+	text := "	\033[38;5;" + strconv.Itoa(m_rand.Intn(256)) + "mdon't be clever\033[0m"
+	msg += text + ". - Credit to: https://go.dev/ref/mem"
+	fmt.Println(msg)
 	run() // the program
 }
 

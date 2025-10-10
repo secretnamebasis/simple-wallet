@@ -465,10 +465,10 @@ func ws_server() {
 				func(data *xswd.ApplicationData) bool {
 					// let's serve up the data
 
-					text := truncator(data.Id) + "\n" +
-						data.Name + "\n" +
-						data.Description + "\n" +
-						data.Url + "\n"
+					text := "APP ID: " + truncator(data.Id) + "\n" +
+						"APP NAME: " + data.Name + "\n" +
+						"APP DESCRIPTION: " + data.Description + "\n" +
+						"APP URL: " + data.Url + "\n"
 
 					// range through the permissions if any
 					permissions := container.NewAdaptiveGrid(1)
@@ -477,7 +477,7 @@ func ws_server() {
 						for permission, request := range data.Permissions {
 							permit += permission + " " + request.String() + "\n"
 						}
-						text += "PERMISSIONS REQUESTS:"
+						text += " ❗⚠️ APP PERMISSIONS REQUESTS ⚠️❗"
 						permissions.Add(widget.NewLabel(permit))
 					}
 					label := widget.NewLabel(text)
@@ -504,6 +504,7 @@ func ws_server() {
 						content, callback,
 						program.window,
 					)
+					pop.SetConfirmImportance(widget.DangerImportance)
 					// show it
 					pop.Resize(fyne.NewSize(program.size.Width/2, program.size.Height/2))
 					pop.Show()
@@ -519,13 +520,13 @@ func ws_server() {
 				// do you allow it, do you reject it
 				func(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permission {
 					// let's serve up some content
-
-					text := truncator(data.Id) + "\n" +
-						data.Name + "\n" +
-						data.Description + "\n" +
-						data.Url + "\n" +
-						r.Method() + "\n"
+					text := "APP ID: " + truncator(data.Id) + "\n" +
+						"APP NAME: " + data.Name + "\n" +
+						"APP DESCRIPTION: " + data.Description + "\n" +
+						"APP URL: " + data.Url + "\n" +
+						"METHOD REQUEST: " + r.Method() + "\n"
 					label := widget.NewLabel(text)
+
 					app := container.NewAdaptiveGrid(1, label)
 					content := container.NewBorder(app, nil, nil, nil)
 					tall := false
@@ -540,11 +541,14 @@ func ws_server() {
 							showError(err, program.window)
 
 							// // and then deny the request
-							// return xswd.Deny
+							return xswd.Deny
 						}
 						// add param string to the request
 						label := widget.NewLabel("")
 						switch r.Method() {
+						case "querykey":
+							// not implemented
+							break
 						case "scinvoke":
 							p := rpc.SC_Invoke_Params{}
 							if err := json.Unmarshal([]byte(r.ParamString()), &p); err != nil {
@@ -580,6 +584,7 @@ func ws_server() {
 						scroll := container.NewScroll(label)
 						// scroll.Direction = container.ScrollHorizontalOnly
 						content.Add(scroll)
+
 					}
 					// we are going to wait for a choice
 					choice := make(chan bool)
@@ -599,6 +604,8 @@ func ws_server() {
 						content, callback,
 						program.window,
 					)
+					pop.SetConfirmImportance(widget.DangerImportance)
+
 					// show it
 					if tall {
 						pop.Resize(fyne.NewSize(program.size.Width/2, program.size.Height))
@@ -964,11 +971,12 @@ func simulator() {
 
 			// here is a list of arguments
 			globals.Arguments = map[string]interface{}{
-				"--rpc-bind":  daemon_endpoint,
-				"--testnet":   true,
-				"--debug":     true, // to get more info
-				"--simulator": true, // obviously
-				"--p2p-bind":  ":0",
+				"--rpc-bind":     daemon_endpoint,
+				"--testnet":      true,
+				"--debug":        true, // to get more info
+				"--simulator":    true, // obviously
+				"--p2p-bind":     ":0",
+				"--getwork-bind": "127.0.0.1:10100",
 			}
 
 			// now, we'll init the network
