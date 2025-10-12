@@ -516,7 +516,28 @@ func createImageLabel() fyne.CanvasObject {
 		widget.NewLabel(""),
 	)
 }
-
+func createSentHeader() fyne.CanvasObject {
+	sent_header := createFourLabels()
+	sent_header.(*fyne.Container).Objects[0].(*widget.Label).SetText("DATE")
+	sent_header.(*fyne.Container).Objects[1].(*widget.Label).SetText("TXID")
+	sent_header.(*fyne.Container).Objects[2].(*widget.Label).SetText("FEES")
+	sent_header.(*fyne.Container).Objects[3].(*widget.Label).SetText("AMOUNT")
+	return sent_header
+}
+func createReceivedHeader() fyne.CanvasObject {
+	received_header := createThreeLabels()
+	received_header.(*fyne.Container).Objects[0].(*widget.Label).SetText("DATE")
+	received_header.(*fyne.Container).Objects[1].(*widget.Label).SetText("TXID")
+	received_header.(*fyne.Container).Objects[2].(*widget.Label).SetText("AMOUNT")
+	return received_header
+}
+func createCoinbaseHeader() fyne.CanvasObject {
+	coinbase_header := createThreeLabels()
+	coinbase_header.(*fyne.Container).Objects[0].(*widget.Label).SetText("DATE")
+	coinbase_header.(*fyne.Container).Objects[1].(*widget.Label).SetText("TXID")
+	coinbase_header.(*fyne.Container).Objects[2].(*widget.Label).SetText("AMOUNT")
+	return coinbase_header
+}
 func createOneLabel() fyne.CanvasObject {
 	return createLabels(1)
 }

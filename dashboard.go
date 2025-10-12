@@ -532,17 +532,26 @@ func txList() {
 
 	tabs = container.NewAppTabs(
 		container.NewTabItem("Sent", container.NewBorder(
-			container.NewAdaptiveGrid(3, layout.NewSpacer(), search_entry, layout.NewSpacer()),
+			container.NewVBox(
+				container.NewAdaptiveGrid(3, layout.NewSpacer(), search_entry, layout.NewSpacer()),
+				createSentHeader(),
+			),
 			nil, nil, nil,
 			sent,
 		)),
 		container.NewTabItem("Received", container.NewBorder(
-			container.NewAdaptiveGrid(3, layout.NewSpacer(), search_entry, layout.NewSpacer()),
+			container.NewVBox(
+				container.NewAdaptiveGrid(3, layout.NewSpacer(), search_entry, layout.NewSpacer()),
+				createReceivedHeader(),
+			),
 			nil, nil, nil,
 			received,
 		)),
 		container.NewTabItem("Coinbase", container.NewBorder(
-			container.NewAdaptiveGrid(3, layout.NewSpacer(), search_entry, layout.NewSpacer()),
+			container.NewVBox(
+				container.NewAdaptiveGrid(3, layout.NewSpacer(), search_entry, layout.NewSpacer()),
+				createCoinbaseHeader(),
+			),
 			nil, nil, nil,
 			coinbase,
 		)),
