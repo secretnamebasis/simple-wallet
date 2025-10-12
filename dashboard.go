@@ -262,7 +262,7 @@ func txList() {
 	received.Length = func() int { return len(r_entries) }
 
 	// here is the widget that we are going to use for each item of the list
-	received.CreateItem = createLabel
+	received.CreateItem = createThreeLabels
 
 	var r_table *widget.Table
 	// then let's update the item to contain the content
@@ -364,7 +364,7 @@ func txList() {
 	coinbase.Length = func() int { return len(c_entries) }
 
 	// here is the widget that we are going to use for each item of the list
-	coinbase.CreateItem = createLabel
+	coinbase.CreateItem = createThreeLabels
 
 	// then let's update the item to contain the content
 	var c_table *widget.Table

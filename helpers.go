@@ -516,12 +516,26 @@ func createImageLabel() fyne.CanvasObject {
 		widget.NewLabel(""),
 	)
 }
-func createLabel() fyne.CanvasObject {
-	return container.NewAdaptiveGrid(3,
-		widget.NewLabel(""),
-		widget.NewLabel(""),
-		widget.NewLabel(""),
-	)
+
+func createOneLabel() fyne.CanvasObject {
+	return createLabels(1)
+}
+func createTwoLabels() fyne.CanvasObject {
+	return createLabels(2)
+}
+func createThreeLabels() fyne.CanvasObject {
+	return createLabels(3)
+}
+func createFourLabels() fyne.CanvasObject {
+	return createLabels(4)
+}
+
+func createLabels(c int) fyne.CanvasObject {
+	cont := container.NewAdaptiveGrid(c)
+	for range c {
+		cont.Add(widget.NewLabel(""))
+	}
+	return cont
 }
 
 func makeCenteredWrappedLabel(s string) *widget.Label {
