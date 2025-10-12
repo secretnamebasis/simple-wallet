@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"image/jpeg"
 	"sort"
@@ -18,6 +19,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
+	"github.com/deroproject/derohe/transaction"
 )
 
 func dashboard() *fyne.Container {
@@ -134,7 +136,7 @@ func txList() {
 	sent.Length = func() int { return len(s_entries) }
 
 	// here is the widget that we are going to use for each item of the list
-	sent.CreateItem = createLabel
+	sent.CreateItem = createFourLabels
 	// then let's update the item to contain the content
 	var s_table *widget.Table
 	updateSent := func(lii widget.ListItemID, co fyne.CanvasObject) {
@@ -153,7 +155,20 @@ func txList() {
 		container := co.(*fyne.Container)
 		container.Objects[0].(*widget.Label).SetText(time_stamp)
 		container.Objects[1].(*widget.Label).SetText(txid)
-		container.Objects[2].(*widget.Label).SetText(rpc.FormatMoney(amount))
+		tx := getTransaction(rpc.GetTransaction_Params{
+			Tx_Hashes: []string{s_entries[lii].TXID},
+		})
+		b, err := hex.DecodeString(tx.Txs_as_hex[0])
+		if err != nil {
+			return
+		}
+		var t transaction.Transaction
+		if err := t.Deserialize(b); err != nil {
+			return
+		}
+		container.Objects[2].(*widget.Label).SetText(rpc.FormatMoney(t.Fees()))
+
+		container.Objects[3].(*widget.Label).SetText(rpc.FormatMoney(amount))
 
 	}
 	// set the update item
@@ -176,6 +191,24 @@ func txList() {
 			pair := strings.Split(line, ": ")
 			key := pair[0]
 			value := pair[1]
+			if key == "TXID" {
+				tx := getTransaction(rpc.GetTransaction_Params{
+					Tx_Hashes: []string{value},
+				})
+				for _, each := range tx.Txs_as_hex {
+					b, err := hex.DecodeString(each)
+					if err != nil {
+						continue
+					}
+					var t transaction.Transaction
+					if err := t.Deserialize(b); err != nil {
+						continue
+					}
+
+					keys = append(keys, "FEES")
+					values = append(values, rpc.FormatMoney(t.Fees()))
+				}
+			}
 			keys = append(keys, key)
 			values = append(values, value)
 		}
@@ -231,7 +264,7 @@ func txList() {
 	received.Length = func() int { return len(r_entries) }
 
 	// here is the widget that we are going to use for each item of the list
-	received.CreateItem = createLabel
+	received.CreateItem = createThreeLabels
 
 	var r_table *widget.Table
 	// then let's update the item to contain the content
@@ -333,7 +366,7 @@ func txList() {
 	coinbase.Length = func() int { return len(c_entries) }
 
 	// here is the widget that we are going to use for each item of the list
-	coinbase.CreateItem = createLabel
+	coinbase.CreateItem = createThreeLabels
 
 	// then let's update the item to contain the content
 	var c_table *widget.Table
@@ -439,7 +472,21 @@ func txList() {
 			} else {
 				s_entries = []rpc.Entry{}
 				for _, each := range s {
-					if strings.Contains(strings.ToLower(each.String()), search) {
+
+					tx := getTransaction(rpc.GetTransaction_Params{
+						Tx_Hashes: []string{each.TXID},
+					})
+					b, err := hex.DecodeString(tx.Txs_as_hex[0])
+					if err != nil {
+						panic(err)
+					}
+					var t transaction.Transaction
+					if err := t.Deserialize(b); err != nil {
+						panic(err)
+					}
+
+					if strings.Contains(rpc.FormatMoney(t.Fees()), search) ||
+						strings.Contains(strings.ToLower(each.String()), search) {
 						s_entries = append(s_entries, each)
 					}
 				}
@@ -487,17 +534,26 @@ func txList() {
 
 	tabs = container.NewAppTabs(
 		container.NewTabItem("Sent", container.NewBorder(
-			container.NewAdaptiveGrid(3, layout.NewSpacer(), search_entry, layout.NewSpacer()),
+			container.NewVBox(
+				container.NewAdaptiveGrid(3, layout.NewSpacer(), search_entry, layout.NewSpacer()),
+				createSentHeader(),
+			),
 			nil, nil, nil,
 			sent,
 		)),
 		container.NewTabItem("Received", container.NewBorder(
-			container.NewAdaptiveGrid(3, layout.NewSpacer(), search_entry, layout.NewSpacer()),
+			container.NewVBox(
+				container.NewAdaptiveGrid(3, layout.NewSpacer(), search_entry, layout.NewSpacer()),
+				createReceivedHeader(),
+			),
 			nil, nil, nil,
 			received,
 		)),
 		container.NewTabItem("Coinbase", container.NewBorder(
-			container.NewAdaptiveGrid(3, layout.NewSpacer(), search_entry, layout.NewSpacer()),
+			container.NewVBox(
+				container.NewAdaptiveGrid(3, layout.NewSpacer(), search_entry, layout.NewSpacer()),
+				createCoinbaseHeader(),
+			),
 			nil, nil, nil,
 			coinbase,
 		)),
