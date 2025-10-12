@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"image/jpeg"
 	"sort"
@@ -18,6 +19,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
+	"github.com/deroproject/derohe/transaction"
 )
 
 func dashboard() *fyne.Container {
