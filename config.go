@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -465,26 +466,55 @@ func ws_server() {
 				func(data *xswd.ApplicationData) bool {
 					// let's serve up the data
 
-					text := "APP ID: " + truncator(data.Id) + "\n" +
-						"APP NAME: " + data.Name + "\n" +
-						"APP DESCRIPTION: " + data.Description + "\n" +
-						"APP URL: " + data.Url + "\n"
+					text := "\tID: \n" + data.Id + "\n" +
+						"\tNAME: " + data.Name + "\n" +
+						"\tDESCRIPTION: " + data.Description + "\n" +
+						"\tURL: " + data.Url + "\n"
+
+					// let's verify this real quick
+					address, message, err := program.wallet.CheckSignature([]byte(data.Signature))
+					if err != nil {
+						showError(err, program.window)
+						return reject
+					}
+					// fmt.Println(address.String(), string(message))
+					text += "\tDEVELOPER: \n" + address.String()
+					label := widget.NewLabel(text)
+
+					var msg []byte
+					msg, err = hex.DecodeString(string(message))
+					if err != nil {
+						panic(err)
+					}
+					id, err := hex.DecodeString(data.Id)
+					if err != nil {
+						panic(err)
+					}
+
+					if !bytes.Equal(msg, id) {
+						// showError(errors.New("application signature does not match app id"), program.window)
+						return reject
+					}
+
+					sig := widget.NewLabel("🟢APP SIGNATURE MATCH🟢")
+					sig.Alignment = fyne.TextAlignCenter
 
 					// range through the permissions if any
-					permissions := container.NewAdaptiveGrid(1)
+					app := container.NewVBox(label, sig)
+					content := container.NewBorder(app, nil, nil, nil)
+
 					if len(data.Permissions) > 0 {
+						app.Add(container.NewCenter(widget.NewLabel(
+							"	✋⚠️ APP PERMISSIONS REQUESTS ⚠️✋\n" +
+								"this application is asking for these permissions:")))
 						permit := ""
 						for permission, request := range data.Permissions {
-							permit += permission + " " + request.String() + "\n"
+							permit += "❓ " + permission + ": " + request.String() + "\n"
 						}
-						text += " ❗⚠️ APP PERMISSIONS REQUESTS ⚠️❗"
-						permissions.Add(widget.NewLabel(permit))
+						p := widget.NewLabel(permit)
+						p.Alignment = fyne.TextAlignCenter
+						content.Add(container.NewScroll(p))
 					}
-					label := widget.NewLabel(text)
-					label.Wrapping = fyne.TextWrapBreak
-					app := container.NewAdaptiveGrid(1, label)
-					content := container.NewBorder(app, nil, nil, nil, container.NewScroll(permissions))
-
 					// we are going to wait on a choice
 					choice := make(chan bool)
 
@@ -504,9 +534,9 @@ func ws_server() {
 						content, callback,
 						program.window,
 					)
-					pop.SetConfirmImportance(widget.DangerImportance)
+					pop.SetConfirmImportance(widget.WarningImportance)
 					// show it
-					pop.Resize(fyne.NewSize(program.size.Width/2, program.size.Height/2))
+					pop.Resize(fyne.NewSize(program.size.Width/2, ((program.size.Height / 4) * 3)))
 					pop.Show()
 					fyne.DoAndWait(func() {
 						program.window.Show()
@@ -520,16 +550,44 @@ func ws_server() {
 				// do you allow it, do you reject it
 				func(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permission {
 					// let's serve up some content
-					text := "APP ID: " + truncator(data.Id) + "\n" +
-						"APP NAME: " + data.Name + "\n" +
-						"APP DESCRIPTION: " + data.Description + "\n" +
-						"APP URL: " + data.Url + "\n" +
-						"METHOD REQUEST: " + r.Method() + "\n"
+					text := "\tID: \n" + data.Id + "\n" +
+						"\tNAME: " + data.Name + "\n" +
+						"\tDESCRIPTION: " + data.Description + "\n" +
+						"\tURL: " + data.Url + "\n"
+					// let's verify this real quick
+					address, message, err := program.wallet.CheckSignature([]byte(data.Signature))
+					if err != nil {
+						showError(err, program.window)
+						return xswd.Deny
+					}
+					// fmt.Println(address.String(), string(message))
+					text += "\tDEVELOPER: \n" + address.String()
 					label := widget.NewLabel(text)
 
-					app := container.NewAdaptiveGrid(1, label)
+					var msg []byte
+					msg, err = hex.DecodeString(string(message))
+					if err != nil {
+						panic(err)
+					}
+					id, err := hex.DecodeString(data.Id)
+					if err != nil {
+						panic(err)
+					}
+
+					if !bytes.Equal(msg, id) {
+						// showError(errors.New("application signature does not match app id"), program.window)
+						// don't bother user with bad requests
+						return xswd.AlwaysDeny
+					}
+					sig := widget.NewLabel("🟢APP SIGNATURE MATCH🟢")
+					sig.Alignment = fyne.TextAlignCenter
+
+					method := widget.NewLabel(`❓ METHOD REQUEST: ` + r.Method())
+					method.Alignment = fyne.TextAlignCenter
+
+					app := container.NewVBox(label, sig, method)
 					content := container.NewBorder(app, nil, nil, nil)
-					tall := false
+					// tall := false
 					// if it has params, process them
 					if r.HasParams() {
 						var params rpc.EventNotification
@@ -562,21 +620,31 @@ func ws_server() {
 							}
 							label.SetText(string(pretty))
 							label.Wrapping = fyne.TextWrapWord
-							tall = true
+							// tall = true
 						case "transfer":
 							p := rpc.Transfer_Params{}
 							if err := json.Unmarshal([]byte(r.ParamString()), &p); err != nil {
 								showError(err, program.window)
 								break
 							}
-							pretty, err := json.MarshalIndent(p, "", "  ")
-							if err != nil {
-								showError(err, program.window)
-								break
+							text := ""
+							if len(p.Transfers) != 0 {
+								text += "TRANSFERS:\n" + fmt.Sprintf("%v", p.Transfers) + "\n"
 							}
-							label.SetText(string(pretty))
+							if p.SC_Code != "" {
+								text += "CODE:\n" + p.SC_Code + "\n"
+							}
+							// pretty, err := json.MarshalIndent(p, "", "  ")
+							// if err != nil {
+							// 	showError(err, program.window)
+							// 	break
+							// }
+							if p.Fees != 0 {
+								text += "FEES: " + rpc.FormatMoney(p.Fees) + " DERO"
+							}
+							label.SetText(text)
 							label.Wrapping = fyne.TextWrapWord
-							tall = true
+							// tall = true
 						default:
 							label.SetText(r.ParamString())
 							label.Wrapping = fyne.TextWrapBreak
@@ -607,11 +675,11 @@ func ws_server() {
 					pop.SetConfirmImportance(widget.DangerImportance)
 
 					// show it
-					if tall {
-						pop.Resize(fyne.NewSize(program.size.Width/2, program.size.Height))
-					} else {
-						pop.Resize(fyne.NewSize(program.size.Width/2, program.size.Height/2))
-					}
+					// if tall {
+					// 	pop.Resize(fyne.NewSize(program.size.Width/2, program.size.Height))
+					// } else {
+					pop.Resize(fyne.NewSize(program.size.Width/2, ((program.size.Height / 4) * 3)))
+					// }
 					pop.Show()
 					fyne.DoAndWait(func() {
 						program.window.Show()
@@ -1171,7 +1239,7 @@ The simulator provides a convenient place to simulate the DERO blockchain for te
 
 You will need to completely shut down the wallet to create a new simulator. This prevents duplicate block histories.
 	
-The simulator rpc runs on 127.0.0.1:20000 and you will need to change connections to 'simulator' in order to access the simulated network.
+The simulator rpc runs on 127.0.0.1:20000 and the wallet will connect automatically. There is a mining getwork server running on 127.0.0.1:10100.
 	
 There are 21 simulator wallets that can be found in folder and have no wallet password: 
 ` + globals.GetDataDirectory() + `. 
