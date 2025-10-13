@@ -680,8 +680,8 @@ func ws_server() {
 					// } else {
 					pop.Resize(fyne.NewSize(program.size.Width/2, ((program.size.Height / 4) * 3)))
 					// }
-					pop.Show()
 					fyne.DoAndWait(func() {
+						pop.Show()
 						program.window.Show()
 					})
 					// now wait for the choice
