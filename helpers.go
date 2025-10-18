@@ -273,7 +273,7 @@ func updateBalance() {
 			} else if bal == 0 && !program.wallet.IsRegistered() {
 				fyne.DoAndWait(func() {
 					// update it
-					program.labels.loggedin.SetText("WALLET: 🟢")
+					program.labels.loggedin.SetText("WALLET: ✅")
 					program.labels.balance.SetText("unregistered")
 
 				})
@@ -295,7 +295,7 @@ func updateBalance() {
 				// update
 				fyne.DoAndWait(func() {
 					// obviously, we are still logged in
-					program.labels.loggedin.SetText("WALLET: 🟢")
+					program.labels.loggedin.SetText("WALLET: ✅")
 
 					// update it
 					program.labels.balance.SetText(rpc.FormatMoney(bal))
