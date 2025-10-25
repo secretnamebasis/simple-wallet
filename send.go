@@ -278,39 +278,6 @@ func sendForm() {
 		}
 		return nil
 	}
-
-	// let's make a list of assets on hand
-	var scids []string
-
-	// iterate over the hash list for each
-	for _, asset := range program.caches.assets {
-
-		// dynamically obtain the asset balance for each hash
-		asset_balance := func() string {
-
-			// obtain the balance of the hash
-			bal, _ := program.wallet.Get_Balance_scid(
-				crypto.HashHexToHash(asset.hash),
-			)
-
-			// return a formatted string of the balance
-			return rpc.FormatMoney(bal)
-		}
-
-		name := "Name: " + asset.name
-		scid := "SCID: " + truncator(asset.hash)
-		bal := "BAL: " + asset_balance()
-		// build a label for each hash with its balance
-		label := name + " \t " + scid + " \t " + bal
-		// append them to the scids
-		scids = append(scids, label)
-	}
-	// load up the scids and asset options in the selector
-	// program.selections.assets.Options = scids
-
-	// create a placeholder that makes sense
-	// program.selections.assets.PlaceHolder = "DERO by default, or select asset"
-
 	// create callback function
 	callback := func(b bool) {
 
@@ -440,7 +407,7 @@ func conductTransfer() {
 			})
 		}
 
-		// again, with the copy the comment
+		// again, with the comment
 		comment := program.entries.comment.Text
 
 		// dump the text from memory
@@ -480,8 +447,10 @@ func conductTransfer() {
 
 		// let's get the reciever
 		destination := program.receiver
-		program.receiver = ""
+
 		// dump the receiver
+		program.receiver = ""
+
 		// clear recipient on send action
 		program.entries.recipient.SetText("")
 
@@ -502,25 +471,6 @@ func conductTransfer() {
 
 		// the scid is defaulted to DERO
 		scid := crypto.ZEROHASH
-
-		// let's check if they selected another asset to send
-
-		// first let's get the current selected index
-		// index := program.selections.assets.SelectedIndex()
-
-		// dump the selection
-		program.selections.assets.SetSelectedIndex(-1)
-
-		// If they selected something, it is an asset
-		// isAsset := index > -1
-
-		// if isAsset {
-		// 	// thusly, well get the asset from the cache
-		// 	asset := program.caches.assets[index]
-
-		// 	// and now the scid is the asset
-		// 	scid = crypto.HashHexToHash(asset.hash)
-		// }
 
 		// now, let's build the payload
 		payload := []rpc.Transfer{
@@ -552,11 +502,8 @@ func conductTransfer() {
 			)
 			// if this explodes...
 			if err != nil {
-
 				// show the error
 				showError(err, program.window)
-				// now let's make sure each of these are re-enabled
-
 				return
 			}
 			if !program.preferences.Bool("loggedIn") {
@@ -593,9 +540,6 @@ func conductTransfer() {
 						fmt.Println("searching", searching.After(start), searching.String(), program.caches.pool.Tx_list)
 
 						if slices.Contains(program.caches.pool.Tx_list, tx.GetHash().String()) {
-							// in pool
-							fmt.Println("in pool", searching.After(start), searching.String(), program.caches.pool.Tx_list, tx.GetHash().String())
-
 							in_pool := time.Now().Add(time.Second * 600)
 							for on_chain := range time.NewTicker(time.Second * 2).C {
 								if on_chain.After(in_pool) {
@@ -604,7 +548,6 @@ func conductTransfer() {
 									showError(errors.New("manually confirm transfer"), program.window)
 									return
 								}
-								fmt.Println("on chain", on_chain.After(in_pool), on_chain.String(), program.caches.pool.Tx_list, tx.GetHash().String())
 
 								result := getTransaction(rpc.GetTransaction_Params{
 									Tx_Hashes: []string{tx.GetHash().String()},
@@ -614,7 +557,6 @@ func conductTransfer() {
 									var tr transaction.Transaction
 									tr.Deserialize(b)
 									t := tr.GetHash().String()
-									fmt.Println("results", on_chain.After(in_pool), on_chain.String(), tx.GetHash().String())
 									if strings.Contains(t, tx.GetHash().String()) {
 										// let's make a link
 										link := truncator(tx.GetHash().String())
