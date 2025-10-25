@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"slices"
 	"strconv"
 	"strings"
@@ -536,8 +535,6 @@ func conductTransfer() {
 						return
 					}
 					if len(program.caches.pool.Tx_list) > 0 {
-
-						fmt.Println("searching", searching.After(start), searching.String(), program.caches.pool.Tx_list)
 
 						if slices.Contains(program.caches.pool.Tx_list, tx.GetHash().String()) {
 							in_pool := time.Now().Add(time.Second * 600)
