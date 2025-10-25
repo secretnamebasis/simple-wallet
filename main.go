@@ -49,7 +49,7 @@ func run() {
 		}
 	})
 
-	// this is a single window program, pretty simple
+	// this is the main window
 	program.window = program.application.NewWindow(program.name)
 
 	// let's size the window, I think this is a nice size
