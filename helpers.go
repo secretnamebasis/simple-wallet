@@ -553,7 +553,9 @@ func makeCenteredWrappedLabel(s string) *widget.Label {
 func callRPC[T any](method string, params any, validator func(T) bool) T {
 	result, err := handleResult[T](method, params)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		var zero T
+		return zero
 	}
 
 	if !validator(result) {
