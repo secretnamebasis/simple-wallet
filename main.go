@@ -49,15 +49,11 @@ func run() {
 		}
 	})
 
-	// this is a single window program, pretty simple
+	// this is the main window
 	program.window = program.application.NewWindow(program.name)
-
-	// and just for fun, let's have a simple viewer window
-	program.explorer = program.application.NewWindow(program.name + " | viewer")
 
 	// let's size the window, I think this is a nice size
 	program.window.Resize(program.size)
-	program.explorer.Resize(program.size)
 
 	// let's center it to make things simple
 	program.window.CenterOnScreen()

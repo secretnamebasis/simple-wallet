@@ -24,7 +24,7 @@ func home() *fyne.Container {
 	}
 
 	// let's be clear about the software
-	program.labels.notice = makeCenteredWrappedLabel(`
+	notice := makeCenteredWrappedLabel(`
 THIS SOFTWARE IS ALPHA STAGE SOFTWARE
 USE ONLY FOR TESTING & EVALUATION PURPOSES 
 `)
@@ -63,7 +63,7 @@ USE ONLY FOR TESTING & EVALUATION PURPOSES
 				layout.NewSpacer(),
 			),
 		),
-		program.labels.notice,
+		notice,
 		layout.NewSpacer(),
 		container.NewAdaptiveGrid(
 			3,

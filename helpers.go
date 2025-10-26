@@ -273,7 +273,7 @@ func updateBalance() {
 			} else if bal == 0 && !program.wallet.IsRegistered() {
 				fyne.DoAndWait(func() {
 					// update it
-					program.labels.loggedin.SetText("WALLET: 🟢")
+					program.labels.loggedin.SetText("WALLET: ✅")
 					program.labels.balance.SetText("unregistered")
 
 				})
@@ -295,7 +295,7 @@ func updateBalance() {
 				// update
 				fyne.DoAndWait(func() {
 					// obviously, we are still logged in
-					program.labels.loggedin.SetText("WALLET: 🟢")
+					program.labels.loggedin.SetText("WALLET: ✅")
 
 					// update it
 					program.labels.balance.SetText(rpc.FormatMoney(bal))
@@ -408,32 +408,17 @@ func getSCNameFromVars(scid string) string {
 	return text
 }
 func isRegistered(s string) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	// make a new client
-	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
+	result := callRPC("DERO.GetEncryptedBalance",
+		rpc.GetEncryptedBalance_Params{
+			Address:    s,  // the address to check
+			TopoHeight: -1, // the top of the chain
+		},
+		func(r rpc.GetEncryptedBalance_Result) bool {
+			return r.Registration != 0
+		})
 
-	// make a bucket to collect the result
-	var result rpc.GetEncryptedBalance_Result
-
-	// define the method to use
-	var method = "DERO.GetEncryptedBalance"
-
-	// set some particulars for the request
-	var params = rpc.GetEncryptedBalance_Params{
-		Address:    s,  // the address to check
-		TopoHeight: -1, // the top of the chain
-	}
-
-	// if we have an error here..
-	if err := rpcClient.CallFor(ctx, &result, method, params); err != nil {
-		return false
-	}
-	if result.Registration == 0 {
-		return false
-	}
 	// if there is no error and the registration isn't 0
-	return true
+	return result.Registration != 0
 }
 
 // simple way to test http connection to derod
@@ -565,194 +550,99 @@ func makeCenteredWrappedLabel(s string) *widget.Label {
 	label.Wrapping = fyne.TextWrapWord
 	return label
 }
-
-func getTransaction(params rpc.GetTransaction_Params) rpc.GetTransaction_Result {
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	// get a client for the daemon's rpc
-	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
-
-	// here is our results bucket
-	var result rpc.GetTransaction_Result
-
-	// here is the method we are going to use
-	var method = "DERO.GetTransaction"
-
-	// call for the contract
-	if err := rpcClient.CallFor(ctx, &result, method, params); err != nil {
-		return rpc.GetTransaction_Result{}
+func callRPC[T any](method string, params any, validator func(T) bool) T {
+	result, err := handleResult[T](method, params)
+	if err != nil {
+		panic(err)
 	}
-	// the code needs to be present
-	if result.Status == "" {
-		return rpc.GetTransaction_Result{}
+
+	if !validator(result) {
+		var zero T
+		return zero
 	}
 
 	return result
 }
-func getBlockInfo(params rpc.GetBlock_Params) rpc.GetBlock_Result {
-
+func handleResult[T any](method string, params any) (T, error) {
+	var result T
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	// get a client for the daemon's rpc
-	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
 
-	// here is our results bucket
-	var result rpc.GetBlock_Result
+	rpcClient := jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
 
-	// here is the method we are going to use
-	var method = "DERO.GetBlock"
-
-	// call for the contract
-	if err := rpcClient.CallFor(ctx, &result, method, params); err != nil {
-		return rpc.GetBlock_Result{}
-	}
-	// the code needs to be present
-	if result.Block_Header.Depth == 0 {
-		return rpc.GetBlock_Result{}
+	var err error
+	if params == nil {
+		err = rpcClient.CallFor(ctx, &result, method) // no params argument
+	} else {
+		err = rpcClient.CallFor(ctx, &result, method, params)
 	}
 
+	if err != nil {
+		var zero T
+		return zero, err
+	}
+
+	return result, nil
+}
+
+func getTransaction(params rpc.GetTransaction_Params) rpc.GetTransaction_Result {
+	validator := func(r rpc.GetTransaction_Result) bool {
+		return r.Status != ""
+	}
+	result := callRPC("DERO.GetTransaction", params, validator)
+	return result
+}
+
+func getBlockInfo(params rpc.GetBlock_Params) rpc.GetBlock_Result {
+	validator := func(r rpc.GetBlock_Result) bool {
+		return r.Block_Header.Depth != 0
+	}
+	result := callRPC("DERO.GetBlock", params, validator)
 	return result
 }
 
 func getTxPool() rpc.GetTxPool_Result {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	// get a client for the daemon's rpc
-	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
-
-	// here is our results bucket
-	var pool rpc.GetTxPool_Result
-
-	// here is the method we are going to use
-	var method = "DERO.GetTxPool"
-
-	// call for the contract
-	if err := rpcClient.CallFor(ctx, &pool, method); err != nil {
-		return rpc.GetTxPool_Result{}
+	validator := func(r rpc.GetTxPool_Result) bool {
+		return r.Status != ""
 	}
-	// the code needs to be present
-	if pool.Status == "" {
-		return rpc.GetTxPool_Result{}
-	}
-
-	return pool
+	result := callRPC("DERO.GetTxPool", nil, validator)
+	return result
 }
+
 func getDaemonInfo() rpc.GetInfo_Result {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	// get a client for the daemon's rpc
-	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
-
-	// here is our results bucket
-	var info rpc.GetInfo_Result
-
-	// here is the method we are going to use
-	var method = "DERO.GetInfo"
-
-	// call for the contract
-	if err := rpcClient.CallFor(ctx, &info, method); err != nil {
-		return rpc.GetInfo_Result{}
+	validator := func(r rpc.GetInfo_Result) bool {
+		return r.TopoHeight != 0
 	}
-	// the code needs to be present
-	if info.TopoHeight == 0 {
-		return rpc.GetInfo_Result{}
-	}
-
-	return info
+	result := callRPC("DERO.GetInfo", nil, validator)
+	return result
 }
+
 func getSC(scParam rpc.GetSC_Params) rpc.GetSC_Result {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	// get a client for the daemon's rpc
-	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
-
-	// here is our results bucket
-	var sc rpc.GetSC_Result
-
-	// here is the method we are going to use
-	var method = "DERO.GetSC"
-
-	// call for the contract
-	if err := rpcClient.CallFor(ctx, &sc, method, scParam); err != nil {
-		return rpc.GetSC_Result{}
+	validator := func(r rpc.GetSC_Result) bool {
+		return r.Code != ""
 	}
-	// the code needs to be present
-	if sc.Code == "" {
-		return rpc.GetSC_Result{}
-	}
-
-	return sc
+	result := callRPC("DERO.GetSC", scParam, validator)
+	return result
 }
+
 func getSCCode(scid string) rpc.GetSC_Result {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	// get a client for the daemon's rpc
-	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
-
-	// here is our results bucket
-	var sc rpc.GetSC_Result
-
-	// here is the method we are going to use
-	var method = "DERO.GetSC"
-
-	// now for some parameters
-	var scParam = rpc.GetSC_Params{
+	return getSC(rpc.GetSC_Params{
 		SCID:       scid,
-		Code:       true, // we are getting the code
+		Code:       true,
 		Variables:  false,
-		TopoHeight: walletapi.Get_Daemon_Height(), // get the latestest copy
-	}
-
-	// call for the contract
-	if err := rpcClient.CallFor(ctx, &sc, method, scParam); err != nil {
-		return rpc.GetSC_Result{}
-	}
-	// the code needs to be present
-	if sc.Code == "" {
-		return rpc.GetSC_Result{}
-	}
-
-	return sc
+		TopoHeight: walletapi.Get_Daemon_Height(),
+	})
 }
+
 func getSCValues(scid string) rpc.GetSC_Result {
-	time := timeout
-	if scid == gnomonSC {
-		time = timeout * 3
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), time)
-	defer cancel()
-
-	// get a client for the daemon's rpc
-	var rpcClient = jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
-
-	// here is our results bucket
-	var sc rpc.GetSC_Result
-
-	// here is the method we are going to use
-	var method = "DERO.GetSC"
-
-	// now for some parameters
-	var scParam = rpc.GetSC_Params{
+	return getSC(rpc.GetSC_Params{
 		SCID:       scid,
 		Code:       false,
 		Variables:  true,
-		TopoHeight: walletapi.Get_Daemon_Height(), // get the latest copy
-	}
-
-	// call for the contract
-	if err := rpcClient.CallFor(ctx, &sc, method, scParam); err != nil {
-		return rpc.GetSC_Result{}
-	}
-	// the code needs to be present
-	if sc.VariableStringKeys == nil {
-		return rpc.GetSC_Result{}
-	}
-
-	return sc
+		TopoHeight: walletapi.Get_Daemon_Height(),
+	})
 }
+
 func setSCIDThumbnail(img image.Image, h, w float32) image.Image {
 	var thumbnail = new(canvas.Image)
 	thumbnail = canvas.NewImageFromResource(theme.BrokenImageIcon())
@@ -1019,7 +909,14 @@ func getBlockDeserialized(blob string) block.Block {
 // simple way to show error
 func showError(e error, w fyne.Window) { dialog.ShowError(e, w) }
 
-func showInfo(t, m string, w fyne.Window) { dialog.ShowInformation(t, m, w) }
+func showInfo(t, m string, w fyne.Window) {
+	i := dialog.NewInformation(t, m, w)
+	i.Resize(fyne.NewSize(
+		program.size.Width/2,
+		program.size.Height/3,
+	))
+	i.Show()
+}
 func showInfoFast(t, m string, w fyne.Window) {
 	s := dialog.NewInformation(t, m, w)
 	s.Show()
@@ -1369,7 +1266,30 @@ func largestMinSize(s []string) fyne.Size {
 }
 
 func integrated_address_generator() {
-
+	quick := widget.NewHyperlink("new random address", nil)
+	quick.Alignment = fyne.TextAlignCenter
+	quick.Wrapping = fyne.TextWrapBreak
+	quick.OnTapped = func() {
+		if quick.Text == "new random address" {
+			addr, _ := rpc.NewAddress(program.wallet.GetAddress().String())
+			rand.NewSource(time.Now().UnixNano())
+			n := rand.Intn(100000000)
+			addr.Arguments = rpc.Arguments{
+				rpc.Argument{
+					Name:     rpc.RPC_DESTINATION_PORT,
+					DataType: rpc.DataString,
+					Value:    strconv.Itoa(n),
+				},
+			}
+			quick.SetText(addr.String())
+			quick.OnTapped = func() {
+				program.application.Clipboard().SetContent(addr.String())
+				showInfo("Copied", addr.String()+"\ncopied to clipboard", program.window)
+			}
+		} else {
+			// is there?
+		}
+	}
 	// let's start with a set of arguments
 	args := rpc.Arguments{}
 
@@ -1500,20 +1420,8 @@ func integrated_address_generator() {
 
 			// show them the error
 			showError(errors.New("something isn't working"), program.window)
-
+			return
 		}
-
-		// make an address entry
-		address := widget.NewEntry()
-
-		// block text, she big
-		address.MultiLine = true
-
-		// wrap the word, looks better that way
-		address.Wrapping = fyne.TextWrapWord
-
-		// disable so there is no error there
-		address.Disable()
 
 		// if the following is empty and unchecked...
 		if dst.Text == "" &&
@@ -1522,7 +1430,14 @@ func integrated_address_generator() {
 			!needs_replyback.Checked {
 
 			// generate a random address
-			address.SetText(program.wallet.GetRandomIAddress8().String())
+			result := program.wallet.GetRandomIAddress8()
+
+			quick.SetText(result.String())
+
+			quick.OnTapped = func() {
+				program.application.Clipboard().SetContent(result.String())
+				showInfo("Copied", result.String()+"\ncopied to clipboard", program.window)
+			}
 		} else { // otherwise
 			// get the wallet address
 			addr := program.wallet.GetAddress()
@@ -1542,45 +1457,26 @@ func integrated_address_generator() {
 			// the result arguments are now the args
 			result.Arguments = args
 
-			// set the block text entry to the integrated addr
-			address.SetText(result.String())
+			quick.SetText(result.String())
+			quick.OnTapped = func() {
+				program.application.Clipboard().SetContent(result.String())
+				showInfo("Copied", result.String()+"\ncopied to clipboard", program.window)
+			}
 		}
 
-		// set the address into a splash
-		integrated_address := dialog.NewCustom("Integrated Address", dismiss, container.NewVBox(address), program.window)
-
-		// resize and show
-		integrated_address.Resize(program.size)
-		integrated_address.Show()
-	}
-	quick := widget.NewHyperlink("new random address", nil)
-	quick.Alignment = fyne.TextAlignCenter
-	quick.OnTapped = func() {
-		addr, _ := rpc.NewAddress(program.wallet.GetAddress().String())
-		rand.NewSource(time.Now().UnixNano())
-		n := rand.Intn(100000000)
-		addr.Arguments = rpc.Arguments{
-			rpc.Argument{
-				Name:     rpc.RPC_DESTINATION_PORT,
-				DataType: rpc.DataString,
-				Value:    strconv.Itoa(n),
-			},
-		}
-		program.application.Clipboard().SetContent(addr.String())
-		showInfoFast("Copied", truncator(addr.String())+"\ncopied to clipboard", program.window)
 	}
 
-	items := []*widget.FormItem{
+	form := widget.NewForm([]*widget.FormItem{
 		widget.NewFormItem("", value),
 		widget.NewFormItem("", dst),
 		widget.NewFormItem("", comment),
 		widget.NewFormItem("", needs_replyback),
-	}
-	form := widget.NewForm(items...)
+	}...)
+
 	form.OnSubmit = func() {
 		callback(true)
 	}
-	form.SubmitText = "Create"
+	form.SubmitText = "Generate New"
 	advanced := widget.NewAccordion(
 		widget.NewAccordionItem("Advanced", form),
 	)

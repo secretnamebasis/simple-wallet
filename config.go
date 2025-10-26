@@ -206,7 +206,7 @@ func maintain_connection() {
 			// update the height and node label
 			fyne.DoAndWait(func() {
 
-				program.labels.connection.SetText("NODE: 🟢")
+				program.labels.connection.SetText("NODE: ✅")
 				program.labels.current_node.SetText("Current Node: " + program.node.current)
 				program.labels.current_node.Refresh()
 				// obviously registration is different
@@ -496,7 +496,7 @@ func ws_server() {
 						return reject
 					}
 
-					sig := widget.NewLabel("🟢APP SIGNATURE MATCH🟢")
+					sig := widget.NewLabel("✅APP SIGNATURE MATCH✅")
 					sig.Alignment = fyne.TextAlignCenter
 
 					// range through the permissions if any
@@ -579,7 +579,7 @@ func ws_server() {
 						// don't bother user with bad requests
 						return xswd.AlwaysDeny
 					}
-					sig := widget.NewLabel("🟢APP SIGNATURE MATCH🟢")
+					sig := widget.NewLabel("✅APP SIGNATURE MATCH✅")
 					sig.Alignment = fyne.TextAlignCenter
 
 					method := widget.NewLabel(`❓ METHOD REQUEST: ` + r.Method())
@@ -680,8 +680,8 @@ func ws_server() {
 					// } else {
 					pop.Resize(fyne.NewSize(program.size.Width/2, ((program.size.Height / 4) * 3)))
 					// }
-					pop.Show()
 					fyne.DoAndWait(func() {
+						pop.Show()
 						program.window.Show()
 					})
 					// now wait for the choice
@@ -696,7 +696,7 @@ func ws_server() {
 			if program.ws_server != nil && program.ws_server.IsRunning() {
 				// assuming there are now errors here...
 				program.toggles.ws_server.SetSelected("on")
-				program.labels.ws_server.SetText("WS: 🟢")
+				program.labels.ws_server.SetText("WS: ✅")
 			}
 		case "off":
 			program.toggles.ws_server.SetSelected("off")
@@ -805,7 +805,7 @@ func rpc_server() {
 			}
 
 			// and change the label
-			program.labels.rpc_server.SetText("RPC: 🟢")
+			program.labels.rpc_server.SetText("RPC: ✅")
 
 		case "off": // but if the rpc server toggle is off
 
