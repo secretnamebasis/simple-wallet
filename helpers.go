@@ -1266,7 +1266,30 @@ func largestMinSize(s []string) fyne.Size {
 }
 
 func integrated_address_generator() {
-
+	quick := widget.NewHyperlink("new random address", nil)
+	quick.Alignment = fyne.TextAlignCenter
+	quick.Wrapping = fyne.TextWrapBreak
+	quick.OnTapped = func() {
+		if quick.Text == "new random address" {
+			addr, _ := rpc.NewAddress(program.wallet.GetAddress().String())
+			rand.NewSource(time.Now().UnixNano())
+			n := rand.Intn(100000000)
+			addr.Arguments = rpc.Arguments{
+				rpc.Argument{
+					Name:     rpc.RPC_DESTINATION_PORT,
+					DataType: rpc.DataString,
+					Value:    strconv.Itoa(n),
+				},
+			}
+			quick.SetText(addr.String())
+			quick.OnTapped = func() {
+				program.application.Clipboard().SetContent(addr.String())
+				showInfo("Copied", addr.String()+"\ncopied to clipboard", program.window)
+			}
+		} else {
+			// is there?
+		}
+	}
 	// let's start with a set of arguments
 	args := rpc.Arguments{}
 
@@ -1397,20 +1420,8 @@ func integrated_address_generator() {
 
 			// show them the error
 			showError(errors.New("something isn't working"), program.window)
-
+			return
 		}
-
-		// make an address entry
-		address := widget.NewEntry()
-
-		// block text, she big
-		address.MultiLine = true
-
-		// wrap the word, looks better that way
-		address.Wrapping = fyne.TextWrapWord
-
-		// disable so there is no error there
-		address.Disable()
 
 		// if the following is empty and unchecked...
 		if dst.Text == "" &&
@@ -1419,7 +1430,14 @@ func integrated_address_generator() {
 			!needs_replyback.Checked {
 
 			// generate a random address
-			address.SetText(program.wallet.GetRandomIAddress8().String())
+			result := program.wallet.GetRandomIAddress8()
+
+			quick.SetText(result.String())
+
+			quick.OnTapped = func() {
+				program.application.Clipboard().SetContent(result.String())
+				showInfo("Copied", result.String()+"\ncopied to clipboard", program.window)
+			}
 		} else { // otherwise
 			// get the wallet address
 			addr := program.wallet.GetAddress()
@@ -1439,45 +1457,26 @@ func integrated_address_generator() {
 			// the result arguments are now the args
 			result.Arguments = args
 
-			// set the block text entry to the integrated addr
-			address.SetText(result.String())
+			quick.SetText(result.String())
+			quick.OnTapped = func() {
+				program.application.Clipboard().SetContent(result.String())
+				showInfo("Copied", result.String()+"\ncopied to clipboard", program.window)
+			}
 		}
 
-		// set the address into a splash
-		integrated_address := dialog.NewCustom("Integrated Address", dismiss, container.NewVBox(address), program.window)
-
-		// resize and show
-		integrated_address.Resize(program.size)
-		integrated_address.Show()
-	}
-	quick := widget.NewHyperlink("new random address", nil)
-	quick.Alignment = fyne.TextAlignCenter
-	quick.OnTapped = func() {
-		addr, _ := rpc.NewAddress(program.wallet.GetAddress().String())
-		rand.NewSource(time.Now().UnixNano())
-		n := rand.Intn(100000000)
-		addr.Arguments = rpc.Arguments{
-			rpc.Argument{
-				Name:     rpc.RPC_DESTINATION_PORT,
-				DataType: rpc.DataString,
-				Value:    strconv.Itoa(n),
-			},
-		}
-		program.application.Clipboard().SetContent(addr.String())
-		showInfoFast("Copied", truncator(addr.String())+"\ncopied to clipboard", program.window)
 	}
 
-	items := []*widget.FormItem{
+	form := widget.NewForm([]*widget.FormItem{
 		widget.NewFormItem("", value),
 		widget.NewFormItem("", dst),
 		widget.NewFormItem("", comment),
 		widget.NewFormItem("", needs_replyback),
-	}
-	form := widget.NewForm(items...)
+	}...)
+
 	form.OnSubmit = func() {
 		callback(true)
 	}
-	form.SubmitText = "Create"
+	form.SubmitText = "Generate New"
 	advanced := widget.NewAccordion(
 		widget.NewAccordionItem("Advanced", form),
 	)
