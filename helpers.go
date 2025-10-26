@@ -909,7 +909,14 @@ func getBlockDeserialized(blob string) block.Block {
 // simple way to show error
 func showError(e error, w fyne.Window) { dialog.ShowError(e, w) }
 
-func showInfo(t, m string, w fyne.Window) { dialog.ShowInformation(t, m, w) }
+func showInfo(t, m string, w fyne.Window) {
+	i := dialog.NewInformation(t, m, w)
+	i.Resize(fyne.NewSize(
+		program.size.Width/2,
+		program.size.Height/3,
+	))
+	i.Show()
+}
 func showInfoFast(t, m string, w fyne.Window) {
 	s := dialog.NewInformation(t, m, w)
 	s.Show()
