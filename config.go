@@ -99,10 +99,9 @@ func configs() *fyne.Container {
 func maintain_connection() {
 
 	// we will track retries
-	var retries int
-	// track the height
-	var height int64
-	// the purpose of this function is to obtain topo height every second
+	var retries, height int64 // track the height
+
+	// the purpose of this function is to obtain topo height every 2 seconds
 	ticker := time.NewTicker(time.Second * 2)
 
 	// so before we get started, let's assume that localhost is "first"
