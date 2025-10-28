@@ -230,7 +230,7 @@ func maintain_connection() {
 			retries = 0
 
 			// simple way to see if height has changed
-			if height > 0 {
+			if height >= walletapi.Get_Daemon_Height() {
 				fyne.DoAndWait(func() {
 					program.labels.height.SetText(
 						"BLOCK: " + strconv.Itoa(int(walletapi.Get_Daemon_Height())),
