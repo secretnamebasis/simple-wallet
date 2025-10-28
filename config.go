@@ -63,8 +63,7 @@ func configs() *fyne.Container {
 	// let's start off by hiding it
 	program.buttons.update_password.Hide()
 
-	program.buttons.simulator.OnTapped = simulator
-
+	// let's make a way to rescan balances manaually
 	program.buttons.balance_rescan.OnTapped = balance_rescan
 
 	program.buttons.balance_rescan.Hide()
