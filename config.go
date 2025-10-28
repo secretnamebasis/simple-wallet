@@ -65,12 +65,13 @@ func configs() *fyne.Container {
 
 	// let's make a way to rescan balances manaually
 	program.buttons.balance_rescan.OnTapped = balance_rescan
-
+	// and let's hide it for now
 	program.buttons.balance_rescan.Hide()
 
 	// let's take care of those pesky notifications
 	program.buttons.notifications.OnTapped = notifications
 
+	// and here is the box it goes in
 	return container.NewVBox(
 		program.containers.topbar,
 		layout.NewSpacer(),
