@@ -57,7 +57,7 @@ func configs() *fyne.Container {
 	// let's start off by hiding it
 	program.buttons.rpc_server.Hide()
 
-	// let's make a simple way to manage the rpc server
+	// let's make a simple way to update the password
 	program.buttons.update_password.OnTapped = passwordUpdate
 
 	// let's start off by hiding it
