@@ -112,13 +112,15 @@ func maintain_connection() {
 		program.node.current = program.node.list[0].ip
 	}
 
-	// this is an infinite loop
+	// this is an 2 second loop
 	for range ticker.C {
-		// assuming the localhost connection works
+		// assuming the localhost connection works, if not preference
 		walletapi.Daemon_Endpoint = program.node.current
 
 		// get the height directly from the daemon
-		if getDaemonInfo().TopoHeight == 0 || walletapi.Connect(walletapi.Daemon_Endpoint) != nil {
+		if getDaemonInfo().TopoHeight == 0 || // if it is not zero, it will advance
+			// otherwise, try to connect to the walletapi
+			walletapi.Connect(walletapi.Daemon_Endpoint) != nil { // if it fails...
 
 			// update the label and show 0s
 			fyne.DoAndWait(func() {
