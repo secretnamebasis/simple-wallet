@@ -42,6 +42,10 @@ func configs() *fyne.Container {
 		program.buttons.connections.OnTapped = connections
 		program.window.SetContent(program.containers.configs)
 	}
+
+	// here is the simulator
+	program.buttons.simulator.OnTapped = simulator
+
 	// let's make a simple way to connect via websocket
 	program.buttons.ws_server.OnTapped = ws_server
 	// and we'll hide it for now
