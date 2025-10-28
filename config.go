@@ -1244,12 +1244,11 @@ The simulator provides a convenient place to simulate the DERO blockchain for te
 
 You will need to completely shut down the wallet to create a new simulator. This prevents duplicate block histories.
 	
-The simulator rpc runs on 127.0.0.1:20000 and the wallet will connect automatically. There is a mining getwork server running on 127.0.0.1:10100.
+The simulator RPC runs on 127.0.0.1:20000 and the wallet will connect automatically. There is a mining getwork server running on 127.0.0.1:10100.
 	
-There are 21 simulator wallets that can be found in folder and have no wallet password: 
-` + globals.GetDataDirectory() + `. 
+There are 21 registered, passwordless simulator wallets found in folder: ./testnet_simulator/ 
 	
-The wallets are started with rpc servers on with no username and password and can be found starting on 127.0.0.1:30000 and up, eg 30000 is wallet 0, 30001 is wallet 1, etc`)
+These wallets are started with RPC servers ON without username or password. Endpoints can be found starting on 127.0.0.1:30000 and up, eg 30000 is wallet 0, 30001 is wallet 1, etc`)
 	notice.Wrapping = fyne.TextWrapWord
 	// load up the widgets into a container
 	content := container.NewVBox(
