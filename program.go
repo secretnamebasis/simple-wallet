@@ -34,6 +34,11 @@ const gnomonSC = `a05395bb0cf77adc850928b0db00eb5ca7a9ccbafd9a38d021c8d299ad5ce1
 const reject = false
 const accept = true
 
+// simple way to determine the max ;
+// walletapi.Show_Transfers establishes a max height
+// https://github.com/deroproject/derohe/blob/main/walletapi/wallet.go#L252
+const max_height = "5000000000000"
+
 // not to be confused with an app, this is a program:
 var program = components{
 	activities: activities{
@@ -95,7 +100,7 @@ var program = components{
 		save:       widget.NewHyperlink("save", nil),
 	},
 	labels: labels{
-		height:       widget.NewLabel("BLOCK: 0000000"),
+		height:       widget.NewLabel("BLOCK: 0000000000000"), // 5000000000000 is max
 		connection:   widget.NewLabel("NODE: 🔴"),
 		loggedin:     widget.NewLabel("WALLET: 🔴"),
 		ws_server:    widget.NewLabel("WS: 🔴"),

@@ -125,7 +125,7 @@ func maintain_connection() {
 			// update the label and show 0s
 			fyne.DoAndWait(func() {
 				program.labels.connection.SetText("NODE: 🟡") // signalling unstable
-				program.labels.height.SetText("BLOCK: 0000000")
+				program.labels.height.SetText("BLOCK: 00000000000000")
 				if program.buttons.register.Visible() {
 					program.buttons.register.Disable()
 				} else if program.activities.registration.Visible() {
@@ -186,7 +186,7 @@ func maintain_connection() {
 						}
 						// update the label
 						program.labels.connection.SetText("NODE: 🔴")
-						program.labels.height.SetText("BLOCK: 0000000")
+						program.labels.height.SetText("BLOCK: 00000000000000")
 						program.buttons.send.Disable()
 						program.entries.recipient.Disable()
 						program.buttons.token_add.Disable()
@@ -233,7 +233,7 @@ func maintain_connection() {
 			if height >= walletapi.Get_Daemon_Height() {
 				fyne.DoAndWait(func() {
 					program.labels.height.SetText(
-						"BLOCK: " + strconv.Itoa(int(walletapi.Get_Daemon_Height())),
+						fmt.Sprintf(("BLOCK: %0" + strconv.Itoa(len(max_height)) + "d"), height),
 					)
 					program.labels.height.Refresh()
 					program.buttons.send.Enable()
