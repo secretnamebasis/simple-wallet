@@ -104,132 +104,141 @@ func register() *fyne.Container {
 		program.labels.counter,
 	)
 }
+
 func registration() {
-	// we are going to do this as a go routine so the gui doesn't lock up
-	go func() {
+	// we are going to do this as a go routine
+	go reg() // so the gui doesn't lock up
+}
 
-		// while in the go routine, update the widget accordingly
-		fyne.DoAndWait(func() {
-			program.buttons.register.Hide()
-			program.labels.counter.Show()
-			program.activities.registration.Start()
-			program.activities.registration.Show()
-		})
+func reg() {
 
-		// we are going to set some expectations
+	// while in the go routine, update the widget accordingly
+	fyne.DoAndWait(func() {
+		program.buttons.register.Hide()
+		program.labels.counter.Show()
+		program.activities.registration.Start()
+		program.activities.registration.Show()
+	})
 
-		// there is a registration transaction
-		var reg_tx = new(transaction.Transaction)
+	// we are going to set some expectations
 
-		// there is a channel of success
-		var success = make(chan *transaction.Transaction)
+	// there is a registration transaction
+	var reg_tx = new(transaction.Transaction)
 
-		// we are going to track wins and fails
-		var wins, fails uint64
-		var os_thread, app_thread int = 1, 1
-		// reserve 1 thread for os management
-		// reserve 1 thread for app management
+	// there is a channel of success
+	var success = make(chan *transaction.Transaction)
 
-		// we are going to use almost all threads
-		max_threads := runtime.GOMAXPROCS(0)
-		desired_threads := max_threads - os_thread - app_thread
+	// we are going to track wins and fails
+	var wins, fails uint64
 
-		// we estimate that roughly 21M hashes have to be attempted,
-		// it is usually less... like 7-14M
-		estimate := int64(21000000)
+	// reserve 2 threads for os, app management
+	var reserved int = 2
 
-		// for each thread
-		for range desired_threads {
+	// we are going to use almost all threads
+	max_threads := runtime.GOMAXPROCS(0)
+	desired_threads := max_threads - reserved
 
-			// start another go routine
-			go func() {
+	// we estimate that roughly 21M hashes have to be attempted,
+	// it is usually less... like 7-14M
+	estimate := int64(21000000)
 
-				// for as long as we haven't won, we will persist
-				for wins == 0 {
+	play := func() { /*
+			for as long as we haven't won,
+			we will persist
+		*/
 
-					// if the wallet isn't present or is registered... stop
-					if program.wallet == nil ||
-						program.wallet.IsRegistered() ||
-						!program.activities.registration.Visible() {
-						break
-					}
+		var hash crypto.Hash
 
-					// start by making an attempt
-					attempt := program.wallet.GetRegistrationTX()
+		// can't do this in the app...
+		// rendering too slow...
+		// show a speed gauge
 
-					// get the hash
-					hash := attempt.GetHash()
+		fmt.Printf(
+			"\rThreads: %d "+
+				"HASH: %s "+
+				"ESTIMATED: %d "+
+				"COUNTER: %d "+
+				"Success: %d",
+			desired_threads,
+			hash.String(),
+			estimate,
+			fails,
+			wins,
+		)
 
-					// you win if the first 3 bytes of the hash are 0
-					winner := hash[0] == 0 && hash[1] == 0 && hash[2] == 0
-					if winner { // if we have a winner
+		for wins == 0 {
 
-						// pass the attempt down the success channel
-						success <- attempt
+			// if the wallet isn't present or is registered... stop
+			if program.wallet == nil ||
+				program.wallet.IsRegistered() ||
+				!program.activities.registration.Visible() {
+				break
+			}
 
-						// record a win
-						wins++
+			// start by making an attempt
+			attempt := program.wallet.GetRegistrationTX()
 
-						// team break
-						break
-					} else {
+			// get the hash
+			hash = attempt.GetHash()
 
-						// decrement the estimate by 1
-						estimate--
+			// you win if the first 3 bytes of the hash are 0
+			winner := hash[0] == 0 && hash[1] == 0 && hash[2] == 0
 
-						// increment the fails by 1
-						fails++
+			if winner {
+				// pass the attempt down the success channel
+				success <- attempt
 
-						// truncate the hash
-						truncated := truncator(hash.String())
+				// record a win
+				wins++
 
-						// can't do this in the app...
-						// rendering too slow...
-						// show a speed gauge
-						fmt.Printf(
-							"\rThreads: %d "+
-								"HASH: %s "+
-								"ESTIMATED: %d "+
-								"COUNTER: %d "+
-								"Success: %d",
-							desired_threads, truncated, estimate, fails, wins,
-						)
-					}
-				}
-			}()
+				// team break
+				break
+			} else {
+
+				// decrement the estimate by 1
+				estimate--
+
+				// increment the fails by 1
+				fails++
+			}
 		}
+	}
 
-		// seeing as we have a successful attempt coming down the channel
-		reg_tx = <-success
+	// for each thread
+	for range desired_threads {
+		go play()
+	}
 
-		// update the widgets in the go routine
+	// seeing as we have a successful attempt coming down the channel
+	reg_tx = <-success
+
+	// update the widgets in the go routine
+	fyne.DoAndWait(func() {
+		program.activities.registration.Stop()
+		program.activities.registration.Hide()
+
+		// change the counter
+		program.labels.counter.SetText(
+			"Sending Registration Tx: " + truncator(reg_tx.GetHash().String()),
+		)
+	})
+
+	// ship the registration transaction over the network
+	if err := program.wallet.SendTransaction(reg_tx); err != nil {
+		// if an error, show it
+		showError(err, program.window)
+		return
+	} else {
+		// if successful, shout for joy!
+		showInfo("Registration", "registration successful", program.window)
+
+		// update the display in the go routine
 		fyne.DoAndWait(func() {
-			program.activities.registration.Stop()
-			program.activities.registration.Hide()
-
-			// change the counter
-			program.labels.counter.SetText(
-				"Sending Registration Tx: " + truncator(reg_tx.GetHash().String()),
-			)
+			program.containers.send.Show()
+			program.buttons.assets.Enable()
+			program.buttons.transactions.Enable()
+			program.containers.register.Hide()
 		})
-
-		// ship the registration transaction over the network
-		if err := program.wallet.SendTransaction(reg_tx); err != nil {
-			// if an error, show it
-			showError(err, program.window)
-			return
-		} else {
-			// if successful, shout for joy!
-			showInfo("Registration", "registration successful", program.window)
-
-			// update the display in the go routine
-			fyne.DoAndWait(func() {
-				program.containers.send.Show()
-				program.buttons.assets.Enable()
-				program.buttons.transactions.Enable()
-				program.containers.register.Hide()
-			})
-			return
-		}
-	}()
+		return
+	}
 }
