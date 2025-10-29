@@ -621,7 +621,7 @@ func getDaemonInfo() rpc.GetInfo_Result {
 
 func getSC(scParam rpc.GetSC_Params) rpc.GetSC_Result {
 	validator := func(r rpc.GetSC_Result) bool {
-		return r.Code != ""
+		return !scParam.Code
 	}
 	result := callRPC("DERO.GetSC", scParam, validator)
 	return result
