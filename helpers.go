@@ -371,13 +371,12 @@ func buildAssetHashList() {
 			defer wg.Done()
 			// skip DERO's scid
 			if !a.IsZero() {
-
+				name := getSCNameFromVars(a.String())
+				hash := a.String()
+				image := getSCIDImage(a.String())
+				t := asset{name: name, hash: hash, image: image}
 				// load each has into the cache
-				program.caches.assets = append(program.caches.assets, asset{
-					name:  getSCNameFromVars(a.String()),
-					hash:  a.String(),
-					image: getSCIDImage(a.String()),
-				})
+				program.caches.assets = append(program.caches.assets, t)
 			}
 		}()
 	}
