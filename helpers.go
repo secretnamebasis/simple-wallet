@@ -670,7 +670,7 @@ func getSCIDImage(scid string) image.Image {
 			if err != nil {
 				return nil
 			} else {
-				ctx, cancel := context.WithTimeout(context.Background(), timeout/3)
+				ctx, cancel := context.WithTimeout(context.Background(), timeout)
 				defer cancel()
 
 				req, err := http.NewRequestWithContext(ctx, "GET", uri.String(), nil)
