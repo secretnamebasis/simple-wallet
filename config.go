@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -19,7 +17,6 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
-	"github.com/creachadair/jrpc2"
 	"github.com/deroproject/derohe/blockchain"
 	derodrpc "github.com/deroproject/derohe/cmd/derod/rpc"
 	"github.com/deroproject/derohe/config"
@@ -27,11 +24,9 @@ import (
 	"github.com/deroproject/derohe/globals"
 	"github.com/deroproject/derohe/metrics"
 	"github.com/deroproject/derohe/p2p"
-	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/transaction"
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/deroproject/derohe/walletapi/rpcserver"
-	"github.com/deroproject/derohe/walletapi/xswd"
 )
 
 func configs() *fyne.Container {
@@ -458,246 +453,8 @@ func ws_server() {
 			}
 			notice.SetText("WS Server runs at ws://127.0.0.1:" + program.entries.port.Text + "/xswd")
 			program.entries.port.Disable()
-			forceAsk := false
-			noStore := []string{""}
-			program.ws_server = xswd.NewXSWDServerWithPort(p, program.wallet,
-				forceAsk, // apps can ask for permission on initial connection
-				noStore,  // as a result, 'always allow' on initial connection is possible
 
-				// this component handles the application portion
-				// we are receiving application data from the source
-				// and we are granting permission based on the data they give us
-				// this is essentially an authorization request for an application
-				func(data *xswd.ApplicationData) bool {
-					// let's serve up the data
-
-					text := "\tID: \n" + data.Id + "\n" +
-						"\tNAME: " + data.Name + "\n" +
-						"\tDESCRIPTION: " + data.Description + "\n" +
-						"\tURL: " + data.Url + "\n"
-
-					// let's verify this real quick
-					address, message, err := program.wallet.CheckSignature([]byte(data.Signature))
-					if err != nil {
-						showError(err, program.window)
-						return reject
-					}
-					// fmt.Println(address.String(), string(message))
-					text += "\tDEVELOPER: \n" + address.String()
-					label := widget.NewLabel(text)
-
-					var msg []byte
-					msg, err = hex.DecodeString(string(message))
-					if err != nil {
-						panic(err)
-					}
-					id, err := hex.DecodeString(data.Id)
-					if err != nil {
-						panic(err)
-					}
-
-					if !bytes.Equal(msg, id) {
-						// showError(errors.New("application signature does not match app id"), program.window)
-						return reject
-					}
-
-					sig := widget.NewLabel("✅APP SIGNATURE MATCH✅")
-					sig.Alignment = fyne.TextAlignCenter
-
-					// range through the permissions if any
-					app := container.NewVBox(label, sig)
-					content := container.NewBorder(app, nil, nil, nil)
-
-					if len(data.Permissions) > 0 {
-						app.Add(container.NewCenter(widget.NewLabel(
-							"	✋⚠️ APP PERMISSIONS REQUESTS ⚠️✋\n" +
-								"this application is asking for these permissions:")))
-						permit := ""
-						for permission, request := range data.Permissions {
-							permit += "❓ " + permission + ": " + request.String() + "\n"
-						}
-						p := widget.NewLabel(permit)
-						p.Alignment = fyne.TextAlignCenter
-						content.Add(container.NewScroll(p))
-					}
-					// we are going to wait on a choice
-					choice := make(chan bool)
-
-					// create a callback function
-					callback := func(b bool) {
-						if b { // if they hit confirm, they have accepted
-							choice <- accept
-						} else { // otherwise... rejected
-							choice <- reject // default is to reject everything
-						}
-					}
-
-					// create a pop-up like dialog
-					pop := dialog.NewCustomConfirm(
-						"New WebSocket Request",
-						confirm, dismiss,
-						content, callback,
-						program.window,
-					)
-					pop.SetConfirmImportance(widget.WarningImportance)
-					// show it
-					pop.Resize(fyne.NewSize(program.size.Width/2, ((program.size.Height / 4) * 3)))
-					pop.Show()
-					fyne.DoAndWait(func() {
-						program.window.Show()
-
-					})
-					// and block (eg. wait) for the choice
-					return <-choice
-				},
-				// this is a method request that is extended to the underlying API
-				// we are going to make it as simple as it gets:
-				// do you allow it, do you reject it
-				func(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permission {
-					// let's serve up some content
-					text := "\tID: \n" + data.Id + "\n" +
-						"\tNAME: " + data.Name + "\n" +
-						"\tDESCRIPTION: " + data.Description + "\n" +
-						"\tURL: " + data.Url + "\n"
-					// let's verify this real quick
-					address, message, err := program.wallet.CheckSignature([]byte(data.Signature))
-					if err != nil {
-						showError(err, program.window)
-						return xswd.Deny
-					}
-					// fmt.Println(address.String(), string(message))
-					text += "\tDEVELOPER: \n" + address.String()
-					label := widget.NewLabel(text)
-
-					var msg []byte
-					msg, err = hex.DecodeString(string(message))
-					if err != nil {
-						panic(err)
-					}
-					id, err := hex.DecodeString(data.Id)
-					if err != nil {
-						panic(err)
-					}
-
-					if !bytes.Equal(msg, id) {
-						// showError(errors.New("application signature does not match app id"), program.window)
-						// don't bother user with bad requests
-						return xswd.AlwaysDeny
-					}
-					sig := widget.NewLabel("✅APP SIGNATURE MATCH✅")
-					sig.Alignment = fyne.TextAlignCenter
-
-					method := widget.NewLabel(`❓ METHOD REQUEST: ` + r.Method())
-					method.Alignment = fyne.TextAlignCenter
-
-					app := container.NewVBox(label, sig, method)
-					content := container.NewBorder(app, nil, nil, nil)
-					// tall := false
-					// if it has params, process them
-					if r.HasParams() {
-						var params rpc.EventNotification
-
-						// un-marshal the params
-						if err := r.UnmarshalParams(&params); err != nil {
-
-							// if the params fail, serve the error
-							showError(err, program.window)
-
-							// // and then deny the request
-							return xswd.Deny
-						}
-						// add param string to the request
-						label := widget.NewLabel("")
-						switch r.Method() {
-						case "querykey":
-							// not implemented
-							break
-						case "scinvoke":
-							p := rpc.SC_Invoke_Params{}
-							if err := json.Unmarshal([]byte(r.ParamString()), &p); err != nil {
-								showError(err, program.window)
-								break
-							}
-							pretty, err := json.MarshalIndent(p, "", "  ")
-							if err != nil {
-								showError(err, program.window)
-								break
-							}
-							label.SetText(string(pretty))
-							label.Wrapping = fyne.TextWrapWord
-							// tall = true
-						case "transfer":
-							p := rpc.Transfer_Params{}
-							if err := json.Unmarshal([]byte(r.ParamString()), &p); err != nil {
-								showError(err, program.window)
-								break
-							}
-							text := ""
-							if len(p.Transfers) != 0 {
-								text += "TRANSFERS:\n" + fmt.Sprintf("%v", p.Transfers) + "\n"
-							}
-							if p.SC_Code != "" {
-								text += "CODE:\n" + p.SC_Code + "\n"
-							}
-							// pretty, err := json.MarshalIndent(p, "", "  ")
-							// if err != nil {
-							// 	showError(err, program.window)
-							// 	break
-							// }
-							if p.Fees != 0 {
-								text += "FEES: " + rpc.FormatMoney(p.Fees) + " DERO"
-							}
-							label.SetText(text)
-							label.Wrapping = fyne.TextWrapWord
-							// tall = true
-						default:
-							label.SetText(r.ParamString())
-							label.Wrapping = fyne.TextWrapBreak
-						}
-						scroll := container.NewScroll(label)
-						// scroll.Direction = container.ScrollHorizontalOnly
-						content.Add(scroll)
-
-					}
-					// we are going to wait for a choice
-					choice := make(chan bool)
-
-					// we are going to have
-					callback := func(b bool) {
-						if b { // if they say confirm, accept
-							choice <- accept
-						} else { // if they dismiss, reject
-							choice <- reject
-						}
-					}
-					// build a pop-up
-					pop := dialog.NewCustomConfirm(
-						"New WebSocket Request",
-						confirm, dismiss,
-						content, callback,
-						program.window,
-					)
-					pop.SetConfirmImportance(widget.DangerImportance)
-
-					// show it
-					// if tall {
-					// 	pop.Resize(fyne.NewSize(program.size.Width/2, program.size.Height))
-					// } else {
-					pop.Resize(fyne.NewSize(program.size.Width/2, ((program.size.Height / 4) * 3)))
-					// }
-					fyne.DoAndWait(func() {
-						pop.Show()
-						program.window.Show()
-					})
-					// now wait for the choice
-					if <-choice { // if accepted...
-						return xswd.Allow
-					}
-
-					// default is to deny
-					return xswd.Deny
-				},
-			)
+			program.ws_server = xswdServer(p)
 			if program.ws_server != nil && program.ws_server.IsRunning() {
 				// assuming there are now errors here...
 				program.toggles.ws_server.SetSelected("on")
