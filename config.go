@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -19,7 +17,6 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
-	"github.com/creachadair/jrpc2"
 	"github.com/deroproject/derohe/blockchain"
 	derodrpc "github.com/deroproject/derohe/cmd/derod/rpc"
 	"github.com/deroproject/derohe/config"
@@ -27,11 +24,9 @@ import (
 	"github.com/deroproject/derohe/globals"
 	"github.com/deroproject/derohe/metrics"
 	"github.com/deroproject/derohe/p2p"
-	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/transaction"
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/deroproject/derohe/walletapi/rpcserver"
-	"github.com/deroproject/derohe/walletapi/xswd"
 )
 
 func configs() *fyne.Container {
@@ -42,6 +37,10 @@ func configs() *fyne.Container {
 		program.buttons.connections.OnTapped = connections
 		program.window.SetContent(program.containers.configs)
 	}
+
+	// here is the simulator
+	program.buttons.simulator.OnTapped = simulator
+
 	// let's make a simple way to connect via websocket
 	program.buttons.ws_server.OnTapped = ws_server
 	// and we'll hide it for now
@@ -53,21 +52,21 @@ func configs() *fyne.Container {
 	// let's start off by hiding it
 	program.buttons.rpc_server.Hide()
 
-	// let's make a simple way to manage the rpc server
+	// let's make a simple way to update the password
 	program.buttons.update_password.OnTapped = passwordUpdate
 
 	// let's start off by hiding it
 	program.buttons.update_password.Hide()
 
-	program.buttons.simulator.OnTapped = simulator
-
+	// let's make a way to rescan balances manaually
 	program.buttons.balance_rescan.OnTapped = balance_rescan
-
+	// and let's hide it for now
 	program.buttons.balance_rescan.Hide()
 
 	// let's take care of those pesky notifications
 	program.buttons.notifications.OnTapped = notifications
 
+	// and here is the box it goes in
 	return container.NewVBox(
 		program.containers.topbar,
 		layout.NewSpacer(),
@@ -95,10 +94,9 @@ func configs() *fyne.Container {
 func maintain_connection() {
 
 	// we will track retries
-	var retries int
-	// track the height
-	var height int64
-	// the purpose of this function is to obtain topo height every second
+	var retries, height int64 // track the height
+
+	// the purpose of this function is to obtain topo height every 2 seconds
 	ticker := time.NewTicker(time.Second * 2)
 
 	// so before we get started, let's assume that localhost is "first"
@@ -109,18 +107,20 @@ func maintain_connection() {
 		program.node.current = program.node.list[0].ip
 	}
 
-	// this is an infinite loop
+	// this is an 2 second loop
 	for range ticker.C {
-		// assuming the localhost connection works
+		// assuming the localhost connection works, if not preference
 		walletapi.Daemon_Endpoint = program.node.current
 
 		// get the height directly from the daemon
-		if getDaemonInfo().TopoHeight == 0 || walletapi.Connect(walletapi.Daemon_Endpoint) != nil {
+		if getDaemonInfo().TopoHeight == 0 || // if it is not zero, it will advance
+			// otherwise, try to connect to the walletapi
+			walletapi.Connect(walletapi.Daemon_Endpoint) != nil { // if it fails...
 
 			// update the label and show 0s
 			fyne.DoAndWait(func() {
 				program.labels.connection.SetText("NODE: 🟡") // signalling unstable
-				program.labels.height.SetText("BLOCK: 0000000")
+				program.labels.height.SetText("BLOCK: 00000000000000")
 				if program.buttons.register.Visible() {
 					program.buttons.register.Disable()
 				} else if program.activities.registration.Visible() {
@@ -181,7 +181,7 @@ func maintain_connection() {
 						}
 						// update the label
 						program.labels.connection.SetText("NODE: 🔴")
-						program.labels.height.SetText("BLOCK: 0000000")
+						program.labels.height.SetText("BLOCK: 00000000000000")
 						program.buttons.send.Disable()
 						program.entries.recipient.Disable()
 						program.buttons.token_add.Disable()
@@ -225,10 +225,10 @@ func maintain_connection() {
 			retries = 0
 
 			// simple way to see if height has changed
-			if height > 0 {
+			if height >= walletapi.Get_Daemon_Height() {
 				fyne.DoAndWait(func() {
 					program.labels.height.SetText(
-						"BLOCK: " + strconv.Itoa(int(walletapi.Get_Daemon_Height())),
+						fmt.Sprintf(("BLOCK: %0" + strconv.Itoa(len(max_height)) + "d"), height),
 					)
 					program.labels.height.Refresh()
 					program.buttons.send.Enable()
@@ -453,246 +453,8 @@ func ws_server() {
 			}
 			notice.SetText("WS Server runs at ws://127.0.0.1:" + program.entries.port.Text + "/xswd")
 			program.entries.port.Disable()
-			forceAsk := false
-			noStore := []string{""}
-			program.ws_server = xswd.NewXSWDServerWithPort(p, program.wallet,
-				forceAsk, // apps can ask for permission on initial connection
-				noStore,  // as a result, 'always allow' on initial connection is possible
 
-				// this component handles the application portion
-				// we are receiving application data from the source
-				// and we are granting permission based on the data they give us
-				// this is essentially an authorization request for an application
-				func(data *xswd.ApplicationData) bool {
-					// let's serve up the data
-
-					text := "\tID: \n" + data.Id + "\n" +
-						"\tNAME: " + data.Name + "\n" +
-						"\tDESCRIPTION: " + data.Description + "\n" +
-						"\tURL: " + data.Url + "\n"
-
-					// let's verify this real quick
-					address, message, err := program.wallet.CheckSignature([]byte(data.Signature))
-					if err != nil {
-						showError(err, program.window)
-						return reject
-					}
-					// fmt.Println(address.String(), string(message))
-					text += "\tDEVELOPER: \n" + address.String()
-					label := widget.NewLabel(text)
-
-					var msg []byte
-					msg, err = hex.DecodeString(string(message))
-					if err != nil {
-						panic(err)
-					}
-					id, err := hex.DecodeString(data.Id)
-					if err != nil {
-						panic(err)
-					}
-
-					if !bytes.Equal(msg, id) {
-						// showError(errors.New("application signature does not match app id"), program.window)
-						return reject
-					}
-
-					sig := widget.NewLabel("✅APP SIGNATURE MATCH✅")
-					sig.Alignment = fyne.TextAlignCenter
-
-					// range through the permissions if any
-					app := container.NewVBox(label, sig)
-					content := container.NewBorder(app, nil, nil, nil)
-
-					if len(data.Permissions) > 0 {
-						app.Add(container.NewCenter(widget.NewLabel(
-							"	✋⚠️ APP PERMISSIONS REQUESTS ⚠️✋\n" +
-								"this application is asking for these permissions:")))
-						permit := ""
-						for permission, request := range data.Permissions {
-							permit += "❓ " + permission + ": " + request.String() + "\n"
-						}
-						p := widget.NewLabel(permit)
-						p.Alignment = fyne.TextAlignCenter
-						content.Add(container.NewScroll(p))
-					}
-					// we are going to wait on a choice
-					choice := make(chan bool)
-
-					// create a callback function
-					callback := func(b bool) {
-						if b { // if they hit confirm, they have accepted
-							choice <- accept
-						} else { // otherwise... rejected
-							choice <- reject // default is to reject everything
-						}
-					}
-
-					// create a pop-up like dialog
-					pop := dialog.NewCustomConfirm(
-						"New WebSocket Request",
-						confirm, dismiss,
-						content, callback,
-						program.window,
-					)
-					pop.SetConfirmImportance(widget.WarningImportance)
-					// show it
-					pop.Resize(fyne.NewSize(program.size.Width/2, ((program.size.Height / 4) * 3)))
-					pop.Show()
-					fyne.DoAndWait(func() {
-						program.window.Show()
-
-					})
-					// and block (eg. wait) for the choice
-					return <-choice
-				},
-				// this is a method request that is extended to the underlying API
-				// we are going to make it as simple as it gets:
-				// do you allow it, do you reject it
-				func(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permission {
-					// let's serve up some content
-					text := "\tID: \n" + data.Id + "\n" +
-						"\tNAME: " + data.Name + "\n" +
-						"\tDESCRIPTION: " + data.Description + "\n" +
-						"\tURL: " + data.Url + "\n"
-					// let's verify this real quick
-					address, message, err := program.wallet.CheckSignature([]byte(data.Signature))
-					if err != nil {
-						showError(err, program.window)
-						return xswd.Deny
-					}
-					// fmt.Println(address.String(), string(message))
-					text += "\tDEVELOPER: \n" + address.String()
-					label := widget.NewLabel(text)
-
-					var msg []byte
-					msg, err = hex.DecodeString(string(message))
-					if err != nil {
-						panic(err)
-					}
-					id, err := hex.DecodeString(data.Id)
-					if err != nil {
-						panic(err)
-					}
-
-					if !bytes.Equal(msg, id) {
-						// showError(errors.New("application signature does not match app id"), program.window)
-						// don't bother user with bad requests
-						return xswd.AlwaysDeny
-					}
-					sig := widget.NewLabel("✅APP SIGNATURE MATCH✅")
-					sig.Alignment = fyne.TextAlignCenter
-
-					method := widget.NewLabel(`❓ METHOD REQUEST: ` + r.Method())
-					method.Alignment = fyne.TextAlignCenter
-
-					app := container.NewVBox(label, sig, method)
-					content := container.NewBorder(app, nil, nil, nil)
-					// tall := false
-					// if it has params, process them
-					if r.HasParams() {
-						var params rpc.EventNotification
-
-						// un-marshal the params
-						if err := r.UnmarshalParams(&params); err != nil {
-
-							// if the params fail, serve the error
-							showError(err, program.window)
-
-							// // and then deny the request
-							return xswd.Deny
-						}
-						// add param string to the request
-						label := widget.NewLabel("")
-						switch r.Method() {
-						case "querykey":
-							// not implemented
-							break
-						case "scinvoke":
-							p := rpc.SC_Invoke_Params{}
-							if err := json.Unmarshal([]byte(r.ParamString()), &p); err != nil {
-								showError(err, program.window)
-								break
-							}
-							pretty, err := json.MarshalIndent(p, "", "  ")
-							if err != nil {
-								showError(err, program.window)
-								break
-							}
-							label.SetText(string(pretty))
-							label.Wrapping = fyne.TextWrapWord
-							// tall = true
-						case "transfer":
-							p := rpc.Transfer_Params{}
-							if err := json.Unmarshal([]byte(r.ParamString()), &p); err != nil {
-								showError(err, program.window)
-								break
-							}
-							text := ""
-							if len(p.Transfers) != 0 {
-								text += "TRANSFERS:\n" + fmt.Sprintf("%v", p.Transfers) + "\n"
-							}
-							if p.SC_Code != "" {
-								text += "CODE:\n" + p.SC_Code + "\n"
-							}
-							// pretty, err := json.MarshalIndent(p, "", "  ")
-							// if err != nil {
-							// 	showError(err, program.window)
-							// 	break
-							// }
-							if p.Fees != 0 {
-								text += "FEES: " + rpc.FormatMoney(p.Fees) + " DERO"
-							}
-							label.SetText(text)
-							label.Wrapping = fyne.TextWrapWord
-							// tall = true
-						default:
-							label.SetText(r.ParamString())
-							label.Wrapping = fyne.TextWrapBreak
-						}
-						scroll := container.NewScroll(label)
-						// scroll.Direction = container.ScrollHorizontalOnly
-						content.Add(scroll)
-
-					}
-					// we are going to wait for a choice
-					choice := make(chan bool)
-
-					// we are going to have
-					callback := func(b bool) {
-						if b { // if they say confirm, accept
-							choice <- accept
-						} else { // if they dismiss, reject
-							choice <- reject
-						}
-					}
-					// build a pop-up
-					pop := dialog.NewCustomConfirm(
-						"New WebSocket Request",
-						confirm, dismiss,
-						content, callback,
-						program.window,
-					)
-					pop.SetConfirmImportance(widget.DangerImportance)
-
-					// show it
-					// if tall {
-					// 	pop.Resize(fyne.NewSize(program.size.Width/2, program.size.Height))
-					// } else {
-					pop.Resize(fyne.NewSize(program.size.Width/2, ((program.size.Height / 4) * 3)))
-					// }
-					fyne.DoAndWait(func() {
-						pop.Show()
-						program.window.Show()
-					})
-					// now wait for the choice
-					if <-choice { // if accepted...
-						return xswd.Allow
-					}
-
-					// default is to deny
-					return xswd.Deny
-				},
-			)
+			program.ws_server = xswdServer(p)
 			if program.ws_server != nil && program.ws_server.IsRunning() {
 				// assuming there are now errors here...
 				program.toggles.ws_server.SetSelected("on")
@@ -1239,12 +1001,11 @@ The simulator provides a convenient place to simulate the DERO blockchain for te
 
 You will need to completely shut down the wallet to create a new simulator. This prevents duplicate block histories.
 	
-The simulator rpc runs on 127.0.0.1:20000 and the wallet will connect automatically. There is a mining getwork server running on 127.0.0.1:10100.
+The simulator RPC runs on 127.0.0.1:20000 and the wallet will connect automatically. There is a mining getwork server running on 127.0.0.1:10100.
 	
-There are 21 simulator wallets that can be found in folder and have no wallet password: 
-` + globals.GetDataDirectory() + `. 
+There are 21 registered, passwordless simulator wallets found in folder: ./testnet_simulator/ 
 	
-The wallets are started with rpc servers on with no username and password and can be found starting on 127.0.0.1:30000 and up, eg 30000 is wallet 0, 30001 is wallet 1, etc`)
+These wallets are started with RPC servers ON without username or password. Endpoints can be found starting on 127.0.0.1:30000 and up, eg 30000 is wallet 0, 30001 is wallet 1, etc`)
 	notice.Wrapping = fyne.TextWrapWord
 	// load up the widgets into a container
 	content := container.NewVBox(
