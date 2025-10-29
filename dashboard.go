@@ -191,8 +191,8 @@ func txList() {
 		// body the s_entries
 		e := s_entries[id]
 
-		var lines list = strings.Split(e.String(), "\n")
-		keys, values := lines.split_to_kv(": ")
+		lines = strings.Split(e.String(), "\n")
+		keys, values = lines.split_to_kv(": ")
 
 		tx := getTransaction(
 			rpc.GetTransaction_Params{Tx_Hashes: []string{e.TXID}},
@@ -286,8 +286,8 @@ func txList() {
 		// body the r_entries
 		e := r_entries[id]
 
-		var lines list = strings.Split(e.String(), "\n")
-		keys, values := lines.split_to_kv(": ")
+		lines = strings.Split(e.String(), "\n")
+		keys, values = lines.split_to_kv(": ")
 
 		r_table = widget.NewTable(length, create, update)
 		width := largestMinSize(keys).Width
@@ -362,8 +362,8 @@ func txList() {
 		// body the c_entries
 		e := c_entries[id]
 
-		var lines list = strings.Split(e.String(), "\n")
-		keys, values := lines.split_to_kv(": ")
+		lines = strings.Split(e.String(), "\n")
+		keys, values = lines.split_to_kv(": ")
 
 		c_table = widget.NewTable(length, create, update)
 
