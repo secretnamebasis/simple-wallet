@@ -578,7 +578,7 @@ func assetsList() {
 	if hashesLength() == 0 {
 		list = container.NewVBox(
 			layout.NewSpacer(),
-			makeCenteredWrappedLabel("Please visit tools, and Add SCID to your collection"),
+			makeCenteredWrappedLabel("Add SCID to your collection"),
 			layout.NewSpacer(),
 		)
 	} else {
