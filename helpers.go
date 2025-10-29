@@ -180,7 +180,7 @@ func notificationNewEntry() {
 		}
 
 		// go get the transfers
-		var current_transfers []rpc.Entry
+		var current_transfers wallet_entries
 		if program.wallet != nil { // expressly validate this
 			current_transfers = getAllTransfers(crypto.ZEROHASH)
 			for _, each := range program.caches.assets {
@@ -500,27 +500,15 @@ func createImageLabel() fyne.CanvasObject {
 		widget.NewLabel(""),
 	)
 }
-func createSentHeader() fyne.CanvasObject {
-	sent_header := createFourLabels()
+func createTXListSearchBar(e *widget.Entry) fyne.CanvasObject {
+	return container.NewAdaptiveGrid(3, layout.NewSpacer(), e, layout.NewSpacer())
+}
+func createTXListHeader() fyne.CanvasObject {
+	sent_header := createThreeLabels()
 	sent_header.(*fyne.Container).Objects[0].(*widget.Label).SetText("DATE")
 	sent_header.(*fyne.Container).Objects[1].(*widget.Label).SetText("TXID")
-	sent_header.(*fyne.Container).Objects[2].(*widget.Label).SetText("FEES")
-	sent_header.(*fyne.Container).Objects[3].(*widget.Label).SetText("AMOUNT")
+	sent_header.(*fyne.Container).Objects[2].(*widget.Label).SetText("AMOUNT")
 	return sent_header
-}
-func createReceivedHeader() fyne.CanvasObject {
-	received_header := createThreeLabels()
-	received_header.(*fyne.Container).Objects[0].(*widget.Label).SetText("DATE")
-	received_header.(*fyne.Container).Objects[1].(*widget.Label).SetText("TXID")
-	received_header.(*fyne.Container).Objects[2].(*widget.Label).SetText("AMOUNT")
-	return received_header
-}
-func createCoinbaseHeader() fyne.CanvasObject {
-	coinbase_header := createThreeLabels()
-	coinbase_header.(*fyne.Container).Objects[0].(*widget.Label).SetText("DATE")
-	coinbase_header.(*fyne.Container).Objects[1].(*widget.Label).SetText("TXID")
-	coinbase_header.(*fyne.Container).Objects[2].(*widget.Label).SetText("AMOUNT")
-	return coinbase_header
 }
 func createOneLabel() fyne.CanvasObject {
 	return createLabels(1)
