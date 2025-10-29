@@ -1704,3 +1704,67 @@ func slide_network(f float64) {
 		setText(msg, program.labels.notice)
 	}
 }
+
+func addressValidator(s string) (err error) {
+
+	// any changes to the string should immediately update the receiver string
+	program.receiver = ""
+
+	switch {
+	case s == "":
+		return nil
+	case len(s) != 66:
+		if len(s) < 5 {
+			return errors.New("cannot be less than 5 char, sry capt")
+		}
+		// check to see if it is a name
+		a, err := program.wallet.NameToAddress(s)
+		if err != nil && strings.Contains(err.Error(), "leaf not found") {
+			return errors.New("invalid DERO NameAddress")
+		}
+		if a != "" {
+			program.receiver = a
+		} else {
+			return errors.New("invalid DERO NameAddress")
+		}
+	case len(s) == 66:
+		addr, err := rpc.NewAddress(s)
+		if err != nil {
+			return errors.New("invalid DERO address")
+		}
+		if addr.IsIntegratedAddress() {
+
+			// the base of that address is what we'll use as the receiver
+			program.receiver = addr.BaseAddress().String()
+
+		} else if addr.String() != "" && // if the addr isn't empty
+			!addr.IsIntegratedAddress() { // now if it is not an integrated address
+
+			// set the receiver
+			program.receiver = addr.String()
+		}
+	}
+
+	// at this point, we should be fairly confident
+	if program.receiver == "" {
+		err = errors.New("error obtaining receiver")
+		return err
+	}
+
+	// but just to be extra sure...
+	// let's see if the receiver is not registered
+	if !isRegistered(program.receiver) {
+		err = errors.New("unregistered address")
+		return err
+	}
+
+	// also, would make sense to make sure that it is not self
+	if strings.EqualFold(program.receiver, program.wallet.GetAddress().String()) {
+		err = errors.New("cannot send to self")
+
+		return err
+	}
+
+	// should be validated
+	return nil
+}
