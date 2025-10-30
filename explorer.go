@@ -17,6 +17,7 @@ import (
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/transaction"
+	"github.com/deroproject/derohe/walletapi"
 )
 
 // this is going to be a rudimentary explorer at first
@@ -60,7 +61,7 @@ func explorer() {
 		for i := range limit {
 			func(i int) {
 				defer wg.Done()
-				h := uint64(getDaemonInfo().TopoHeight) - (uint64(i))
+				h := uint64(walletapi.Get_Daemon_TopoHeight()) - (uint64(i))
 
 				_, exists := diff_map[int(h)]
 
