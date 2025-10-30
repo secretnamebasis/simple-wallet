@@ -122,12 +122,29 @@ func keys() {
 
 }
 func txList() {
-	// here are all the sent entries
-	s_entries := getSentTransfers(crypto.ZEROHASH)
+	var lines list
+	var keys, values []string
 
-	sort.Slice(s_entries, func(i, j int) bool {
-		return s_entries[i].Height > s_entries[j].Height
-	})
+	length := func() (rows int, cols int) { return len(lines), 2 }
+	create := func() fyne.CanvasObject { return widget.NewLabel("") }
+	update := func(tci widget.TableCellID, co fyne.CanvasObject) {
+		label := co.(*widget.Label)
+		if len(keys) <= tci.Row {
+			label.SetText("")
+			return
+		}
+
+		switch tci.Col {
+		case 0:
+			label.SetText(keys[tci.Row])
+		case 1:
+			label.SetText(values[tci.Row])
+		}
+	}
+	// here are all the sent entries
+	var s_entries wallet_entries
+	s_entries = getSentTransfers(crypto.ZEROHASH)
+	s_entries.sort()
 
 	// let's make a list of transactions
 	sent := new(widget.List)
@@ -136,7 +153,8 @@ func txList() {
 	sent.Length = func() int { return len(s_entries) }
 
 	// here is the widget that we are going to use for each item of the list
-	sent.CreateItem = createFourLabels
+	sent.CreateItem = createThreeLabels
+
 	// then let's update the item to contain the content
 	var s_table *widget.Table
 	updateSent := func(lii widget.ListItemID, co fyne.CanvasObject) {
@@ -149,26 +167,18 @@ func txList() {
 		s_entries[lii].ProcessPayload()
 
 		// make a timestamp string in local format
-		time_stamp := s_entries[lii].Time.Local().Format("2006-01-02 15:04")
-		txid := truncator(s_entries[lii].TXID)
-		amount := s_entries[lii].Amount
-		container := co.(*fyne.Container)
-		container.Objects[0].(*widget.Label).SetText(time_stamp)
-		container.Objects[1].(*widget.Label).SetText(txid)
-		tx := getTransaction(rpc.GetTransaction_Params{
-			Tx_Hashes: []string{s_entries[lii].TXID},
-		})
-		b, err := hex.DecodeString(tx.Txs_as_hex[0])
-		if err != nil {
-			return
+		texts := []string{
+			s_entries[lii].Time.Local().Format("2006-01-02 15:04"),
+			truncator(s_entries[lii].TXID),
+			// rpc.FormatMoney(t.Fees()),
+			rpc.FormatMoney(s_entries[lii].Amount),
 		}
-		var t transaction.Transaction
-		if err := t.Deserialize(b); err != nil {
-			return
-		}
-		container.Objects[2].(*widget.Label).SetText(rpc.FormatMoney(t.Fees()))
 
-		container.Objects[3].(*widget.Label).SetText(rpc.FormatMoney(amount))
+		container := co.(*fyne.Container)
+
+		for i, obj := range container.Objects {
+			obj.(*widget.Label).SetText(texts[i])
+		}
 
 	}
 	// set the update item
@@ -181,58 +191,36 @@ func txList() {
 		// body the s_entries
 		e := s_entries[id]
 
-		lines := strings.Split(e.String(), "\n")
-		keys := []string{}
-		values := []string{}
-		for _, line := range lines {
-			if line == "" {
+		lines = strings.Split(e.String(), "\n")
+		keys, values = lines.split_to_kv(": ")
+
+		tx := getTransaction(
+			rpc.GetTransaction_Params{Tx_Hashes: []string{e.TXID}},
+		)
+
+		for _, each := range tx.Txs_as_hex {
+			b, err := hex.DecodeString(each)
+			if err != nil {
 				continue
 			}
-			pair := strings.Split(line, ": ")
-			key := pair[0]
-			value := pair[1]
-			if key == "TXID" {
-				tx := getTransaction(rpc.GetTransaction_Params{
-					Tx_Hashes: []string{value},
-				})
-				for _, each := range tx.Txs_as_hex {
-					b, err := hex.DecodeString(each)
-					if err != nil {
-						continue
-					}
-					var t transaction.Transaction
-					if err := t.Deserialize(b); err != nil {
-						continue
-					}
-
-					keys = append(keys, "FEES")
-					values = append(values, rpc.FormatMoney(t.Fees()))
-				}
+			var t transaction.Transaction
+			if err := t.Deserialize(b); err != nil {
+				continue
 			}
-			keys = append(keys, key)
-			values = append(values, value)
+
+			keys = append(keys, "FEES")
+			fees := rpc.FormatMoney(t.Fees())
+			values = append(values, fees)
 		}
 
-		s_table = widget.NewTable(
-			func() (rows int, cols int) { return len(lines), 2 },
-			func() fyne.CanvasObject { return widget.NewLabel("") },
-			func(tci widget.TableCellID, co fyne.CanvasObject) {
-				label := co.(*widget.Label)
-				if len(keys) <= tci.Row {
-					label.SetText("")
-					return
-				}
+		s_table = widget.NewTable(length, create, update)
 
-				switch tci.Col {
-				case 0:
-					label.SetText(keys[tci.Row])
-				case 1:
-					label.SetText(values[tci.Row])
-				}
-			},
-		)
-		s_table.SetColumnWidth(0, largestMinSize(keys).Width)
-		s_table.SetColumnWidth(1, largestMinSize(values).Width)
+		width := largestMinSize(keys).Width
+		s_table.SetColumnWidth(0, width)
+
+		width = largestMinSize(values).Width
+		s_table.SetColumnWidth(1, width)
+
 		s_table.OnSelected = func(id widget.TableCellID) {
 			s_table.UnselectAll()
 			var data string
@@ -251,11 +239,9 @@ func txList() {
 	}
 	sent.OnSelected = onSelected
 	// here are all the entries
-	r_entries := getReceivedTransfers(crypto.ZEROHASH)
-
-	sort.Slice(r_entries, func(i, j int) bool {
-		return r_entries[i].Height > r_entries[j].Height
-	})
+	var r_entries wallet_entries
+	r_entries = getReceivedTransfers(crypto.ZEROHASH)
+	r_entries.sort()
 
 	// let's make a list of received transactions
 	received := new(widget.List)
@@ -277,14 +263,16 @@ func txList() {
 		r_entries[lii].ProcessPayload()
 
 		// make a timestamp string in local format
-		time_stamp := r_entries[lii].Time.Local().Format("2006-01-02 15:04")
-		txid := truncator(r_entries[lii].TXID)
-		amount := r_entries[lii].Amount
-		container := co.(*fyne.Container)
-		container.Objects[0].(*widget.Label).SetText(time_stamp)
-		container.Objects[1].(*widget.Label).SetText(txid)
-		container.Objects[2].(*widget.Label).SetText(rpc.FormatMoney(amount))
+		texts := []string{
+			r_entries[lii].Time.Local().Format("2006-01-02 15:04"),
+			truncator(r_entries[lii].TXID),
+			rpc.FormatMoney(r_entries[lii].Amount),
+		}
 
+		container := co.(*fyne.Container)
+		for i, obj := range container.Objects {
+			obj.(*widget.Label).SetText(texts[i])
+		}
 	}
 
 	// set the update item field
@@ -298,40 +286,16 @@ func txList() {
 		// body the r_entries
 		e := r_entries[id]
 
-		lines := strings.Split(e.String(), "\n")
-		keys := []string{}
-		values := []string{}
-		for _, line := range lines {
-			if line == "" {
-				continue
-			}
-			pair := strings.Split(line, ": ")
-			key := pair[0]
-			value := pair[1]
-			keys = append(keys, key)
-			values = append(values, value)
-		}
+		lines = strings.Split(e.String(), "\n")
+		keys, values = lines.split_to_kv(": ")
 
-		r_table = widget.NewTable(
-			func() (rows int, cols int) { return len(lines), 2 },
-			func() fyne.CanvasObject { return widget.NewLabel("") },
-			func(tci widget.TableCellID, co fyne.CanvasObject) {
-				label := co.(*widget.Label)
-				if len(keys) <= tci.Row {
-					label.SetText("")
-					return
-				}
+		r_table = widget.NewTable(length, create, update)
+		width := largestMinSize(keys).Width
+		r_table.SetColumnWidth(0, width)
 
-				switch tci.Col {
-				case 0:
-					label.SetText(keys[tci.Row])
-				case 1:
-					label.SetText(values[tci.Row])
-				}
-			},
-		)
-		r_table.SetColumnWidth(0, largestMinSize(keys).Width)
-		r_table.SetColumnWidth(1, largestMinSize(values).Width)
+		width = largestMinSize(values).Width
+		r_table.SetColumnWidth(1, width)
+
 		r_table.OnSelected = func(id widget.TableCellID) {
 			r_table.UnselectAll()
 			var data string
@@ -353,11 +317,9 @@ func txList() {
 	received.OnSelected = onSelected
 
 	// here are all the coinbase entries
-	c_entries := getCoinbaseTransfers(crypto.ZEROHASH)
-
-	sort.Slice(c_entries, func(i, j int) bool {
-		return c_entries[i].Height > c_entries[j].Height
-	})
+	var c_entries wallet_entries
+	c_entries = getCoinbaseTransfers(crypto.ZEROHASH)
+	c_entries.sort()
 
 	// let's make a list of transactions
 	coinbase := new(widget.List)
@@ -379,14 +341,15 @@ func txList() {
 		c_entries[lii].ProcessPayload()
 
 		// make a timestamp string in local format
-		time_stamp := c_entries[lii].Time.Local().Format("2006-01-02 15:04")
-		txid := truncator(c_entries[lii].BlockHash)
-		amount := c_entries[lii].Amount
+		texts := []string{
+			c_entries[lii].Time.Local().Format("2006-01-02 15:04"),
+			truncator(c_entries[lii].BlockHash),
+			rpc.FormatMoney(c_entries[lii].Amount),
+		}
 		container := co.(*fyne.Container)
-		container.Objects[0].(*widget.Label).SetText(time_stamp)
-		container.Objects[1].(*widget.Label).SetText(txid)
-		container.Objects[2].(*widget.Label).SetText(rpc.FormatMoney(amount))
-
+		for i, obj := range container.Objects {
+			obj.(*widget.Label).SetText(texts[i])
+		}
 	}
 	// set the update item
 	coinbase.UpdateItem = updateCoins
@@ -399,40 +362,16 @@ func txList() {
 		// body the c_entries
 		e := c_entries[id]
 
-		lines := strings.Split(e.String(), "\n")
-		keys := []string{}
-		values := []string{}
-		for _, line := range lines {
-			if line == "" {
-				continue
-			}
-			pair := strings.Split(line, ": ")
-			key := pair[0]
-			value := pair[1]
-			keys = append(keys, key)
-			values = append(values, value)
-		}
+		lines = strings.Split(e.String(), "\n")
+		keys, values = lines.split_to_kv(": ")
 
-		c_table = widget.NewTable(
-			func() (rows int, cols int) { return len(lines), 2 },
-			func() fyne.CanvasObject { return widget.NewLabel("") },
-			func(tci widget.TableCellID, co fyne.CanvasObject) {
-				label := co.(*widget.Label)
-				if len(keys) <= tci.Row {
-					label.SetText("")
-					return
-				}
+		c_table = widget.NewTable(length, create, update)
 
-				switch tci.Col {
-				case 0:
-					label.SetText(keys[tci.Row])
-				case 1:
-					label.SetText(values[tci.Row])
-				}
-			},
-		)
-		c_table.SetColumnWidth(0, largestMinSize(keys).Width)
-		c_table.SetColumnWidth(1, largestMinSize(values).Width)
+		width := largestMinSize(keys).Width
+		c_table.SetColumnWidth(0, width)
+
+		width = largestMinSize(values).Width
+		c_table.SetColumnWidth(1, width)
 
 		c_table.OnSelected = func(id widget.TableCellID) {
 			c_table.UnselectAll()
@@ -463,14 +402,14 @@ func txList() {
 
 		switch tabs.Selected().Text {
 		case "Sent":
-			s := getSentTransfers(crypto.ZEROHASH)
-			sort.Slice(s, func(i, j int) bool {
-				return s[i].Height > s[j].Height
-			})
+			var s wallet_entries
+			s = getSentTransfers(crypto.ZEROHASH)
+			s.sort()
+
 			if search == "" {
 				s_entries = s
 			} else {
-				s_entries = []rpc.Entry{}
+				s_entries = wallet_entries{}
 				for _, each := range s {
 
 					tx := getTransaction(rpc.GetTransaction_Params{
@@ -493,14 +432,14 @@ func txList() {
 			}
 			sent.Refresh()
 		case "Received":
-			r := getReceivedTransfers(crypto.ZEROHASH)
-			sort.Slice(r, func(i, j int) bool {
-				return r[i].Height > r[j].Height
-			})
+			var r wallet_entries
+			r = getReceivedTransfers(crypto.ZEROHASH)
+			r.sort()
+
 			if search == "" {
 				r_entries = r
 			} else {
-				r_entries = []rpc.Entry{}
+				r_entries = wallet_entries{}
 				for _, each := range r {
 					if strings.Contains(strings.ToLower(each.String()), search) {
 						r_entries = append(r_entries, each)
@@ -509,15 +448,14 @@ func txList() {
 			}
 			received.Refresh()
 		case "Coinbase":
-			c := getCoinbaseTransfers(crypto.ZEROHASH)
-			sort.Slice(c, func(i, j int) bool {
-				return c[i].Height > c[j].Height
-			})
+			var c wallet_entries
+			c = getCoinbaseTransfers(crypto.ZEROHASH)
+			c.sort()
+
 			if search == "" {
 				c_entries = c
-
 			} else {
-				c_entries = []rpc.Entry{}
+				c_entries = wallet_entries{}
 				for _, each := range c {
 					if strings.Contains(strings.ToLower(each.String()), search) {
 						c_entries = append(c_entries, each)
@@ -532,37 +470,28 @@ func txList() {
 		filterer()
 	}
 
-	tabs = container.NewAppTabs(
-		container.NewTabItem("Sent", container.NewBorder(
-			container.NewVBox(
-				container.NewAdaptiveGrid(3, layout.NewSpacer(), search_entry, layout.NewSpacer()),
-				createSentHeader(),
-			),
-			nil, nil, nil,
-			sent,
-		)),
-		container.NewTabItem("Received", container.NewBorder(
-			container.NewVBox(
-				container.NewAdaptiveGrid(3, layout.NewSpacer(), search_entry, layout.NewSpacer()),
-				createReceivedHeader(),
-			),
-			nil, nil, nil,
-			received,
-		)),
-		container.NewTabItem("Coinbase", container.NewBorder(
-			container.NewVBox(
-				container.NewAdaptiveGrid(3, layout.NewSpacer(), search_entry, layout.NewSpacer()),
-				createCoinbaseHeader(),
-			),
-			nil, nil, nil,
-			coinbase,
-		)),
-	)
+	search_bar := createTXListSearchBar(search_entry)
+	header := createTXListHeader()
+
+	top := container.NewVBox(search_bar, header)
+	content := container.NewBorder(top, nil, nil, nil, sent)
+	st := container.NewTabItem("Sent", content)
+
+	top = container.NewVBox(search_bar, header)
+	content = container.NewBorder(top, nil, nil, nil, received)
+	rt := container.NewTabItem("Received", content)
+
+	top = container.NewVBox(search_bar, header)
+	content = container.NewBorder(top, nil, nil, nil, coinbase)
+	ct := container.NewTabItem("Coinbase", content)
+
+	tabs = container.NewAppTabs(st, rt, ct)
 	tabs.SetTabLocation(container.TabLocationLeading)
 	tabs.OnSelected = func(ti *container.TabItem) {
 		search_entry.SetText("")
 		filterer()
 	}
+
 	txs := dialog.NewCustom("transactions", dismiss, tabs, program.window)
 	txs.Resize(program.size)
 	txs.Show()

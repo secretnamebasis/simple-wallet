@@ -183,3 +183,6 @@ type (
 		public *widget.Label
 	}
 )
+
+type wallet_entries []rpc.Entry
+type list []string
