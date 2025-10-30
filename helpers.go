@@ -306,10 +306,14 @@ func updateBalance() {
 	}
 }
 func updateCaches() {
-
+	marker := walletapi.Get_Daemon_TopoHeight()
 	for range time.NewTicker(time.Second * 2).C {
-		program.caches.info = getDaemonInfo()
-		program.caches.pool = getTxPool()
+		height := walletapi.Get_Daemon_TopoHeight()
+		if marker < height {
+			marker = height
+			program.caches.info = getDaemonInfo()
+			program.caches.pool = getTxPool()
+		}
 	}
 
 }
