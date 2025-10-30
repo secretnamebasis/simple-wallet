@@ -3,7 +3,7 @@ module github.com/secretnamebasis/simple-wallet
 go 1.25.3
 
 require (
-	fyne.io/fyne/v2 v2.6.3
+	fyne.io/fyne/v2 v2.7.0
 	github.com/creachadair/jrpc2 v0.35.4
 	github.com/deroproject/derohe v0.0.0-20250813215012-9b6a8b82c839
 	github.com/ybbus/jsonrpc/v3 v3.1.6
