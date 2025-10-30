@@ -1,6 +1,6 @@
 module github.com/secretnamebasis/simple-wallet
 
-go 1.24.4
+go 1.25.3
 
 require (
 	fyne.io/fyne/v2 v2.6.3
