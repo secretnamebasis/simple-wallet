@@ -11,8 +11,8 @@ require (
 )
 
 require (
-	fyne.io/systray v1.11.0 // indirect
-	github.com/BurntSushi/toml v1.4.0 // indirect
+	fyne.io/systray v1.11.1-0.20250603113521-ca66a66d8b58 // indirect
+	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/VictoriaMetrics/metrics v1.38.0 // indirect
 	github.com/beevik/ntp v1.4.3 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
@@ -26,13 +26,13 @@ require (
 	github.com/deroproject/graviton v0.0.0-20220130070622-2c248a53b2e1 // indirect
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/fredbi/uri v1.1.0 // indirect
+	github.com/fredbi/uri v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.3.0 // indirect
 	github.com/fyne-io/gl-js v0.2.0 // indirect
 	github.com/fyne-io/glfw-js v0.3.0 // indirect
 	github.com/fyne-io/image v0.1.1 // indirect
-	github.com/fyne-io/oksvg v0.1.0 // indirect
+	github.com/fyne-io/oksvg v0.2.0 // indirect
 	github.com/go-gl/gl v0.0.0-20231021071112-07e5d0ea2e71 // indirect
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20240506104042-037f3cc74f2a // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
@@ -58,12 +58,12 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
-	github.com/rymdport/portal v0.4.1 // indirect
+	github.com/rymdport/portal v0.4.2 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/segmentio/fasthash v1.0.3 // indirect
 	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
-	github.com/stretchr/testify v1.10.0 // indirect
+	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/templexxx/cpu v0.1.1 // indirect
 	github.com/templexxx/xorsimd v0.4.3 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
