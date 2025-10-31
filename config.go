@@ -17,6 +17,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
+	"github.com/chzyer/readline"
 	"github.com/deroproject/derohe/blockchain"
 	derodrpc "github.com/deroproject/derohe/cmd/derod/rpc"
 	"github.com/deroproject/derohe/config"
@@ -27,6 +28,7 @@ import (
 	"github.com/deroproject/derohe/transaction"
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/deroproject/derohe/walletapi/rpcserver"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 func configs() *fyne.Container {
@@ -855,8 +857,32 @@ func simulator() {
 				"--getwork-bind": "127.0.0.1:10100",
 			}
 
+			l, lerr := readline.NewEx(&readline.Config{
+				//Prompt:          "\033[92mDERO:\033[32m»\033[0m",
+				Prompt:      "\033[92mDEROSIM:\033[32m>>>\033[0m ",
+				HistoryFile: filepath.Join(os.TempDir(), "derosim_readline.tmp"),
+				// AutoComplete:    completer,
+				InterruptPrompt: "^C",
+				EOFPrompt:       "exit",
+
+				HistorySearchFold: true,
+				// FuncFilterInputRune: filterInput,
+			})
+			if lerr != nil {
+				fmt.Printf("Error starting readline err: %s\n", lerr)
+				return
+			}
+			defer l.Close()
+
 			// now, we'll init the network
 			globals.InitNetwork()
+
+			// parse arguments and setup logging , print basic information
+			globals.InitializeLog(l.Stdout(), &lumberjack.Logger{
+				Filename:   filepath.Join(globals.GetDataDirectory(), "simulator"+".log"),
+				MaxSize:    100, // megabytes
+				MaxBackups: 2,
+			})
 
 			// let's clean up anything that was here before
 			os.RemoveAll(globals.GetDataDirectory())
