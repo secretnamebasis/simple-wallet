@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"sync"
@@ -17,6 +18,7 @@ import (
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/transaction"
+	"github.com/deroproject/derohe/walletapi"
 )
 
 // this is going to be a rudimentary explorer at first
@@ -32,12 +34,12 @@ func explorer() {
 	program.explorer.Show()
 	// let's start with the stats tab
 	stats := []string{
-		strconv.Itoa(int(program.caches.info.Height)),
-		strconv.Itoa(int(program.caches.info.AverageBlockTime50)),
-		strconv.Itoa(int(program.caches.info.Tx_pool_size)),
-		strconv.Itoa(int(program.caches.info.Difficulty) / 1000000),
-		strconv.Itoa(int(program.caches.info.Total_Supply)),
-		program.caches.info.Status,
+		strconv.Itoa(int(program.node.info.Height)),
+		strconv.Itoa(int(program.node.info.AverageBlockTime50)),
+		strconv.Itoa(int(program.node.info.Tx_pool_size)),
+		strconv.Itoa(int(program.node.info.Difficulty) / 1000000),
+		strconv.Itoa(int(program.node.info.Total_Supply)),
+		program.node.info.Status,
 	}
 	diff := widget.NewLabel("Network Height: " + stats[0])
 	average_blocktime := widget.NewLabel("Network Blocktime: " + stats[1] + " seconds")
@@ -60,7 +62,7 @@ func explorer() {
 		for i := range limit {
 			func(i int) {
 				defer wg.Done()
-				h := uint64(getDaemonInfo().TopoHeight) - (uint64(i))
+				h := uint64(walletapi.Get_Daemon_TopoHeight()) - (uint64(i))
 
 				_, exists := diff_map[int(h)]
 
@@ -68,6 +70,7 @@ func explorer() {
 					mu.Lock()
 					if len(diff_map) >= limit {
 						delete(diff_map, int(h)-limit)
+						delete(program.node.blocks, uint64(int(h)-limit))
 					}
 					mu.Unlock()
 					return
@@ -93,6 +96,7 @@ func explorer() {
 					return
 				}
 				mu.Lock()
+				program.node.blocks[h] = tx
 				diff_map[int(bl.Height)] = d
 				mu.Unlock()
 			}(i)
@@ -495,23 +499,30 @@ func explorer() {
 	updatePoolCache := func() {
 
 		pool_label_data = [][]string{}
-		pool := program.caches.pool
+		pool := program.node.pool
 		if len(pool.Tx_list) <= 0 {
 			return
 		}
+		for txid := range program.node.transactions {
+			if !slices.Contains(pool.Tx_list, txid) {
+				delete(program.node.transactions, txid)
+			}
+		}
 		for i := range pool.Tx_list {
+			if _, ok := program.node.transactions[pool.Tx_list[i]]; !ok {
+				program.node.transactions[pool.Tx_list[i]] = getTransaction(rpc.GetTransaction_Params{
+					Tx_Hashes: []string{pool.Tx_list[i]},
+				})
+			}
 
-			transfer := getTransaction(rpc.GetTransaction_Params{
-				Tx_Hashes: []string{pool.Tx_list[i]},
-			})
 			var tx transaction.Transaction
-			decoded, _ := hex.DecodeString(transfer.Txs_as_hex[0])
+			decoded, _ := hex.DecodeString(program.node.transactions[pool.Tx_list[i]].Txs_as_hex[0])
 
 			if err := tx.Deserialize(decoded); err != nil {
 				continue
 			}
 			var size int
-			for _, each := range transfer.Txs {
+			for _, each := range program.node.transactions[pool.Tx_list[i]].Txs {
 				size += len(each.Ring)
 			}
 
@@ -529,7 +540,7 @@ func explorer() {
 	var pool_table *widget.Table
 
 	lengthPool := func() (rows int, cols int) {
-		return len(program.caches.pool.Tx_list), len(pool_headers)
+		return len(program.node.pool.Tx_list), len(pool_headers)
 	}
 
 	createPool := func() fyne.CanvasObject {
@@ -600,22 +611,27 @@ func explorer() {
 	}
 
 	block_label_data := [][]string{}
-	limit := 10
+	const limit = 10
 
 	var block_table *widget.Table
 	updateBlocksData := func() {
 
 		block_label_data = [][]string{}
-		height := program.caches.info.TopoHeight
+		height := program.node.info.TopoHeight
 		// we are going to take the last ten blocks,
 		// like... the last 3 minutes
 
 		for i := 1; i <= limit; i++ {
 			h := uint64(height) - uint64(i)
+			for txid, each := range program.node.transactions {
+				if each.Txs[0].Block_Height < int64(int(h)-limit) {
+					delete(program.node.transactions, txid)
+				}
+			}
 
 			tx_label_data := [][]string{}
 
-			result := getBlockInfo(rpc.GetBlock_Params{Height: h})
+			result := program.node.blocks[h]
 			var bl block.Block
 			b, err := hex.DecodeString(result.Blob)
 			if err != nil {
@@ -625,21 +641,24 @@ func explorer() {
 
 			tx_results, transactions := func() (txs []rpc.GetTransaction_Result, transactions []transaction.Transaction) {
 				for _, each := range bl.Tx_hashes {
-					tx := getTransaction(
-						rpc.GetTransaction_Params{
-							Tx_Hashes: []string{each.String()},
-						},
-					)
-					if len(tx.Txs_as_hex) == 0 {
-						continue // there is nothing here ?
+					if _, ok := program.node.transactions[each.String()]; !ok {
+						program.node.transactions[each.String()] = getTransaction(
+							rpc.GetTransaction_Params{
+								Tx_Hashes: []string{each.String()},
+							},
+						)
 					}
 
+					if len(program.node.transactions[each.String()].Txs_as_hex) == 0 {
+						continue // there is nothing here ?
+					}
+					tx := program.node.transactions[each.String()]
 					txs = append(txs, tx)
 					var transaction transaction.Transaction
 					b, err := hex.DecodeString(tx.Txs_as_hex[0])
 					if err != nil {
-						fmt.Println(err)
-						continue // lol
+						logger.Error(err, "lol")
+						continue
 					}
 					transaction.Deserialize(b)
 					transactions = append(transactions, transaction)
@@ -815,11 +834,11 @@ func explorer() {
 	var updating bool = true
 
 	go func() {
-		height := program.caches.info.TopoHeight
+		height := program.node.info.TopoHeight
 		for range time.NewTicker(time.Second * 2).C {
 			if updating {
-				if height != program.caches.info.TopoHeight {
-					height = program.caches.info.TopoHeight
+				if height != program.node.info.TopoHeight {
+					height = program.node.info.TopoHeight
 
 					updateDiffData()
 
@@ -840,12 +859,12 @@ func explorer() {
 					})
 
 					stats = []string{
-						strconv.Itoa(int(program.caches.info.Height)),
-						strconv.Itoa(int(program.caches.info.AverageBlockTime50)),
-						strconv.Itoa(int(program.caches.info.Tx_pool_size)),
-						strconv.Itoa(int(program.caches.info.Difficulty) / 1000000),
-						strconv.Itoa(int(program.caches.info.Total_Supply)),
-						program.caches.info.Status,
+						strconv.Itoa(int(program.node.info.Height)),
+						strconv.Itoa(int(program.node.info.AverageBlockTime50)),
+						strconv.Itoa(int(program.node.info.Tx_pool_size)),
+						strconv.Itoa(int(program.node.info.Difficulty) / 1000000),
+						strconv.Itoa(int(program.node.info.Total_Supply)),
+						program.node.info.Status,
 					}
 					fyne.DoAndWait(func() {
 						diff.SetText("Network Height: " + stats[0])
@@ -883,6 +902,8 @@ func explorer() {
 	tabs.SetTabLocation(container.TabLocationLeading)
 
 	program.explorer.SetOnClosed(func() {
+		program.node.blocks = make(map[uint64]rpc.GetBlock_Result)
+		program.node.transactions = make(map[string]rpc.GetTransaction_Result)
 		updating = false
 	})
 	program.explorer.SetContent(tabs)

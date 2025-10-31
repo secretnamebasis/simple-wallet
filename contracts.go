@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"slices"
 	"sort"
@@ -607,7 +606,7 @@ func interaction() *fyne.Container {
 
 			// top three dudes, can't be self... can they?
 			if randos[0] == self && randos[1] == self && randos[2] == self {
-				fmt.Println("easter egg unlocked: do a barrel roll XD")
+				logger.Info("easter egg unlocked: do a barrel roll XD")
 				goto reroll
 			}
 

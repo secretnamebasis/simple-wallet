@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -166,12 +166,11 @@ func loggedIn() {
 				atomic.AddInt32(&completed, 1)
 
 				//update our calculation
-				msg := "asset: " + truncator(hash.String()) + " synced in: " + elapsed.String()
-				fmt.Println(completed, msg)
-				// and update the user
-				fyne.DoAndWait(func() {
-					notice.SetText(msg)
-				})
+				logger.Info("syncing asset",
+					"asset:", strconv.Itoa(int(completed)),
+					" hash:", truncator(hash.String()),
+					" synced in:", elapsed.String(),
+				)
 
 				<-capacity_channel // release capacity for the channel
 

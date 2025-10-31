@@ -17,6 +17,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
+	"github.com/chzyer/readline"
 	"github.com/deroproject/derohe/blockchain"
 	derodrpc "github.com/deroproject/derohe/cmd/derod/rpc"
 	"github.com/deroproject/derohe/config"
@@ -27,6 +28,7 @@ import (
 	"github.com/deroproject/derohe/transaction"
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/deroproject/derohe/walletapi/rpcserver"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 func configs() *fyne.Container {
@@ -106,21 +108,69 @@ func maintain_connection() {
 	if program.node.list[0].ip != "" {
 		program.node.current = program.node.list[0].ip
 	}
+	var isDancing bool
 
 	// this is an 2 second loop
 	for range ticker.C {
 		// assuming the localhost connection works, if not preference
 		walletapi.Daemon_Endpoint = program.node.current
-
+		// the connection should be working
+		height = walletapi.Get_Daemon_TopoHeight()
 		// get the height directly from the daemon
-		if getDaemonInfo().TopoHeight == 0 || // if it is not zero, it will advance
+		if height == 0 || // if it is not zero, it will advance
 			// otherwise, try to connect to the walletapi
 			walletapi.Connect(walletapi.Daemon_Endpoint) != nil { // if it fails...
 
-			// update the label and show 0s
+			// update the label and show dancing bit
+			dance := func() {
+				var (
+					stop   = func() { isDancing = false }
+					update = func(msg string) {
+						text := "BLOCK: " + msg
+						fyne.DoAndWait(func() { program.labels.height.SetText(text) })
+						time.Sleep(100 * time.Millisecond)
+					}
+
+					bit  uint16 = 1
+					bits uint16 = bit // start with a bit
+
+					max uint8 = 13 // zero index
+
+					isConnected bool = strings.Contains(program.labels.connection.Text, "✅")
+				)
+
+				for !isConnected {
+					isDancing = true
+					defer stop()
+
+					for range max {
+						isConnected = strings.Contains(program.labels.connection.Text, "✅")
+
+						if isConnected {
+							return
+						}
+
+						update(fmt.Sprintf("%014b", bits))
+						bits <<= bit // shift left, fill rightmost bitwith 1
+					}
+					for range max {
+						isConnected = strings.Contains(program.labels.connection.Text, "✅")
+
+						if isConnected {
+							return
+						}
+
+						update(fmt.Sprintf("%014b", bits))
+						bits >>= bit // shift right, drop rightmost bit
+					}
+				}
+			}
+			if !isDancing {
+				go dance()
+			}
+
 			fyne.DoAndWait(func() {
 				program.labels.connection.SetText("NODE: 🟡") // signalling unstable
-				program.labels.height.SetText("BLOCK: 00000000000000")
 				if program.buttons.register.Visible() {
 					program.buttons.register.Disable()
 				} else if program.activities.registration.Visible() {
@@ -158,7 +208,7 @@ func maintain_connection() {
 				// assuming the fastest connection works
 				walletapi.Daemon_Endpoint = program.node.current
 			}
-			fmt.Println("connecting to", program.node.current)
+			logger.Info(fmt.Sprintf("Connecting to: %s", program.node.current))
 			// re-test the connection
 			if err := walletapi.Connect(walletapi.Daemon_Endpoint); err != nil {
 				// show why?
@@ -196,12 +246,10 @@ func maintain_connection() {
 				}
 				// increment the retries
 				retries++
-				fmt.Println("connection retry attempt", retries)
+				logger.Error(errors.New("connection"), "connection retry attempt", retries)
 			}
 		} else {
 
-			// the connection should be working
-			height = getDaemonInfo().TopoHeight
 			// now if they are able to connect...
 			// update the height and node label
 			fyne.DoAndWait(func() {
@@ -809,8 +857,32 @@ func simulator() {
 				"--getwork-bind": "127.0.0.1:10100",
 			}
 
+			l, lerr := readline.NewEx(&readline.Config{
+				//Prompt:          "\033[92mDERO:\033[32m»\033[0m",
+				Prompt:      "\033[92mDEROSIM:\033[32m>>>\033[0m ",
+				HistoryFile: filepath.Join(os.TempDir(), "derosim_readline.tmp"),
+				// AutoComplete:    completer,
+				InterruptPrompt: "^C",
+				EOFPrompt:       "exit",
+
+				HistorySearchFold: true,
+				// FuncFilterInputRune: filterInput,
+			})
+			if lerr != nil {
+				fmt.Printf("Error starting readline err: %s\n", lerr)
+				return
+			}
+			defer l.Close()
+
 			// now, we'll init the network
 			globals.InitNetwork()
+
+			// parse arguments and setup logging , print basic information
+			globals.InitializeLog(l.Stdout(), &lumberjack.Logger{
+				Filename:   filepath.Join(globals.GetDataDirectory(), "simulator"+".log"),
+				MaxSize:    100, // megabytes
+				MaxBackups: 2,
+			})
 
 			// let's clean up anything that was here before
 			os.RemoveAll(globals.GetDataDirectory())
@@ -824,12 +896,12 @@ func simulator() {
 				"--simulator": true,
 			}
 			var err error
-			program.caches.simulator_chain, err = blockchain.Blockchain_Start(simulation) //start chain in simulator mode
+			program.node.simulator_chain, err = blockchain.Blockchain_Start(simulation) //start chain in simulator mode
 			if err != nil {
 				panic(err)
 			}
 
-			simulation["chain"] = program.caches.simulator_chain
+			simulation["chain"] = program.node.simulator_chain
 
 			p2p.P2P_Init(simulation)
 
@@ -840,8 +912,8 @@ func simulator() {
 				panic(err)
 			}
 			// and let's simulate a bunch of users
-			program.caches.simulator_wallets = []*walletapi.Wallet_Disk{}
-			program.caches.simulator_rpcservers = []*rpcserver.RPCServer{}
+			program.node.simulator_wallets = []*walletapi.Wallet_Disk{}
+			program.node.simulator_rpcservers = []*rpcserver.RPCServer{}
 			simulation_seeds := []string{
 				"171eeaa899e360bf1a8ada7627aaea9fdad7992463581d935a8838f16b1ff51a",
 				"193faf64d79e9feca5fce8b992b4bb59b86c50f491e2dc475522764ca6666b6b",
@@ -874,7 +946,7 @@ func simulator() {
 			for i, seed := range simulation_seeds {
 				n := "simulation_wallet_" + strconv.Itoa(i) + ".db"
 				wallet := create_wallet(n, seed)
-				if err := program.caches.simulator_chain.Add_TX_To_Pool(wallet.GetRegistrationTX()); err != nil {
+				if err := program.node.simulator_chain.Add_TX_To_Pool(wallet.GetRegistrationTX()); err != nil {
 					panic(err)
 				}
 				// point the wallet at the daemon
@@ -889,9 +961,9 @@ func simulator() {
 				if r, err := rpcserver.RPCServer_Start(wallet, n); err != nil {
 					panic(err)
 				} else {
-					program.caches.simulator_rpcservers = append(program.caches.simulator_rpcservers, r)
+					program.node.simulator_rpcservers = append(program.node.simulator_rpcservers, r)
 				}
-				program.caches.simulator_wallets = append(program.caches.simulator_wallets, wallet)
+				program.node.simulator_wallets = append(program.node.simulator_wallets, wallet)
 				time.Sleep(time.Millisecond * 20) // little breathing room
 			}
 
@@ -902,7 +974,7 @@ func simulator() {
 
 				for {
 					// using the genesis wallet, get a block and miniblock template
-					bl, mbl, _, _, err := program.caches.simulator_chain.Create_new_block_template_mining(genesis_wallet.GetAddress())
+					bl, mbl, _, _, err := program.node.simulator_chain.Create_new_block_template_mining(genesis_wallet.GetAddress())
 					if err != nil {
 						return err
 					}
@@ -912,7 +984,7 @@ func simulator() {
 					serial := mbl.Serialize()
 
 					// and let's just accept it as is
-					if _, blid, _, err = program.caches.simulator_chain.Accept_new_block(ts, serial); err != nil {
+					if _, blid, _, err = program.node.simulator_chain.Accept_new_block(ts, serial); err != nil {
 						msg := "please completely restart wallet software to create new simulation"
 						return errors.New(msg)
 					} else if !blid.IsZero() {
@@ -945,10 +1017,10 @@ func simulator() {
 			go func() {
 				last := time.Now()
 				for {
-					if program.caches.simulator_chain == nil {
+					if program.node.simulator_chain == nil {
 						return
 					}
-					bl, _, _, _, err := program.caches.simulator_chain.Create_new_block_template_mining(genesis_wallet.GetAddress())
+					bl, _, _, _, err := program.node.simulator_chain.Create_new_block_template_mining(genesis_wallet.GetAddress())
 					if err != nil {
 						continue
 					}
@@ -980,11 +1052,11 @@ func simulator() {
 			if program.simulator_server != nil {
 				program.simulator_server.RPCServer_Stop()
 				p2p.P2P_Shutdown()
-				program.caches.simulator_chain.Shutdown()
-				for _, r := range program.caches.simulator_rpcservers {
+				program.node.simulator_chain.Shutdown()
+				for _, r := range program.node.simulator_rpcservers {
 					go r.RPCServer_Stop()
 				}
-				program.caches.simulator_chain = nil
+				program.node.simulator_chain = nil
 				program.simulator_server = nil
 			}
 			program.toggles.rpc_server.Enable()

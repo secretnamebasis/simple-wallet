@@ -52,8 +52,8 @@ func logout() {
 
 		// clear the cache
 		program.caches.assets = []asset{}
-		program.caches.info = rpc.GetInfo_Result{}
-		program.caches.pool = rpc.GetTxPool_Result{}
+		program.node.info = rpc.GetInfo_Result{}
+		program.node.pool = rpc.GetTxPool_Result{}
 
 		// close windows if any
 		if program.encryption != nil {

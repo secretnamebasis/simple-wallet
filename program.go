@@ -5,6 +5,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
+	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/deroproject/derohe/walletapi/rpcserver"
 )
@@ -151,7 +152,9 @@ Please do not leave this page.
 	rpc_server: new(rpcserver.RPCServer),
 	wallet:     new(walletapi.Wallet_Disk),
 	node: nodes{
-		list: node_list,
+		transactions: make(map[string]rpc.GetTransaction_Result),
+		blocks:       make(map[uint64]rpc.GetBlock_Result),
+		list:         node_list,
 	},
 
 	name: "simple wallet",
