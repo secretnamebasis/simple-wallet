@@ -915,7 +915,7 @@ func showError(e error, w fyne.Window) {
 }
 
 func showInfo(t, m string, w fyne.Window) {
-	logger.Info(t, m)
+	logger.Info(t, "msg", m)
 	i := dialog.NewInformation(t, m, w)
 	i.Resize(fyne.NewSize(
 		program.size.Width/2,
@@ -924,7 +924,7 @@ func showInfo(t, m string, w fyne.Window) {
 	i.Show()
 }
 func showInfoFast(t, m string, w fyne.Window) {
-	logger.Info(t, m)
+	logger.Info(t, "msg", m)
 	s := dialog.NewInformation(t, m, w)
 	s.Show()
 	go func() {
