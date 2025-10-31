@@ -135,26 +135,33 @@ func createPreferred() {
 func isLoggedIn() {
 	ticker := time.NewTicker(time.Second * 2)
 	var mu sync.Mutex
+	var now, height int64
+	now = walletapi.Get_Daemon_TopoHeight()
 	for range ticker.C {
-		mu.Lock()
-		if program.wallet == nil {
-			program.preferences.SetBool("loggedIn", false)
-			break
+		height = walletapi.Get_Daemon_TopoHeight()
+		if now < height {
+			now = height
+			mu.Lock()
+			if program.wallet == nil {
+				program.preferences.SetBool("loggedIn", false)
+				break
+			}
+			if program.ws_server != nil { // don't save the listeners into the wallet file
+				program.preferences.SetBool("loggedIn", true)
+				continue
+			}
+			if err := program.wallet.Save_Wallet(); err != nil {
+				fyne.DoAndWait(func() {
+					program.labels.loggedin.SetText("WALLET: 🟡") // signalling an error
+				})
+				continue
+			}
+			if !program.preferences.Bool("loggedIn") && program.wallet != nil {
+				program.preferences.SetBool("loggedIn", true)
+			}
+			mu.Unlock()
 		}
-		if program.ws_server != nil { // don't save the listeners into the wallet file
-			program.preferences.SetBool("loggedIn", true)
-			continue
-		}
-		if err := program.wallet.Save_Wallet(); err != nil {
-			fyne.DoAndWait(func() {
-				program.labels.loggedin.SetText("WALLET: 🟡") // signalling an error
-			})
-			continue
-		}
-		if !program.preferences.Bool("loggedIn") && program.wallet != nil {
-			program.preferences.SetBool("loggedIn", true)
-		}
-		mu.Unlock()
+
 	}
 }
 func notificationNewEntry() {
