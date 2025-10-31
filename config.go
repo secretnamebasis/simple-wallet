@@ -106,6 +106,7 @@ func maintain_connection() {
 	if program.node.list[0].ip != "" {
 		program.node.current = program.node.list[0].ip
 	}
+	var isDancing bool
 
 	// this is an 2 second loop
 	for range ticker.C {
@@ -118,10 +119,56 @@ func maintain_connection() {
 			// otherwise, try to connect to the walletapi
 			walletapi.Connect(walletapi.Daemon_Endpoint) != nil { // if it fails...
 
-			// update the label and show 0s
+			// update the label and show dancing bit
+			dance := func() {
+				var (
+					stop   = func() { isDancing = false }
+					update = func(msg string) {
+						text := "BLOCK: " + msg
+						fyne.DoAndWait(func() { program.labels.height.SetText(text) })
+						time.Sleep(100 * time.Millisecond)
+					}
+
+					bit  uint16 = 1
+					bits uint16 = bit // start with a bit
+
+					max uint8 = 13 // zero index
+
+					isConnected bool = strings.Contains(program.labels.connection.Text, "✅")
+				)
+
+				for !isConnected {
+					isDancing = true
+					defer stop()
+
+					for range max {
+						isConnected = strings.Contains(program.labels.connection.Text, "✅")
+
+						if isConnected {
+							return
+						}
+
+						update(fmt.Sprintf("%014b", bits))
+						bits <<= bit // shift left, fill rightmost bitwith 1
+					}
+					for range max {
+						isConnected = strings.Contains(program.labels.connection.Text, "✅")
+
+						if isConnected {
+							return
+						}
+
+						update(fmt.Sprintf("%014b", bits))
+						bits >>= bit // shift right, drop rightmost bit
+					}
+				}
+			}
+			if !isDancing {
+				go dance()
+			}
+
 			fyne.DoAndWait(func() {
 				program.labels.connection.SetText("NODE: 🟡") // signalling unstable
-				program.labels.height.SetText("BLOCK: 00000000000000")
 				if program.buttons.register.Visible() {
 					program.buttons.register.Disable()
 				} else if program.activities.registration.Visible() {
