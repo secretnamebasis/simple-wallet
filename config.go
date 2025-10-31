@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -209,7 +208,7 @@ func maintain_connection() {
 				// assuming the fastest connection works
 				walletapi.Daemon_Endpoint = program.node.current
 			}
-			slog.Info(fmt.Sprintf("Connecting to: %s", program.node.current))
+			logger.Info(fmt.Sprintf("Connecting to: %s", program.node.current))
 			// re-test the connection
 			if err := walletapi.Connect(walletapi.Daemon_Endpoint); err != nil {
 				// show why?
@@ -247,7 +246,7 @@ func maintain_connection() {
 				}
 				// increment the retries
 				retries++
-				fmt.Println("connection retry attempt", retries)
+				logger.Error(errors.New("connection"), "connection retry attempt", retries)
 			}
 		} else {
 

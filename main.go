@@ -2,10 +2,11 @@ package main
 
 import (
 	"crypto/rand"
+	"encoding/gob"
 	"fmt"
 	m_rand "math/rand"
-	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 
@@ -13,7 +14,10 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"github.com/chzyer/readline"
+	"github.com/deroproject/derohe/globals"
 	"github.com/deroproject/derohe/walletapi"
+	"github.com/go-logr/logr"
 )
 
 // main caller
@@ -167,13 +171,45 @@ func initialize() {
 	// captain's orders
 	go initialize_table()
 
+	initialize_logger()
+
 	// simple way to create a preferred ip endpoint file
 	createPreferred()
 
 	// test localhost first, then connect from a list of public nodes
 	go maintain_connection()
+}
+func initialize_logger() {
+	// We need to initialize readline first, so it changes stderr to ansi processor on windows
+	l, err := readline.NewEx(&readline.Config{
+		Prompt: "\033[92mDERO:\033[32m»\033[0m",
+		// Prompt:          prompt,
+		HistoryFile: "", // wallet never saves any history file anywhere, to prevent any leakage
+		// AutoComplete:    completer,
+		InterruptPrompt: "^C",
+		EOFPrompt:       "exit",
+
+		HistorySearchFold: true,
+		// FuncFilterInputRune: filterInput,
+	})
+	if err != nil {
+		panic(err)
+	}
+	defer l.Close()
+
+	// parse arguments and setup logging , print basic information
+	exename, _ := os.Executable()
+	f, err := os.Create(exename + ".log")
+	if err != nil {
+		fmt.Printf("Error while opening log file err: %s filename %s\n", err, exename+".log")
+		return
+	}
+	globals.InitializeLog(l.Stdout(), f)
+	logger = globals.Logger.WithName("simple-wallet")
 
 }
+
+var logger logr.Logger
 
 var only_once sync.Once
 
@@ -182,15 +218,15 @@ func initialize_table() {
 	only_once.Do(func() {
 		big_table := os.Getenv("USE_BIG_TABLE")
 		handleTable := func(s string, i int) {
-			slog.Info("Please wait, generating precompute table.... ")
+			logger.Info("Please wait, generating precompute table.... ")
 			if loadTable(s) {
-				slog.Info("Loaded lookup table from disk.")
+				logger.Info("Loaded lookup table from disk.")
 			} else {
 				msg := "(1<<21)"
 				if big_table != "" {
 					msg = "(1<<24)"
 				}
-				slog.Info("Generating lookup table " + msg + "... this may take a while.")
+				logger.Info("Generating lookup table " + msg + "... this may take a while.")
 				walletapi.Initialize_LookupTable(1, i)
 				saveTable(s, walletapi.Balance_lookup_table)
 			}
@@ -198,7 +234,7 @@ func initialize_table() {
 			tables := len(*walletapi.Balance_lookup_table)
 			if walletapi.Balance_lookup_table != nil && tables > 0 {
 				tableLen := float64(len((*walletapi.Balance_lookup_table)[0]))
-				slog.Info(fmt.Sprintf("Lookup table info: %d table, with %.f entries (~%.f MiB)\n",
+				logger.Info(fmt.Sprintf("Lookup table info: %d table, with %.f entries (~%.f MiB)",
 					tables, tableLen, tableLen*8/kilobyte/kilobyte))
 			}
 		}
@@ -207,7 +243,7 @@ func initialize_table() {
 		} else {
 			handleTable("small_table.gob", 1<<21)
 		}
-		slog.Info("Precompute table loaded into memory\n")
+		logger.Info("Precompute table loaded into memory")
 	})
 }
 

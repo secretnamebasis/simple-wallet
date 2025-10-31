@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"runtime"
+	"strconv"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -153,19 +153,6 @@ func reg() {
 		// rendering too slow...
 		// show a speed gauge
 
-		fmt.Printf(
-			"\rThreads: %d "+
-				"HASH: %s "+
-				"ESTIMATED: %d "+
-				"COUNTER: %d "+
-				"Success: %d",
-			desired_threads,
-			hash.String(),
-			estimate,
-			fails,
-			wins,
-		)
-
 		for wins == 0 {
 
 			// if the wallet isn't present or is registered... stop
@@ -200,6 +187,21 @@ func reg() {
 
 				// increment the fails by 1
 				fails++
+			}
+
+			if fails%atomic_units == 0 || wins > 0 {
+				logger.Info("registration",
+					"Threads:",
+					strconv.Itoa(desired_threads),
+					"HASH:",
+					truncator(hash.String()),
+					"ESTIMATED:",
+					strconv.Itoa(int(estimate)),
+					"COUNTER:",
+					strconv.Itoa(int(fails)),
+					"Success:",
+					strconv.Itoa(int(wins)),
+				)
 			}
 		}
 	}

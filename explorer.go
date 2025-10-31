@@ -657,8 +657,8 @@ func explorer() {
 					var transaction transaction.Transaction
 					b, err := hex.DecodeString(tx.Txs_as_hex[0])
 					if err != nil {
-						fmt.Println(err)
-						continue // lol
+						logger.Error(err, "lol")
+						continue
 					}
 					transaction.Deserialize(b)
 					transactions = append(transactions, transaction)

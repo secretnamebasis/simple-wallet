@@ -274,7 +274,7 @@ func updateBalance() {
 			if bal == 0 && program.wallet.IsRegistered() {
 				fyne.DoAndWait(func() {
 					// update it
-					program.labels.balance.SetText("syncing")
+					program.labels.balance.SetText(rpc.FormatMoney(0))
 
 				})
 			} else if bal == 0 && !program.wallet.IsRegistered() {
@@ -437,7 +437,7 @@ func testConnection(s string) error {
 	// make a new request
 	req, err := http.NewRequest("GET", "http://"+s, nil)
 	if err != nil {
-		fmt.Println(err)
+		logger.Error(err, "connection error")
 		return err
 	}
 
@@ -465,7 +465,7 @@ func testConnection(s string) error {
 			return err
 		} else {
 			// show these errors in the terminal just because
-			fmt.Println("unhandled err", err)
+			logger.Error(err, "unhandled err")
 			return err
 		}
 	}
@@ -481,8 +481,10 @@ func testConnection(s string) error {
 
 	// if the address doesn't say DERO ... return an err
 	if !strings.Contains(string(body), "DERO") {
-		fmt.Println(string(body)) // might not be a bad idea to know what they are saying
-		return errors.New("body does not contain DERO")
+		err := errors.New("body does not contain DERO")
+		logger.Error(err, string(body)) // might not be a bad idea to know what they are saying
+
+		return err
 	}
 	return nil
 }
@@ -551,7 +553,7 @@ func makeCenteredWrappedLabel(s string) *widget.Label {
 func callRPC[T any](method string, params any, validator func(T) bool) T {
 	result, err := handleResult[T](method, params)
 	if err != nil {
-		fmt.Println(err)
+		logger.Error(err, "RPC error", "method", method)
 		var zero T
 		return zero
 	}
@@ -661,7 +663,7 @@ func getSCIDImage(scid string) image.Image {
 			strings.Contains(k, "icon") {
 			b, e := hex.DecodeString(v.(string))
 			if e != nil {
-				fmt.Println(v, e)
+				logger.Error(e, v.(string))
 				continue
 			}
 			value := string(b)
@@ -674,7 +676,7 @@ func getSCIDImage(scid string) image.Image {
 
 				req, err := http.NewRequestWithContext(ctx, "GET", uri.String(), nil)
 				if err != nil {
-					fmt.Println(err)
+					logger.Error(err, "get error")
 					return nil
 				}
 				client := http.DefaultClient
@@ -907,9 +909,13 @@ func getBlockDeserialized(blob string) block.Block {
 }
 
 // simple way to show error
-func showError(e error, w fyne.Window) { dialog.ShowError(e, w) }
+func showError(e error, w fyne.Window) {
+	logger.Error(e, "showing error")
+	dialog.ShowError(e, w)
+}
 
 func showInfo(t, m string, w fyne.Window) {
+	logger.Info(t, m)
 	i := dialog.NewInformation(t, m, w)
 	i.Resize(fyne.NewSize(
 		program.size.Width/2,
@@ -918,6 +924,7 @@ func showInfo(t, m string, w fyne.Window) {
 	i.Show()
 }
 func showInfoFast(t, m string, w fyne.Window) {
+	logger.Info(t, m)
 	s := dialog.NewInformation(t, m, w)
 	s.Show()
 	go func() {

@@ -4,10 +4,13 @@ go 1.25.3
 
 require (
 	fyne.io/fyne/v2 v2.7.0
+	github.com/chzyer/readline v1.5.1
 	github.com/creachadair/jrpc2 v0.35.4
 	github.com/deroproject/derohe v0.0.0-20250813215012-9b6a8b82c839
+	github.com/go-logr/logr v1.4.3
 	github.com/ybbus/jsonrpc/v3 v3.1.6
 	golang.org/x/image v0.24.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (
@@ -35,7 +38,6 @@ require (
 	github.com/fyne-io/oksvg v0.2.0 // indirect
 	github.com/go-gl/gl v0.0.0-20231021071112-07e5d0ea2e71 // indirect
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20240506104042-037f3cc74f2a // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/go-text/render v0.2.0 // indirect
 	github.com/go-text/typesetting v0.2.1 // indirect
