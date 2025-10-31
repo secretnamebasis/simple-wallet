@@ -13,7 +13,19 @@ import (
 type customTheme struct{}
 
 func (customTheme) Font(style fyne.TextStyle) fyne.Resource {
-	return theme.DefaultTheme().Font(style)
+	if style.Monospace {
+		return theme.DefaultTheme().Font(style)
+	}
+	if style.Bold {
+		if style.Italic {
+			return resourceNotoSansBoldItalicTtf
+		}
+		return resourceNotoSansBoldTtf
+	}
+	if style.Italic {
+		return resourceNotoSansItalicTtf
+	}
+	return resourceNotoSansRegularTtf
 }
 
 func (customTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
