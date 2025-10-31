@@ -180,12 +180,58 @@ var only_once sync.Once
 // let's make sure this is only loaded once
 func initialize_table() {
 	only_once.Do(func() {
-		if os.Getenv("USE_BIG_TABLE") != "" {
-			fmt.Printf("Please wait, generating precompute table....")
-			walletapi.Initialize_LookupTable(1, 1<<24)
-			fmt.Printf("done\n")
-		} else {
-			walletapi.Initialize_LookupTable(1, 1<<21)
+		big_table := os.Getenv("USE_BIG_TABLE")
+		handleTable := func(s string, i int) {
+			slog.Info("Please wait, generating precompute table.... ")
+			if loadTable(s) {
+				slog.Info("Loaded lookup table from disk.")
+			} else {
+				msg := "(1<<21)"
+				if big_table != "" {
+					msg = "(1<<24)"
+				}
+				slog.Info("Generating lookup table " + msg + "... this may take a while.")
+				walletapi.Initialize_LookupTable(1, i)
+				saveTable(s, walletapi.Balance_lookup_table)
+			}
+
+			tables := len(*walletapi.Balance_lookup_table)
+			if walletapi.Balance_lookup_table != nil && tables > 0 {
+				tableLen := float64(len((*walletapi.Balance_lookup_table)[0]))
+				slog.Info(fmt.Sprintf("Lookup table info: %d table, with %.f entries (~%.f MiB)\n",
+					tables, tableLen, tableLen*8/kilobyte/kilobyte))
+			}
 		}
+		if big_table != "" {
+			handleTable("big_table.gob", 1<<24)
+		} else {
+			handleTable("small_table.gob", 1<<21)
+		}
+		slog.Info("Precompute table loaded into memory\n")
 	})
+}
+
+func loadTable(filename string) bool {
+	f, err := os.Open(filepath.Join(globals.GetDataDirectory(), filename))
+	if err != nil {
+		return false // file not found
+	}
+	defer f.Close()
+	if err := gob.NewDecoder(f).Decode(&walletapi.Balance_lookup_table); err != nil {
+		fmt.Println("Failed to decode lookup table:", err)
+		return false
+	}
+	return true
+}
+
+func saveTable(filename string, table any) {
+	f, err := os.Create(filepath.Join(globals.GetDataDirectory(), filename))
+	if err != nil {
+		fmt.Println("Failed to create table file:", err)
+		return
+	}
+	defer f.Close()
+	if err := gob.NewEncoder(f).Encode(table); err != nil {
+		fmt.Println("Failed to encode lookup table:", err)
+	}
 }
