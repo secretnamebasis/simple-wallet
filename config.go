@@ -823,12 +823,12 @@ func simulator() {
 				"--simulator": true,
 			}
 			var err error
-			program.caches.simulator_chain, err = blockchain.Blockchain_Start(simulation) //start chain in simulator mode
+			program.node.simulator_chain, err = blockchain.Blockchain_Start(simulation) //start chain in simulator mode
 			if err != nil {
 				panic(err)
 			}
 
-			simulation["chain"] = program.caches.simulator_chain
+			simulation["chain"] = program.node.simulator_chain
 
 			p2p.P2P_Init(simulation)
 
@@ -839,8 +839,8 @@ func simulator() {
 				panic(err)
 			}
 			// and let's simulate a bunch of users
-			program.caches.simulator_wallets = []*walletapi.Wallet_Disk{}
-			program.caches.simulator_rpcservers = []*rpcserver.RPCServer{}
+			program.node.simulator_wallets = []*walletapi.Wallet_Disk{}
+			program.node.simulator_rpcservers = []*rpcserver.RPCServer{}
 			simulation_seeds := []string{
 				"171eeaa899e360bf1a8ada7627aaea9fdad7992463581d935a8838f16b1ff51a",
 				"193faf64d79e9feca5fce8b992b4bb59b86c50f491e2dc475522764ca6666b6b",
@@ -873,7 +873,7 @@ func simulator() {
 			for i, seed := range simulation_seeds {
 				n := "simulation_wallet_" + strconv.Itoa(i) + ".db"
 				wallet := create_wallet(n, seed)
-				if err := program.caches.simulator_chain.Add_TX_To_Pool(wallet.GetRegistrationTX()); err != nil {
+				if err := program.node.simulator_chain.Add_TX_To_Pool(wallet.GetRegistrationTX()); err != nil {
 					panic(err)
 				}
 				// point the wallet at the daemon
@@ -888,9 +888,9 @@ func simulator() {
 				if r, err := rpcserver.RPCServer_Start(wallet, n); err != nil {
 					panic(err)
 				} else {
-					program.caches.simulator_rpcservers = append(program.caches.simulator_rpcservers, r)
+					program.node.simulator_rpcservers = append(program.node.simulator_rpcservers, r)
 				}
-				program.caches.simulator_wallets = append(program.caches.simulator_wallets, wallet)
+				program.node.simulator_wallets = append(program.node.simulator_wallets, wallet)
 				time.Sleep(time.Millisecond * 20) // little breathing room
 			}
 
@@ -901,7 +901,7 @@ func simulator() {
 
 				for {
 					// using the genesis wallet, get a block and miniblock template
-					bl, mbl, _, _, err := program.caches.simulator_chain.Create_new_block_template_mining(genesis_wallet.GetAddress())
+					bl, mbl, _, _, err := program.node.simulator_chain.Create_new_block_template_mining(genesis_wallet.GetAddress())
 					if err != nil {
 						return err
 					}
@@ -911,7 +911,7 @@ func simulator() {
 					serial := mbl.Serialize()
 
 					// and let's just accept it as is
-					if _, blid, _, err = program.caches.simulator_chain.Accept_new_block(ts, serial); err != nil {
+					if _, blid, _, err = program.node.simulator_chain.Accept_new_block(ts, serial); err != nil {
 						msg := "please completely restart wallet software to create new simulation"
 						return errors.New(msg)
 					} else if !blid.IsZero() {
@@ -944,10 +944,10 @@ func simulator() {
 			go func() {
 				last := time.Now()
 				for {
-					if program.caches.simulator_chain == nil {
+					if program.node.simulator_chain == nil {
 						return
 					}
-					bl, _, _, _, err := program.caches.simulator_chain.Create_new_block_template_mining(genesis_wallet.GetAddress())
+					bl, _, _, _, err := program.node.simulator_chain.Create_new_block_template_mining(genesis_wallet.GetAddress())
 					if err != nil {
 						continue
 					}
@@ -979,11 +979,11 @@ func simulator() {
 			if program.simulator_server != nil {
 				program.simulator_server.RPCServer_Stop()
 				p2p.P2P_Shutdown()
-				program.caches.simulator_chain.Shutdown()
-				for _, r := range program.caches.simulator_rpcservers {
+				program.node.simulator_chain.Shutdown()
+				for _, r := range program.node.simulator_rpcservers {
 					go r.RPCServer_Stop()
 				}
-				program.caches.simulator_chain = nil
+				program.node.simulator_chain = nil
 				program.simulator_server = nil
 			}
 			program.toggles.rpc_server.Enable()

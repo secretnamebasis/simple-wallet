@@ -33,12 +33,12 @@ func explorer() {
 	program.explorer.Show()
 	// let's start with the stats tab
 	stats := []string{
-		strconv.Itoa(int(program.caches.info.Height)),
-		strconv.Itoa(int(program.caches.info.AverageBlockTime50)),
-		strconv.Itoa(int(program.caches.info.Tx_pool_size)),
-		strconv.Itoa(int(program.caches.info.Difficulty) / 1000000),
-		strconv.Itoa(int(program.caches.info.Total_Supply)),
-		program.caches.info.Status,
+		strconv.Itoa(int(program.node.info.Height)),
+		strconv.Itoa(int(program.node.info.AverageBlockTime50)),
+		strconv.Itoa(int(program.node.info.Tx_pool_size)),
+		strconv.Itoa(int(program.node.info.Difficulty) / 1000000),
+		strconv.Itoa(int(program.node.info.Total_Supply)),
+		program.node.info.Status,
 	}
 	diff := widget.NewLabel("Network Height: " + stats[0])
 	average_blocktime := widget.NewLabel("Network Blocktime: " + stats[1] + " seconds")
@@ -496,7 +496,7 @@ func explorer() {
 	updatePoolCache := func() {
 
 		pool_label_data = [][]string{}
-		pool := program.caches.pool
+		pool := program.node.pool
 		if len(pool.Tx_list) <= 0 {
 			return
 		}
@@ -506,13 +506,13 @@ func explorer() {
 				Tx_Hashes: []string{pool.Tx_list[i]},
 			})
 			var tx transaction.Transaction
-			decoded, _ := hex.DecodeString(transfer.Txs_as_hex[0])
+			decoded, _ := hex.DecodeString(program.node.transactions[pool.Tx_list[i]].Txs_as_hex[0])
 
 			if err := tx.Deserialize(decoded); err != nil {
 				continue
 			}
 			var size int
-			for _, each := range transfer.Txs {
+			for _, each := range program.node.transactions[pool.Tx_list[i]].Txs {
 				size += len(each.Ring)
 			}
 
@@ -530,7 +530,7 @@ func explorer() {
 	var pool_table *widget.Table
 
 	lengthPool := func() (rows int, cols int) {
-		return len(program.caches.pool.Tx_list), len(pool_headers)
+		return len(program.node.pool.Tx_list), len(pool_headers)
 	}
 
 	createPool := func() fyne.CanvasObject {
@@ -607,7 +607,7 @@ func explorer() {
 	updateBlocksData := func() {
 
 		block_label_data = [][]string{}
-		height := program.caches.info.TopoHeight
+		height := program.node.info.TopoHeight
 		// we are going to take the last ten blocks,
 		// like... the last 3 minutes
 
@@ -816,11 +816,11 @@ func explorer() {
 	var updating bool = true
 
 	go func() {
-		height := program.caches.info.TopoHeight
+		height := program.node.info.TopoHeight
 		for range time.NewTicker(time.Second * 2).C {
 			if updating {
-				if height != program.caches.info.TopoHeight {
-					height = program.caches.info.TopoHeight
+				if height != program.node.info.TopoHeight {
+					height = program.node.info.TopoHeight
 
 					updateDiffData()
 
@@ -841,12 +841,12 @@ func explorer() {
 					})
 
 					stats = []string{
-						strconv.Itoa(int(program.caches.info.Height)),
-						strconv.Itoa(int(program.caches.info.AverageBlockTime50)),
-						strconv.Itoa(int(program.caches.info.Tx_pool_size)),
-						strconv.Itoa(int(program.caches.info.Difficulty) / 1000000),
-						strconv.Itoa(int(program.caches.info.Total_Supply)),
-						program.caches.info.Status,
+						strconv.Itoa(int(program.node.info.Height)),
+						strconv.Itoa(int(program.node.info.AverageBlockTime50)),
+						strconv.Itoa(int(program.node.info.Tx_pool_size)),
+						strconv.Itoa(int(program.node.info.Difficulty) / 1000000),
+						strconv.Itoa(int(program.node.info.Total_Supply)),
+						program.node.info.Status,
 					}
 					fyne.DoAndWait(func() {
 						diff.SetText("Network Height: " + stats[0])

@@ -534,9 +534,9 @@ func conductTransfer() {
 						showError(errors.New("manually confirm transfer"), program.window)
 						return
 					}
-					if len(program.caches.pool.Tx_list) > 0 {
+					if len(program.node.pool.Tx_list) > 0 {
 
-						if slices.Contains(program.caches.pool.Tx_list, tx.GetHash().String()) {
+						if slices.Contains(program.node.pool.Tx_list, tx.GetHash().String()) {
 							in_pool := time.Now().Add(time.Second * 600)
 							for on_chain := range time.NewTicker(time.Second * 2).C {
 								if on_chain.After(in_pool) {

@@ -51,7 +51,14 @@ type (
 	}
 
 	nodes struct {
-		list []struct {
+		pool                 rpc.GetTxPool_Result
+		info                 rpc.GetInfo_Result
+		simulator_chain      *blockchain.Blockchain
+		simulator_wallets    []*walletapi.Wallet_Disk
+		simulator_rpcservers []*rpcserver.RPCServer
+		transactions         map[string]rpc.GetTransaction_Result
+		blocks               map[uint64]rpc.GetBlock_Result
+		list                 []struct {
 			ip   string
 			name string
 		}
@@ -63,12 +70,7 @@ type (
 		image image.Image
 	}
 	caches struct {
-		assets               []asset
-		pool                 rpc.GetTxPool_Result
-		info                 rpc.GetInfo_Result
-		simulator_chain      *blockchain.Blockchain
-		simulator_wallets    []*walletapi.Wallet_Disk
-		simulator_rpcservers []*rpcserver.RPCServer
+		assets []asset
 	}
 
 	dialogues struct {

@@ -311,8 +311,8 @@ func updateCaches() {
 		height := walletapi.Get_Daemon_TopoHeight()
 		if marker < height {
 			marker = height
-			program.caches.info = getDaemonInfo()
-			program.caches.pool = getTxPool()
+			program.node.info = getDaemonInfo()
+			program.node.pool = getTxPool()
 		}
 	}
 
