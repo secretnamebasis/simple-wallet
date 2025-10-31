@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"sync"
@@ -69,6 +70,7 @@ func explorer() {
 					mu.Lock()
 					if len(diff_map) >= limit {
 						delete(diff_map, int(h)-limit)
+						delete(program.node.blocks, uint64(int(h)-limit))
 					}
 					mu.Unlock()
 					return
@@ -94,6 +96,7 @@ func explorer() {
 					return
 				}
 				mu.Lock()
+				program.node.blocks[h] = tx
 				diff_map[int(bl.Height)] = d
 				mu.Unlock()
 			}(i)
@@ -500,11 +503,18 @@ func explorer() {
 		if len(pool.Tx_list) <= 0 {
 			return
 		}
+		for txid := range program.node.transactions {
+			if !slices.Contains(pool.Tx_list, txid) {
+				delete(program.node.transactions, txid)
+			}
+		}
 		for i := range pool.Tx_list {
+			if _, ok := program.node.transactions[pool.Tx_list[i]]; !ok {
+				program.node.transactions[pool.Tx_list[i]] = getTransaction(rpc.GetTransaction_Params{
+					Tx_Hashes: []string{pool.Tx_list[i]},
+				})
+			}
 
-			transfer := getTransaction(rpc.GetTransaction_Params{
-				Tx_Hashes: []string{pool.Tx_list[i]},
-			})
 			var tx transaction.Transaction
 			decoded, _ := hex.DecodeString(program.node.transactions[pool.Tx_list[i]].Txs_as_hex[0])
 
@@ -601,7 +611,7 @@ func explorer() {
 	}
 
 	block_label_data := [][]string{}
-	limit := 10
+	const limit = 10
 
 	var block_table *widget.Table
 	updateBlocksData := func() {
@@ -613,10 +623,15 @@ func explorer() {
 
 		for i := 1; i <= limit; i++ {
 			h := uint64(height) - uint64(i)
+			for txid, each := range program.node.transactions {
+				if each.Txs[0].Block_Height < int64(int(h)-limit) {
+					delete(program.node.transactions, txid)
+				}
+			}
 
 			tx_label_data := [][]string{}
 
-			result := getBlockInfo(rpc.GetBlock_Params{Height: h})
+			result := program.node.blocks[h]
 			var bl block.Block
 			b, err := hex.DecodeString(result.Blob)
 			if err != nil {
@@ -626,15 +641,18 @@ func explorer() {
 
 			tx_results, transactions := func() (txs []rpc.GetTransaction_Result, transactions []transaction.Transaction) {
 				for _, each := range bl.Tx_hashes {
-					tx := getTransaction(
-						rpc.GetTransaction_Params{
-							Tx_Hashes: []string{each.String()},
-						},
-					)
-					if len(tx.Txs_as_hex) == 0 {
-						continue // there is nothing here ?
+					if _, ok := program.node.transactions[each.String()]; !ok {
+						program.node.transactions[each.String()] = getTransaction(
+							rpc.GetTransaction_Params{
+								Tx_Hashes: []string{each.String()},
+							},
+						)
 					}
 
+					if len(program.node.transactions[each.String()].Txs_as_hex) == 0 {
+						continue // there is nothing here ?
+					}
+					tx := program.node.transactions[each.String()]
 					txs = append(txs, tx)
 					var transaction transaction.Transaction
 					b, err := hex.DecodeString(tx.Txs_as_hex[0])
@@ -884,6 +902,8 @@ func explorer() {
 	tabs.SetTabLocation(container.TabLocationLeading)
 
 	program.explorer.SetOnClosed(func() {
+		program.node.blocks = make(map[uint64]rpc.GetBlock_Result)
+		program.node.transactions = make(map[string]rpc.GetTransaction_Result)
 		updating = false
 	})
 	program.explorer.SetContent(tabs)
