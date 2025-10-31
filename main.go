@@ -4,8 +4,10 @@ import (
 	"crypto/rand"
 	"fmt"
 	m_rand "math/rand"
+	"net/http"
 	"os"
 	"strconv"
+	"sync"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -163,7 +165,7 @@ func initialize() {
 	program.hyperlinks.lockscreen.Hide()
 
 	// captain's orders
-	initialize_table()
+	go initialize_table()
 
 	// simple way to create a preferred ip endpoint file
 	createPreferred()
@@ -173,14 +175,17 @@ func initialize() {
 
 }
 
-// captain's orders
+var only_once sync.Once
+
+// let's make sure this is only loaded once
 func initialize_table() {
-	// init the lookup table one, anyone importing walletapi should init this first, this will take around 1 sec on any recent system
-	if os.Getenv("USE_BIG_TABLE") != "" {
-		fmt.Printf("Please wait, generating precompute table....")
-		walletapi.Initialize_LookupTable(1, 1<<24) // use 8 times more more ram, around 256 MB RAM
-		fmt.Printf("done\n")
-	} else {
-		walletapi.Initialize_LookupTable(1, 1<<21)
-	}
+	only_once.Do(func() {
+		if os.Getenv("USE_BIG_TABLE") != "" {
+			fmt.Printf("Please wait, generating precompute table....")
+			walletapi.Initialize_LookupTable(1, 1<<24)
+			fmt.Printf("done\n")
+		} else {
+			walletapi.Initialize_LookupTable(1, 1<<21)
+		}
+	})
 }
