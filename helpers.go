@@ -666,6 +666,8 @@ func getSC(scParam rpc.GetSC_Params) rpc.GetSC_Result {
 			return r.Code != "" && (len(r.VariableStringKeys) != 0 && len(r.VariableUint64Keys) != 0)
 		case scParam.Code && !scParam.Variables:
 			return r.Code != ""
+		case !scParam.Code && scParam.Variables:
+			return (len(r.VariableStringKeys) != 0 && len(r.VariableUint64Keys) != 0)
 		case !scParam.Code && !scParam.Variables:
 			fallthrough
 		default:
