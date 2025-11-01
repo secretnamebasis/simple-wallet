@@ -430,6 +430,34 @@ func getSCNameFromVars(keys map[string]interface{}) string {
 	}
 	return text
 }
+
+func getTxsAndTransactions(hashes []crypto.Hash) (txs []rpc.GetTransaction_Result, transactions []transaction.Transaction) {
+	for _, each := range hashes {
+		if _, ok := program.node.transactions[each.String()]; !ok {
+			// update the cache
+			program.node.transactions[each.String()] = getTransaction(
+				rpc.GetTransaction_Params{
+					Tx_Hashes: []string{each.String()},
+				},
+			)
+		}
+
+		if len(program.node.transactions[each.String()].Txs_as_hex) == 0 {
+			continue // there is nothing here ?
+		}
+		tx := program.node.transactions[each.String()]
+		txs = append(txs, tx)
+		var transaction transaction.Transaction
+		b, err := hex.DecodeString(tx.Txs_as_hex[0])
+		if err != nil {
+			logger.Error(err, "lol")
+			continue
+		}
+		transaction.Deserialize(b)
+		transactions = append(transactions, transaction)
+	}
+	return
+}
 func isRegistered(s string) bool {
 	result := callRPC("DERO.GetEncryptedBalance",
 		rpc.GetEncryptedBalance_Params{

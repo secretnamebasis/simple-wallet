@@ -671,32 +671,7 @@ func explorer() {
 			}
 			bl.Deserialize(b)
 
-			tx_results, transactions := func() (txs []rpc.GetTransaction_Result, transactions []transaction.Transaction) {
-				for _, each := range bl.Tx_hashes {
-					if _, ok := program.node.transactions[each.String()]; !ok {
-						program.node.transactions[each.String()] = getTransaction(
-							rpc.GetTransaction_Params{
-								Tx_Hashes: []string{each.String()},
-							},
-						)
-					}
-
-					if len(program.node.transactions[each.String()].Txs_as_hex) == 0 {
-						continue // there is nothing here ?
-					}
-					tx := program.node.transactions[each.String()]
-					txs = append(txs, tx)
-					var transaction transaction.Transaction
-					b, err := hex.DecodeString(tx.Txs_as_hex[0])
-					if err != nil {
-						logger.Error(err, "lol")
-						continue
-					}
-					transaction.Deserialize(b)
-					transactions = append(transactions, transaction)
-				}
-				return
-			}()
+			tx_results, transactions := getTxsAndTransactions(bl.Tx_hashes)
 			size := uint64(len(bl.Serialize()))
 			if len(tx_results) != 0 {
 				for i := range tx_results {
