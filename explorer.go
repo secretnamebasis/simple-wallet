@@ -145,7 +145,7 @@ func explorer() {
 
 	// speaking of tabs...
 	var tabs *container.AppTabs
-	var searchTab *container.TabItem
+	var tab_search *container.TabItem
 
 	var searchData, searchHeaders []string
 	var results_table *widget.Table
@@ -212,9 +212,7 @@ func explorer() {
 			searchHeaders = append(searchHeaders, types...)
 			searchData = append(searchData, hashes...)
 
-			searchHeaders = append(searchHeaders, []string{
-				"MINING OUTPUTS",
-			}...)
+			searchHeaders = append(searchHeaders, []string{"MINING OUTPUTS"}...)
 
 			miners := []string{}
 			miners = append(miners, r.Block_Header.Miners...)
@@ -616,7 +614,7 @@ func explorer() {
 					hash := pool_data[tci.Row][tci.Col]
 					searchBlockchain(hash)
 					results_table.Refresh()
-					tabs.Select(searchTab)
+					tabs.Select(tab_search)
 				}
 			}
 
@@ -719,10 +717,7 @@ func explorer() {
 		return len(block_label_data), len(block_headers)
 	}
 	createBlocks := func() fyne.CanvasObject {
-		return container.NewStack(
-			widget.NewLabel(""),
-			container.NewScroll(widget.NewHyperlink("", nil)),
-		)
+		return container.NewStack(widget.NewLabel(""), container.NewScroll(widget.NewHyperlink("", nil)))
 	}
 	updateBlocks := func(tci widget.TableCellID, co fyne.CanvasObject) {
 		block_data := block_label_data
@@ -750,7 +745,7 @@ func explorer() {
 				hash := block_data[tci.Row][tci.Col]
 				searchBlockchain(hash)
 				results_table.Refresh()
-				tabs.Select(searchTab)
+				tabs.Select(tab_search)
 			}
 		}
 
