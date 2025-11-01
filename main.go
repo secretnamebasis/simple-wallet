@@ -69,6 +69,7 @@ func run() {
 
 	// let's set a simple intercept close for the window
 	program.window.SetCloseIntercept(func() {
+		logger.Info("closing")
 		if program.loggedIn {
 			program.wallet.Close_Encrypted_Wallet()
 		}

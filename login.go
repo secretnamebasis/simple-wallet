@@ -18,7 +18,7 @@ import (
 )
 
 func loggedIn() {
-
+	defer logger.Info("login", "status", "complete")
 	// helper for ux
 
 	// make little warbling light
@@ -61,7 +61,7 @@ func loggedIn() {
 
 	// update balance every second
 	go updateBalance()
-
+	logger.Info("balance loop", "status", "initiated")
 	go updateCaches()
 	logger.Info("cache loop", "status", "initiated")
 
@@ -84,8 +84,9 @@ func loggedIn() {
 
 		// pull the assets list and build the cache
 		buildAssetHashList()
+		logger.Info("asset cahce", "status", "complete")
 		fyne.DoAndWait(func() {
-			notice.SetText("history synced for DERO, beginning asset sync")
+			notice.SetText("DERO sync initiated\nAsset sync initiating")
 		})
 
 		// sync asset histories
@@ -192,6 +193,7 @@ func loggedIn() {
 
 	// save wallet every second
 	go isLoggedIn()
+	logger.Info("wallet save loop", "status", "initiated")
 
 	// check for registration
 	if program.wallet.Wallet_Memory.IsRegistered() {
