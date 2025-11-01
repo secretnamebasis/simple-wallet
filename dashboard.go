@@ -721,7 +721,7 @@ func assetsList() {
 
 			// this simple go routine will update the balance every second
 			var updating bool = true
-			go func() {
+			listen_for_balance_changes := func() {
 				for range time.NewTicker(time.Second * 2).C {
 					if updating {
 						updated, _ := program.wallet.Get_Balance_scid(hash)
@@ -730,7 +730,8 @@ func assetsList() {
 						return
 					}
 				}
-			}()
+			}
+			go listen_for_balance_changes()
 
 			address := widget.NewEntry()
 			address.Validator = func(s string) error {
