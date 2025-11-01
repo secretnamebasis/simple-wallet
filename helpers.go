@@ -664,8 +664,7 @@ func getSC(scParam rpc.GetSC_Params) rpc.GetSC_Result {
 		if scParam.Code {
 			return r.Code != ""
 		}
-			return true
-		}
+		return true
 	}
 	result := callRPC("DERO.GetSC", scParam, validator)
 	return result
