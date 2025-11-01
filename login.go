@@ -63,6 +63,14 @@ func loggedIn() {
 	go updateBalance()
 
 	go updateCaches()
+	logger.Info("cache loop", "status", "initiated")
+
+	// and while we are at it, notify me every time a new entry comes in
+	go notificationNewEntry()
+	logger.Info("notification loop", "status", "initiated")
+
+	program.wallet.SyncHistory(crypto.ZEROHASH)
+	logger.Info("sync history", "status", "initiated")
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -73,10 +81,6 @@ func loggedIn() {
 		if program.wallet == nil {
 			return
 		}
-		// and while we are at it, notify me every time a new entry comes in
-		go notificationNewEntry()
-
-		program.wallet.SyncHistory(crypto.ZEROHASH)
 
 		// pull the assets list and build the cache
 		buildAssetHashList()
