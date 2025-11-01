@@ -255,8 +255,7 @@ func notificationNewEntry() {
 func updateBalance() {
 	var previous_bal uint64
 	var bal uint64
-	ticker := time.NewTicker(time.Second * 2)
-	for range ticker.C {
+	callback := func() {
 		// check to see if we are logged-in first
 		if !program.preferences.Bool("loggedIn") {
 			fyne.DoAndWait(func() {
@@ -292,8 +291,10 @@ func updateBalance() {
 
 			// get the balance
 			if !program.preferences.Bool("loggedIn") {
-				break
-			} // hella sensitive
+				return
+			}
+
+			// hella sensitive
 			bal, _ = program.wallet.Get_Balance()
 
 			// check it against previous
@@ -309,6 +310,18 @@ func updateBalance() {
 
 				})
 			}
+		}
+	}
+	callback()
+	ticker := time.NewTicker(time.Second * 2)
+	new := int64(0)
+	for range ticker.C {
+		height := walletapi.Get_Daemon_TopoHeight()
+		if new < height {
+			new = height
+			callback()
+		} else {
+			continue
 		}
 	}
 }
