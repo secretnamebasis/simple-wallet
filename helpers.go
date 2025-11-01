@@ -605,7 +605,7 @@ func handleResult[T any](method string, params any) (T, error) {
 	var cancel context.CancelFunc
 	ctx, cancel = context.WithTimeout(context.Background(), timeout)
 	if method == "DERO.GetSC" {
-		ctx, cancel = context.WithTimeout(context.Background(), deadline)
+		ctx, cancel = context.WithDeadline(context.Background(), time.Now().Add(deadline))
 	}
 	defer cancel()
 
