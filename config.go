@@ -182,7 +182,7 @@ func maintain_connection() {
 			if program.preferences.Bool("mainnet") {
 				// now we need to range and connect
 				var fastest int64 = 10000 // we assume 10 second
-
+				logger.Info("Ranging node list")
 				// now range through the nodes in the list
 				for _, node := range program.node.list {
 
@@ -191,6 +191,10 @@ func maintain_connection() {
 					// here is a helper
 					if err := testConnection(node.ip); err != nil {
 						continue
+					}
+					if node.name == "preferred" {
+						logger.Info("Connecting to preferred node")
+						break
 					}
 					// now that the connection has been tested, get the time
 					result := time.Now().UnixMilli() - start.UnixMilli()
@@ -203,6 +207,8 @@ func maintain_connection() {
 
 						// and it is now the current node
 						program.node.current = node.ip
+
+						logger.Info("Fastest node", node.name, node.ip, "ping", result)
 					}
 				}
 				// assuming the fastest connection works
