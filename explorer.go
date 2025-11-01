@@ -673,7 +673,8 @@ func explorer() {
 
 			tx_results, transactions := getTxsAndTransactions(bl.Tx_hashes)
 			size := uint64(len(bl.Serialize()))
-			if len(tx_results) != 0 {
+
+			tx_results_callback := func(tx_results []rpc.GetTransaction_Result) {
 				for i := range tx_results {
 					size += uint64(len(transactions[i].Serialize()))
 					var rings uint64
@@ -690,6 +691,11 @@ func explorer() {
 					})
 				}
 			}
+
+			if len(tx_results) != 0 {
+				tx_results_callback(tx_results)
+			}
+
 			block_label_data = append(block_label_data, []string{
 				strconv.Itoa(int(result.Block_Header.Height)),
 				strconv.Itoa(int(result.Block_Header.TopoHeight)),
