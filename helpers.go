@@ -430,6 +430,34 @@ func getSCNameFromVars(keys map[string]interface{}) string {
 	}
 	return text
 }
+
+func getTxsAndTransactions(hashes []crypto.Hash) (txs []rpc.GetTransaction_Result, transactions []transaction.Transaction) {
+	for _, each := range hashes {
+		if _, ok := program.node.transactions[each.String()]; !ok {
+			// update the cache
+			program.node.transactions[each.String()] = getTransaction(
+				rpc.GetTransaction_Params{
+					Tx_Hashes: []string{each.String()},
+				},
+			)
+		}
+
+		if len(program.node.transactions[each.String()].Txs_as_hex) == 0 {
+			continue // there is nothing here ?
+		}
+		tx := program.node.transactions[each.String()]
+		txs = append(txs, tx)
+		var transaction transaction.Transaction
+		b, err := hex.DecodeString(tx.Txs_as_hex[0])
+		if err != nil {
+			logger.Error(err, "lol")
+			continue
+		}
+		transaction.Deserialize(b)
+		transactions = append(transactions, transaction)
+	}
+	return
+}
 func isRegistered(s string) bool {
 	result := callRPC("DERO.GetEncryptedBalance",
 		rpc.GetEncryptedBalance_Params{
@@ -472,15 +500,8 @@ func testConnection(s string) error {
 	// if there is an error
 	if err != nil {
 		// return the error
-		if strings.Contains(err.Error(), "connect: connection refused") {
-			return err
-		} else if strings.Contains(err.Error(), "context deadline exceeded") {
-			return err
-		} else {
-			// show these errors in the terminal just because
-			logger.Error(err, "unhandled err")
-			return err
-		}
+		logger.Error(err, "connection error")
+		return err
 	}
 
 	// defer closing the body
@@ -563,16 +584,17 @@ func makeCenteredWrappedLabel(s string) *widget.Label {
 	label.Wrapping = fyne.TextWrapWord
 	return label
 }
-func callRPC[T any](method string, params any, validator func(T) bool) T {
-	result, err := handleResult[T](method, params)
+func callRPC[t any](method string, params any, validator func(t) bool) t {
+	result, err := handleResult[t](method, params)
 	if err != nil {
 		logger.Error(err, "RPC error", "method", method)
-		var zero T
+		var zero t
 		return zero
 	}
 
 	if !validator(result) {
-		var zero T
+		logger.Error(errors.New("failed validation"), method)
+		var zero t
 		return zero
 	}
 
@@ -580,7 +602,12 @@ func callRPC[T any](method string, params any, validator func(T) bool) T {
 }
 func handleResult[T any](method string, params any) (T, error) {
 	var result T
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	var ctx context.Context
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithTimeout(context.Background(), timeout)
+	if method == "DERO.GetSC" {
+		ctx, cancel = context.WithDeadline(context.Background(), time.Now().Add(deadline))
+	}
 	defer cancel()
 
 	rpcClient := jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
@@ -634,7 +661,16 @@ func getDaemonInfo() rpc.GetInfo_Result {
 
 func getSC(scParam rpc.GetSC_Params) rpc.GetSC_Result {
 	validator := func(r rpc.GetSC_Result) bool {
-		return !scParam.Code
+		switch {
+		case scParam.Code && scParam.Variables:
+			return r.Code != "" && (len(r.VariableStringKeys) != 0 && len(r.VariableUint64Keys) != 0)
+		case scParam.Code && !scParam.Variables:
+			return r.Code != ""
+		case !scParam.Code && !scParam.Variables:
+			fallthrough
+		default:
+			return true
+		}
 	}
 	result := callRPC("DERO.GetSC", scParam, validator)
 	return result
@@ -672,38 +708,38 @@ func setSCIDThumbnail(img image.Image, h, w float32) image.Image {
 }
 func getSCIDImage(keys map[string]interface{}) image.Image {
 	for k, v := range keys {
-		if strings.Contains(k, "image") ||
-			strings.Contains(k, "icon") {
-			b, e := hex.DecodeString(v.(string))
-			if e != nil {
-				logger.Error(e, v.(string))
-				continue
-			}
-			value := string(b)
-			uri, err := storage.ParseURI(value)
+		if !strings.Contains(k, "image") && !strings.Contains(k, "icon") {
+			continue
+		}
+		b, e := hex.DecodeString(v.(string))
+		if e != nil {
+			logger.Error(e, v.(string))
+			continue
+		}
+		value := string(b)
+		uri, err := storage.ParseURI(value)
+		if err != nil {
+			return nil
+		} else {
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
+			defer cancel()
+
+			req, err := http.NewRequestWithContext(ctx, "GET", uri.String(), nil)
 			if err != nil {
+				logger.Error(err, "get error")
+				return nil
+			}
+			client := http.DefaultClient
+			resp, err := client.Do(req)
+			if err != nil || resp.StatusCode != http.StatusOK {
 				return nil
 			} else {
-				ctx, cancel := context.WithTimeout(context.Background(), timeout)
-				defer cancel()
-
-				req, err := http.NewRequestWithContext(ctx, "GET", uri.String(), nil)
+				defer resp.Body.Close()
+				i, _, err := image.Decode(resp.Body)
 				if err != nil {
-					logger.Error(err, "get error")
 					return nil
 				}
-				client := http.DefaultClient
-				resp, err := client.Do(req)
-				if err != nil || resp.StatusCode != http.StatusOK {
-					return nil
-				} else {
-					defer resp.Body.Close()
-					i, _, err := image.Decode(resp.Body)
-					if err != nil {
-						return nil
-					}
-					return i
-				}
+				return i
 			}
 		}
 	}
@@ -743,52 +779,94 @@ func getSCIDBalancesContainer(balances map[string]uint64) *fyne.Container {
 	}
 	return bals
 }
-
-func getSCIDStringVarsContainer(stringKeys map[string]any) *fyne.Container {
-
-	string_pairs := []struct {
-		key   string
-		value any
-	}{}
-	for k, v := range stringKeys {
-		string_pairs = append(string_pairs, struct {
-			key   string
+func split_scid_keys(keys any) (k []string, v []string) {
+	switch pairs := keys.(type) {
+	case map[uint64]any:
+		uint64_pairs := []struct {
+			key   uint64
 			value any
-		}{
-			key:   k,
-			value: v,
+		}{}
+		for k, v := range pairs {
+			uint64_pairs = append(uint64_pairs, struct {
+				key   uint64
+				value any
+			}{key: k, value: v})
+		}
+		sort.Slice(uint64_pairs, func(i, j int) bool {
+			return uint64_pairs[i].key < uint64_pairs[j].key
 		})
-	}
-	sort.Slice(string_pairs, func(i, j int) bool {
-		return string_pairs[i].key < string_pairs[j].key
-	})
 
-	keys := []string{}
-	values := []string{}
+		keys := []string{}
+		values := []string{}
 
-	for _, p := range string_pairs {
+		for _, p := range uint64_pairs {
 
-		var value string
-		switch v := p.value.(type) {
-		case string:
-			if p.key != "C" {
+			var value string
+			switch v := p.value.(type) {
+			case string:
+
 				b, e := hex.DecodeString(v)
 				if e != nil {
 					continue
 				}
 				value = string(b)
-			} else {
-				value = truncator(v)
-			}
 
-		case uint64:
-			value = strconv.Itoa(int(v))
-		case float64:
-			value = strconv.FormatFloat(v, 'f', 0, 64)
+			case uint64:
+				value = strconv.Itoa(int(v))
+			case float64:
+				value = strconv.FormatFloat(v, 'f', 0, 64)
+			}
+			keys = append(keys, strconv.Itoa(int(p.key)))
+			values = append(values, value)
 		}
-		keys = append(keys, p.key)
-		values = append(values, value)
+		return keys, values
+	case map[string]any:
+		string_pairs := []struct {
+			key   string
+			value any
+		}{}
+		for k, v := range pairs {
+			string_pairs = append(string_pairs, struct {
+				key   string
+				value any
+			}{key: k, value: v})
+		}
+		sort.Slice(string_pairs, func(i, j int) bool {
+			return string_pairs[i].key < string_pairs[j].key
+		})
+
+		keys := []string{}
+		values := []string{}
+
+		for _, p := range string_pairs {
+
+			var value string
+			switch v := p.value.(type) {
+			case string:
+				if p.key == "C" {
+					value = v // large strings break fyne
+				} else {
+					b, e := hex.DecodeString(v)
+					if e != nil {
+						continue
+					}
+					value = string(b)
+				}
+
+			case uint64:
+				value = strconv.Itoa(int(v))
+			case float64:
+				value = strconv.FormatFloat(v, 'f', 0, 64)
+			}
+			keys = append(keys, p.key)
+			values = append(values, value)
+		}
+		return keys, values
+	default:
+		return nil, nil
 	}
+}
+func getSCIDStringVarsContainer(keys, values []string) *fyne.Container {
 	if len(keys) == 0 {
 		keys = []string{"NO DATA"}
 		values = []string{"NO DATA"}
@@ -810,13 +888,13 @@ func getSCIDStringVarsContainer(stringKeys map[string]any) *fyne.Container {
 	)
 	table.OnSelected = func(id widget.TableCellID) {
 		var data string
-		if id.Col == 0 {
+		switch id.Col {
+		case 0:
 			data = keys[id.Row]
-
-		} else if id.Col == 1 {
+		case 1:
 			data = values[id.Row]
-			if keys[id.Row] == "C" { // we truncated it for ease of viewing
-				data = stringKeys["C"].(string)
+			if keys[id.Row] == "C" { // we truncate the c value because it is big...
+				data = truncator(values[id.Row])
 			}
 		}
 		if data != "" {
@@ -832,48 +910,7 @@ func getSCIDStringVarsContainer(stringKeys map[string]any) *fyne.Container {
 	return container.NewAdaptiveGrid(1, table)
 }
 
-func getSCIDUint64VarsContainer(uint64Keys map[uint64]any) *fyne.Container {
-
-	uint64_pairs := []struct {
-		key   uint64
-		value any
-	}{}
-	for k, v := range uint64Keys {
-		uint64_pairs = append(uint64_pairs, struct {
-			key   uint64
-			value any
-		}{
-			key:   k,
-			value: v,
-		})
-	}
-	sort.Slice(uint64_pairs, func(i, j int) bool {
-		return uint64_pairs[i].key < uint64_pairs[j].key
-	})
-
-	keys := []string{}
-	values := []string{}
-
-	for _, p := range uint64_pairs {
-
-		var value string
-		switch v := p.value.(type) {
-		case string:
-
-			b, e := hex.DecodeString(v)
-			if e != nil {
-				continue
-			}
-			value = string(b)
-
-		case uint64:
-			value = strconv.Itoa(int(v))
-		case float64:
-			value = strconv.FormatFloat(v, 'f', 0, 64)
-		}
-		keys = append(keys, strconv.Itoa(int(p.key)))
-		values = append(values, value)
-	}
+func getSCIDUint64VarsContainer(keys, values []string) *fyne.Container {
 	if len(keys) == 0 {
 		keys = []string{"NO DATA"}
 		values = []string{"NO DATA"}

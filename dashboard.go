@@ -713,7 +713,6 @@ func assetsList() {
 			}
 			img := canvas.NewImageFromImage(setSCIDThumbnail(asset.image, float32(250), float32(250)))
 			img.FillMode = canvas.ImageFillOriginal
-			contain := container.NewPadded(img)
 			hash := crypto.HashHexToHash(asset.hash)
 			bal, _ := program.wallet.Get_Balance_scid(hash)
 
@@ -721,7 +720,7 @@ func assetsList() {
 
 			// this simple go routine will update the balance every second
 			var updating bool = true
-			go func() {
+			listen_for_balance_changes := func() {
 				for range time.NewTicker(time.Second * 2).C {
 					if updating {
 						updated, _ := program.wallet.Get_Balance_scid(hash)
@@ -730,7 +729,8 @@ func assetsList() {
 						return
 					}
 				}
-			}()
+			}
+			go listen_for_balance_changes()
 
 			address := widget.NewEntry()
 			address.Validator = func(s string) error {
@@ -858,14 +858,8 @@ func assetsList() {
 					showError(errors.New("balance is too low, please refill"), program.window)
 					return
 				}
-				payload := []rpc.Transfer{
-					{
-						SCID:        hash,
-						Destination: program.receiver,
-						Amount:      amount,
-						// Payload_RPC: args, // when is this necessary?
-					},
-				}
+
+				payload := []rpc.Transfer{{SCID: hash, Destination: program.receiver, Amount: amount}}
 
 				// drop the receiver address
 				program.receiver = ""
@@ -892,8 +886,7 @@ func assetsList() {
 
 				// and we are not going to dry run to get data from the transfer
 				dry_run := false
-
-				go func() {
+				send_asset := func() {
 				try_again:
 					// and let's build a transaction
 					tx, err := program.wallet.TransferPayload0(
@@ -955,23 +948,27 @@ func assetsList() {
 							)
 						})
 					}
-				}()
+				}
+				go send_asset()
 			}
 			address.OnSubmitted = func(s string) {
 				callback()
 			}
 			address.ActionItem = widget.NewButtonWithIcon("Send", theme.MailSendIcon(), callback)
 			address.SetPlaceHolder("receiver address: dero...")
+
 			lay := &twoThirds{}
 			lay.Orientation = fyne.TextAlignTrailing
+
+			asset_scid := container.NewCenter(scid_hyperlink)
+			asset_img := container.NewPadded(img)
+
+			asset_name := container.NewCenter(widget.NewLabel(asset.name))
+			asset_bal := container.NewCenter(label_balance)
+
 			send := container.New(lay, balance, address)
-			content := container.NewVBox(
-				container.NewCenter(scid_hyperlink),
-				contain,
-				container.NewCenter(widget.NewLabel(asset.name)),
-				container.NewCenter(label_balance),
-				send,
-			)
+
+			content := container.NewVBox(asset_scid, asset_img, asset_name, asset_bal, send)
 
 			confirm := widget.NewHyperlink("Are You Sure?", nil)
 
@@ -991,41 +988,42 @@ func assetsList() {
 			}
 			confirm.OnTapped = onTapped
 
-			result := getSCValues(scid)
 			// fmt.Println(result)
-			// let's make some tabs
-			tabs := container.NewAppTabs(
-				container.NewTabItem("Details",
-					content,
-				),
-				container.NewTabItem("Code",
-					container.NewScroll(
-						widget.NewRichTextWithText(getSCCode(scid).Code),
-					),
-				),
-				container.NewTabItem("Balances",
-					container.NewScroll(
-						getSCIDBalancesContainer(result.Balances),
-					),
-				),
-				container.NewTabItem("String Variables",
-					container.NewScroll(
-						getSCIDStringVarsContainer(result.VariableStringKeys),
-					),
-				),
-				container.NewTabItem("Uint64 Variables",
-					container.NewScroll(
-						getSCIDUint64VarsContainer(result.VariableUint64Keys),
-					),
-				),
-				container.NewTabItem("Entries",
-					entries_list,
-				),
-				container.NewTabItem("Remove",
-					container.NewCenter(confirm),
-				),
-			)
+			result := getSCValues(scid)
 
+			content_tab := container.NewTabItem("Details", content)
+
+			code := getSCCode(scid).Code
+			contract_code := container.NewScroll(widget.NewRichTextWithText(code))
+			contract_tab := container.NewTabItem("Code", contract_code)
+
+			balance_vars := container.NewScroll(getSCIDBalancesContainer(result.Balances))
+			balances_tab := container.NewTabItem("Balances", balance_vars)
+
+			keys, values := split_scid_keys(result.VariableUint64Keys)
+			uint64_vars := container.NewScroll(getSCIDUint64VarsContainer(keys, values))
+			uint64_tab := container.NewTabItem("Uint64 Variables", uint64_vars)
+
+			keys, values = split_scid_keys(result.VariableStringKeys)
+			string_vars := container.NewScroll(getSCIDStringVarsContainer(keys, values))
+			strings_tab := container.NewTabItem("String Variables", string_vars)
+
+			entries_tab := container.NewTabItem("Entries", entries_list)
+
+			remove_scid := container.NewCenter(confirm)
+			remove_tab := container.NewTabItem("Remove", remove_scid)
+
+			app_tabs := []*container.TabItem{
+				content_tab,
+				contract_tab,
+				balances_tab,
+				strings_tab,
+				uint64_tab,
+				entries_tab,
+				remove_tab,
+			}
+			// let's make some tabs
+			tabs := container.NewAppTabs(app_tabs...)
 			// kind of looks nice on the side
 			tabs.SetTabLocation(container.TabLocationLeading)
 			// we'll use the truncated scid as the header for the transfers

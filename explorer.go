@@ -145,7 +145,7 @@ func explorer() {
 
 	// speaking of tabs...
 	var tabs *container.AppTabs
-	var searchTab *container.TabItem
+	var tab_search *container.TabItem
 
 	var searchData, searchHeaders []string
 	var results_table *widget.Table
@@ -212,9 +212,7 @@ func explorer() {
 			searchHeaders = append(searchHeaders, types...)
 			searchData = append(searchData, hashes...)
 
-			searchHeaders = append(searchHeaders, []string{
-				"MINING OUTPUTS",
-			}...)
+			searchHeaders = append(searchHeaders, []string{"MINING OUTPUTS"}...)
 
 			miners := []string{}
 			miners = append(miners, r.Block_Header.Miners...)
@@ -616,7 +614,7 @@ func explorer() {
 					hash := pool_data[tci.Row][tci.Col]
 					searchBlockchain(hash)
 					results_table.Refresh()
-					tabs.Select(searchTab)
+					tabs.Select(tab_search)
 				}
 			}
 
@@ -671,34 +669,10 @@ func explorer() {
 			}
 			bl.Deserialize(b)
 
-			tx_results, transactions := func() (txs []rpc.GetTransaction_Result, transactions []transaction.Transaction) {
-				for _, each := range bl.Tx_hashes {
-					if _, ok := program.node.transactions[each.String()]; !ok {
-						program.node.transactions[each.String()] = getTransaction(
-							rpc.GetTransaction_Params{
-								Tx_Hashes: []string{each.String()},
-							},
-						)
-					}
-
-					if len(program.node.transactions[each.String()].Txs_as_hex) == 0 {
-						continue // there is nothing here ?
-					}
-					tx := program.node.transactions[each.String()]
-					txs = append(txs, tx)
-					var transaction transaction.Transaction
-					b, err := hex.DecodeString(tx.Txs_as_hex[0])
-					if err != nil {
-						logger.Error(err, "lol")
-						continue
-					}
-					transaction.Deserialize(b)
-					transactions = append(transactions, transaction)
-				}
-				return
-			}()
+			tx_results, transactions := getTxsAndTransactions(bl.Tx_hashes)
 			size := uint64(len(bl.Serialize()))
-			if len(tx_results) != 0 {
+
+			tx_results_callback := func(tx_results []rpc.GetTransaction_Result) {
 				for i := range tx_results {
 					size += uint64(len(transactions[i].Serialize()))
 					var rings uint64
@@ -715,6 +689,11 @@ func explorer() {
 					})
 				}
 			}
+
+			if len(tx_results) != 0 {
+				tx_results_callback(tx_results)
+			}
+
 			block_label_data = append(block_label_data, []string{
 				strconv.Itoa(int(result.Block_Header.Height)),
 				strconv.Itoa(int(result.Block_Header.TopoHeight)),
@@ -738,10 +717,7 @@ func explorer() {
 		return len(block_label_data), len(block_headers)
 	}
 	createBlocks := func() fyne.CanvasObject {
-		return container.NewStack(
-			widget.NewLabel(""),
-			container.NewScroll(widget.NewHyperlink("", nil)),
-		)
+		return container.NewStack(widget.NewLabel(""), container.NewScroll(widget.NewHyperlink("", nil)))
 	}
 	updateBlocks := func(tci widget.TableCellID, co fyne.CanvasObject) {
 		block_data := block_label_data
@@ -769,7 +745,7 @@ func explorer() {
 				hash := block_data[tci.Row][tci.Col]
 				searchBlockchain(hash)
 				results_table.Refresh()
-				tabs.Select(searchTab)
+				tabs.Select(tab_search)
 			}
 		}
 
@@ -864,72 +840,65 @@ func explorer() {
 	searchBar := container.NewVBox(search)
 
 	var updating bool = true
-
-	go func() {
+	update := func() {
 		height := program.node.info.TopoHeight
 		for range time.NewTicker(time.Second * 2).C {
-			if updating {
-				if height != program.node.info.TopoHeight {
-					height = program.node.info.TopoHeight
-
-					updateDiffData()
-
-					newGraph := &graph{hd_map: diff_map}
-					g.ExtendBaseWidget(g)
-
-					// Replace content in graph container
-					diff_graph = newGraph
-
-					updatePoolCache()
-
-					updateBlocksData()
-
-					fyne.DoAndWait(func() {
-						diff_graph.Refresh()
-						pool_table.Refresh()
-						block_table.Refresh()
-					})
-
-					stats = []string{
-						strconv.Itoa(int(program.node.info.Height)),
-						strconv.Itoa(int(program.node.info.AverageBlockTime50)),
-						strconv.Itoa(int(program.node.info.Tx_pool_size)),
-						strconv.Itoa(int(program.node.info.Difficulty) / 1000000),
-						strconv.Itoa(int(program.node.info.Total_Supply)),
-						program.node.info.Status,
-					}
-					fyne.DoAndWait(func() {
-						diff.SetText("Network Height: " + stats[0])
-						average_blocktime.SetText("Network Blocktime: " + stats[1] + " seconds")
-						mem_pool.SetText("Mempool Size: " + stats[2])
-						hash_rate.SetText("Hash Rate: " + stats[3] + " MH/s")
-						supply.SetText("Total Supply: " + stats[4])
-						network_status.SetText("Network Status: " + stats[5])
-					})
-
-				}
-			} else {
+			if !updating {
 				return
 			}
+			if height != program.node.info.TopoHeight {
+				height = program.node.info.TopoHeight
+
+				updateDiffData()
+
+				newGraph := &graph{hd_map: diff_map}
+				g.ExtendBaseWidget(g)
+
+				// Replace content in graph container
+				diff_graph = newGraph
+
+				updatePoolCache()
+
+				updateBlocksData()
+
+				fyne.DoAndWait(func() {
+					diff_graph.Refresh()
+					pool_table.Refresh()
+					block_table.Refresh()
+				})
+
+				stats = []string{
+					strconv.Itoa(int(program.node.info.Height)),
+					strconv.Itoa(int(program.node.info.AverageBlockTime50)),
+					strconv.Itoa(int(program.node.info.Tx_pool_size)),
+					strconv.Itoa(int(program.node.info.Difficulty) / 1000000),
+					strconv.Itoa(int(program.node.info.Total_Supply)),
+					program.node.info.Status,
+				}
+				fyne.DoAndWait(func() {
+					diff.SetText("Network Height: " + stats[0])
+					average_blocktime.SetText("Network Blocktime: " + stats[1] + " seconds")
+					mem_pool.SetText("Mempool Size: " + stats[2])
+					hash_rate.SetText("Hash Rate: " + stats[3] + " MH/s")
+					supply.SetText("Total Supply: " + stats[4])
+					network_status.SetText("Network Status: " + stats[5])
+				})
+
+			}
 		}
-	}()
-	searchTab = container.NewTabItem("Search", container.NewBorder(
-		searchBar,     // top
-		nil,           // bottom
-		nil,           // left
-		nil,           // right
-		results_table, // center
-	))
-	tabs = container.NewAppTabs(
-		tab_stats,
-		container.NewTabItem("TX Pool", container.NewAdaptiveGrid(1,
-			pool_table,
-		)),
-		container.NewTabItem("Recent Blocks", container.NewAdaptiveGrid(1,
-			block_table,
-		)),
-		searchTab,
-	)
+	}
+	go update()
+
+	search_window := container.NewBorder(searchBar, nil, nil, nil, results_table)
+	tab_search = container.NewTabItem("Search", search_window)
+
+	pool := container.NewAdaptiveGrid(1, pool_table)
+	tab_pool := container.NewTabItem("TX Pool", pool)
+
+	blocks := container.NewAdaptiveGrid(1, block_table)
+	tab_blocks := container.NewTabItem("Recent Blocks", blocks)
+
+	tabs = container.NewAppTabs(tab_stats, tab_pool, tab_blocks, tab_search)
 
 	tabs.SetTabLocation(container.TabLocationLeading)
 
