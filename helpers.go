@@ -677,38 +677,38 @@ func setSCIDThumbnail(img image.Image, h, w float32) image.Image {
 }
 func getSCIDImage(keys map[string]interface{}) image.Image {
 	for k, v := range keys {
-		if strings.Contains(k, "image") ||
-			strings.Contains(k, "icon") {
-			b, e := hex.DecodeString(v.(string))
-			if e != nil {
-				logger.Error(e, v.(string))
-				continue
-			}
-			value := string(b)
-			uri, err := storage.ParseURI(value)
+		if !strings.Contains(k, "image") && !strings.Contains(k, "icon") {
+			continue
+		}
+		b, e := hex.DecodeString(v.(string))
+		if e != nil {
+			logger.Error(e, v.(string))
+			continue
+		}
+		value := string(b)
+		uri, err := storage.ParseURI(value)
+		if err != nil {
+			return nil
+		} else {
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
+			defer cancel()
+
+			req, err := http.NewRequestWithContext(ctx, "GET", uri.String(), nil)
 			if err != nil {
+				logger.Error(err, "get error")
+				return nil
+			}
+			client := http.DefaultClient
+			resp, err := client.Do(req)
+			if err != nil || resp.StatusCode != http.StatusOK {
 				return nil
 			} else {
-				ctx, cancel := context.WithTimeout(context.Background(), timeout)
-				defer cancel()
-
-				req, err := http.NewRequestWithContext(ctx, "GET", uri.String(), nil)
+				defer resp.Body.Close()
+				i, _, err := image.Decode(resp.Body)
 				if err != nil {
-					logger.Error(err, "get error")
 					return nil
 				}
-				client := http.DefaultClient
-				resp, err := client.Do(req)
-				if err != nil || resp.StatusCode != http.StatusOK {
-					return nil
-				} else {
-					defer resp.Body.Close()
-					i, _, err := image.Decode(resp.Body)
-					if err != nil {
-						return nil
-					}
-					return i
-				}
+				return i
 			}
 		}
 	}
