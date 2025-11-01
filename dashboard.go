@@ -892,8 +892,7 @@ func assetsList() {
 
 				// and we are not going to dry run to get data from the transfer
 				dry_run := false
-
-				go func() {
+				send_asset := func() {
 				try_again:
 					// and let's build a transaction
 					tx, err := program.wallet.TransferPayload0(
@@ -955,7 +954,8 @@ func assetsList() {
 							)
 						})
 					}
-				}()
+				}
+				go send_asset()
 			}
 			address.OnSubmitted = func(s string) {
 				callback()
