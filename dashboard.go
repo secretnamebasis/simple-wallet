@@ -858,14 +858,8 @@ func assetsList() {
 					showError(errors.New("balance is too low, please refill"), program.window)
 					return
 				}
-				payload := []rpc.Transfer{
-					{
-						SCID:        hash,
-						Destination: program.receiver,
-						Amount:      amount,
-						// Payload_RPC: args, // when is this necessary?
-					},
-				}
+
+				payload := []rpc.Transfer{{SCID: hash, Destination: program.receiver, Amount: amount}}
 
 				// drop the receiver address
 				program.receiver = ""
