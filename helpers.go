@@ -887,13 +887,13 @@ func getSCIDStringVarsContainer(keys, values []string) *fyne.Container {
 	)
 	table.OnSelected = func(id widget.TableCellID) {
 		var data string
-		if id.Col == 0 {
+		switch id.Col {
+		case 0:
 			data = keys[id.Row]
-
-		} else if id.Col == 1 {
+		case 1:
 			data = values[id.Row]
-			if keys[id.Row] == "C" { // we truncated it for ease of viewing
-				data = stringKeys["C"].(string)
+			if keys[id.Row] == "C" { // we truncate the c value because it is big...
+				data = truncator(values[id.Row])
 			}
 		}
 		if data != "" {
