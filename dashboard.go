@@ -962,16 +962,19 @@ func assetsList() {
 			}
 			address.ActionItem = widget.NewButtonWithIcon("Send", theme.MailSendIcon(), callback)
 			address.SetPlaceHolder("receiver address: dero...")
+
 			lay := &twoThirds{}
 			lay.Orientation = fyne.TextAlignTrailing
+
+			asset_scid := container.NewCenter(scid_hyperlink)
+			asset_img := container.NewPadded(img)
+
+			asset_name := container.NewCenter(widget.NewLabel(asset.name))
+			asset_bal := container.NewCenter(label_balance)
+
 			send := container.New(lay, balance, address)
-			content := container.NewVBox(
-				container.NewCenter(scid_hyperlink),
-				contain,
-				container.NewCenter(widget.NewLabel(asset.name)),
-				container.NewCenter(label_balance),
-				send,
-			)
+
+			content := container.NewVBox(asset_scid, asset_img, asset_name, asset_bal, send)
 
 			confirm := widget.NewHyperlink("Are You Sure?", nil)
 
