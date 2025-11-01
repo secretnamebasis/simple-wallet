@@ -64,13 +64,14 @@ type (
 		}
 		current string
 	}
-	asset struct {
+	assets []asset
+	asset  struct {
 		name  string
 		hash  string
 		image image.Image
 	}
 	caches struct {
-		assets []asset
+		assets assets
 	}
 
 	dialogues struct {
