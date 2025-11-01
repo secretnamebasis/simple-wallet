@@ -713,7 +713,6 @@ func assetsList() {
 			}
 			img := canvas.NewImageFromImage(setSCIDThumbnail(asset.image, float32(250), float32(250)))
 			img.FillMode = canvas.ImageFillOriginal
-			contain := container.NewPadded(img)
 			hash := crypto.HashHexToHash(asset.hash)
 			bal, _ := program.wallet.Get_Balance_scid(hash)
 
