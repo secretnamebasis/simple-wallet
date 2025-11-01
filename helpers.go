@@ -580,7 +580,12 @@ func callRPC[T any](method string, params any, validator func(T) bool) T {
 }
 func handleResult[T any](method string, params any) (T, error) {
 	var result T
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	var ctx context.Context
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithTimeout(context.Background(), timeout)
+	if method == "DERO.GetSC" {
+		ctx, cancel = context.WithTimeout(context.Background(), deadline)
+	}
 	defer cancel()
 
 	rpcClient := jsonrpc.NewClient("http://" + walletapi.Daemon_Endpoint + "/json_rpc")
