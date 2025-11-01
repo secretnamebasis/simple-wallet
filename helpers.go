@@ -769,52 +769,94 @@ func getSCIDBalancesContainer(balances map[string]uint64) *fyne.Container {
 	}
 	return bals
 }
-
-func getSCIDStringVarsContainer(stringKeys map[string]any) *fyne.Container {
-
-	string_pairs := []struct {
-		key   string
-		value any
-	}{}
-	for k, v := range stringKeys {
-		string_pairs = append(string_pairs, struct {
-			key   string
+func split_scid_keys(keys any) (k []string, v []string) {
+	switch pairs := keys.(type) {
+	case map[uint64]any:
+		uint64_pairs := []struct {
+			key   uint64
 			value any
-		}{
-			key:   k,
-			value: v,
+		}{}
+		for k, v := range pairs {
+			uint64_pairs = append(uint64_pairs, struct {
+				key   uint64
+				value any
+			}{key: k, value: v})
+		}
+		sort.Slice(uint64_pairs, func(i, j int) bool {
+			return uint64_pairs[i].key < uint64_pairs[j].key
 		})
-	}
-	sort.Slice(string_pairs, func(i, j int) bool {
-		return string_pairs[i].key < string_pairs[j].key
-	})
 
-	keys := []string{}
-	values := []string{}
+		keys := []string{}
+		values := []string{}
 
-	for _, p := range string_pairs {
+		for _, p := range uint64_pairs {
 
-		var value string
-		switch v := p.value.(type) {
-		case string:
-			if p.key != "C" {
+			var value string
+			switch v := p.value.(type) {
+			case string:
+
 				b, e := hex.DecodeString(v)
 				if e != nil {
 					continue
 				}
 				value = string(b)
-			} else {
-				value = truncator(v)
-			}
 
-		case uint64:
-			value = strconv.Itoa(int(v))
-		case float64:
-			value = strconv.FormatFloat(v, 'f', 0, 64)
+			case uint64:
+				value = strconv.Itoa(int(v))
+			case float64:
+				value = strconv.FormatFloat(v, 'f', 0, 64)
+			}
+			keys = append(keys, strconv.Itoa(int(p.key)))
+			values = append(values, value)
 		}
-		keys = append(keys, p.key)
-		values = append(values, value)
+		return keys, values
+	case map[string]any:
+		string_pairs := []struct {
+			key   string
+			value any
+		}{}
+		for k, v := range pairs {
+			string_pairs = append(string_pairs, struct {
+				key   string
+				value any
+			}{key: k, value: v})
+		}
+		sort.Slice(string_pairs, func(i, j int) bool {
+			return string_pairs[i].key < string_pairs[j].key
+		})
+
+		keys := []string{}
+		values := []string{}
+
+		for _, p := range string_pairs {
+
+			var value string
+			switch v := p.value.(type) {
+			case string:
+				if p.key == "C" {
+					value = v // large strings break fyne
+				} else {
+					b, e := hex.DecodeString(v)
+					if e != nil {
+						continue
+					}
+					value = string(b)
+				}
+
+			case uint64:
+				value = strconv.Itoa(int(v))
+			case float64:
+				value = strconv.FormatFloat(v, 'f', 0, 64)
+			}
+			keys = append(keys, p.key)
+			values = append(values, value)
+		}
+		return keys, values
+	default:
+		return nil, nil
 	}
+}
+func getSCIDStringVarsContainer(keys, values []string) *fyne.Container {
 	if len(keys) == 0 {
 		keys = []string{"NO DATA"}
 		values = []string{"NO DATA"}
@@ -858,48 +900,7 @@ func getSCIDStringVarsContainer(stringKeys map[string]any) *fyne.Container {
 	return container.NewAdaptiveGrid(1, table)
 }
 
-func getSCIDUint64VarsContainer(uint64Keys map[uint64]any) *fyne.Container {
-
-	uint64_pairs := []struct {
-		key   uint64
-		value any
-	}{}
-	for k, v := range uint64Keys {
-		uint64_pairs = append(uint64_pairs, struct {
-			key   uint64
-			value any
-		}{
-			key:   k,
-			value: v,
-		})
-	}
-	sort.Slice(uint64_pairs, func(i, j int) bool {
-		return uint64_pairs[i].key < uint64_pairs[j].key
-	})
-
-	keys := []string{}
-	values := []string{}
-
-	for _, p := range uint64_pairs {
-
-		var value string
-		switch v := p.value.(type) {
-		case string:
-
-			b, e := hex.DecodeString(v)
-			if e != nil {
-				continue
-			}
-			value = string(b)
-
-		case uint64:
-			value = strconv.Itoa(int(v))
-		case float64:
-			value = strconv.FormatFloat(v, 'f', 0, 64)
-		}
-		keys = append(keys, strconv.Itoa(int(p.key)))
-		values = append(values, value)
-	}
+func getSCIDUint64VarsContainer(keys, values []string) *fyne.Container {
 	if len(keys) == 0 {
 		keys = []string{"NO DATA"}
 		values = []string{"NO DATA"}

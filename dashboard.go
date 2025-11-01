@@ -991,41 +991,42 @@ func assetsList() {
 			}
 			confirm.OnTapped = onTapped
 
-			result := getSCValues(scid)
 			// fmt.Println(result)
-			// let's make some tabs
-			tabs := container.NewAppTabs(
-				container.NewTabItem("Details",
-					content,
-				),
-				container.NewTabItem("Code",
-					container.NewScroll(
-						widget.NewRichTextWithText(getSCCode(scid).Code),
-					),
-				),
-				container.NewTabItem("Balances",
-					container.NewScroll(
-						getSCIDBalancesContainer(result.Balances),
-					),
-				),
-				container.NewTabItem("String Variables",
-					container.NewScroll(
-						getSCIDStringVarsContainer(result.VariableStringKeys),
-					),
-				),
-				container.NewTabItem("Uint64 Variables",
-					container.NewScroll(
-						getSCIDUint64VarsContainer(result.VariableUint64Keys),
-					),
-				),
-				container.NewTabItem("Entries",
-					entries_list,
-				),
-				container.NewTabItem("Remove",
-					container.NewCenter(confirm),
-				),
-			)
+			result := getSCValues(scid)
 
+			content_tab := container.NewTabItem("Details", content)
+
+			code := getSCCode(scid).Code
+			contract_code := container.NewScroll(widget.NewRichTextWithText(code))
+			contract_tab := container.NewTabItem("Code", contract_code)
+
+			balance_vars := container.NewScroll(getSCIDBalancesContainer(result.Balances))
+			balances_tab := container.NewTabItem("Balances", balance_vars)
+
+			keys, values := split_scid_keys(result.VariableUint64Keys)
+			uint64_vars := container.NewScroll(getSCIDUint64VarsContainer(keys, values))
+			uint64_tab := container.NewTabItem("Uint64 Variables", uint64_vars)
+
+			keys, values = split_scid_keys(result.VariableStringKeys)
+			string_vars := container.NewScroll(getSCIDStringVarsContainer(keys, values))
+			strings_tab := container.NewTabItem("String Variables", string_vars)
+
+			entries_tab := container.NewTabItem("Entries", entries_list)
+
+			remove_scid := container.NewCenter(confirm)
+			remove_tab := container.NewTabItem("Remove", remove_scid)
+
+			app_tabs := []*container.TabItem{
+				content_tab,
+				contract_tab,
+				balances_tab,
+				strings_tab,
+				uint64_tab,
+				entries_tab,
+				remove_tab,
+			}
+			// let's make some tabs
+			tabs := container.NewAppTabs(app_tabs...)
 			// kind of looks nice on the side
 			tabs.SetTabLocation(container.TabLocationLeading)
 			// we'll use the truncated scid as the header for the transfers
