@@ -24,6 +24,8 @@ import (
 // this is going to be a rudimentary explorer at first
 func explorer() {
 
+	logger.Info("explorer", "status", "initiated")
+
 	program.explorer = fyne.CurrentApp().NewWindow(program.name + " | viewer ")
 	program.explorer.Resize(program.size)
 	program.explorer.SetIcon(theme.SearchIcon())
@@ -62,25 +64,34 @@ func explorer() {
 		for i := range limit {
 			func(i int) {
 				defer wg.Done()
+
 				h := uint64(walletapi.Get_Daemon_TopoHeight()) - (uint64(i))
 
 				_, exists := diff_map[int(h)]
 
+				_, havBlock := program.node.blocks[h]
+
 				if exists {
 					mu.Lock()
+					defer mu.Unlock()
+					x := int(walletapi.Get_Daemon_TopoHeight()) - limit
 					if len(diff_map) >= limit {
-						delete(diff_map, int(h)-limit)
-						delete(program.node.blocks, uint64(int(h)-limit))
+						delete(diff_map, x)
 					}
-					mu.Unlock()
+					if havBlock {
+						if len(program.node.blocks) >= limit {
+							delete(program.node.blocks, uint64(x))
+							logger.Info("explorer", "block removed from map", strconv.Itoa(int(x)))
+						}
+					}
 					return
 				}
 
-				tx := getBlockInfo(rpc.GetBlock_Params{
+				r := getBlockInfo(rpc.GetBlock_Params{
 					Height: h,
 				})
 
-				b, err := hex.DecodeString(tx.Blob)
+				b, err := hex.DecodeString(r.Blob)
 				if err != nil {
 					return
 				}
@@ -91,13 +102,18 @@ func explorer() {
 					return
 				}
 
-				d, e := strconv.Atoi(tx.Block_Header.Difficulty)
+				d, e := strconv.Atoi(r.Block_Header.Difficulty)
 				if e != nil {
 					return
 				}
 				mu.Lock()
-				program.node.blocks[h] = tx
-				diff_map[int(bl.Height)] = d
+				if !exists {
+					diff_map[int(bl.Height)] = d
+				}
+				if !havBlock {
+					program.node.blocks[h] = r
+					logger.Info("explorer", "block added to map", strconv.Itoa(int(h)))
+				}
 				mu.Unlock()
 			}(i)
 		}
@@ -230,22 +246,36 @@ func explorer() {
 		//pre-processing
 		switch len(s) {
 		case 64: // this is basically any hash
-			r := getBlockInfo(
-				rpc.GetBlock_Params{
-					Hash: s,
-				},
-			)
-			// -32098: file does not exist
+			var result rpc.GetBlock_Result
+
+			for _, each := range program.node.blocks {
+				if s == each.Block_Header.Hash {
+					result = each
+					break
+				}
+			}
+
+			if result.Block_Header.Hash != s {
+				result = getBlockInfo(rpc.GetBlock_Params{Hash: s})
+				// -32098: file does not exist
+			}
+
 			// at this point we have to determine if...
-			if len(r.Block_Header.Miners) != 0 {
-				buildBlockResults(r)
+			if len(result.Block_Header.Miners) != 0 {
+				buildBlockResults(result)
 			} else {
-				// not a mined transaction
-				r := getTransaction(
-					rpc.GetTransaction_Params{
-						Tx_Hashes: []string{s},
-					},
-				)
+				var r rpc.GetTransaction_Result
+				if _, ok := program.node.transactions[s]; ok {
+					r = program.node.transactions[s]
+				} else {
+					// not a mined transaction
+					r = getTransaction(
+						rpc.GetTransaction_Params{
+							Tx_Hashes: []string{s},
+						},
+					)
+				}
+
 				// fmt.Printf("tx: %+v\n", r)
 				if len(r.Txs_as_hex) < 1 {
 					// goto end
@@ -506,10 +536,12 @@ func explorer() {
 		for txid := range program.node.transactions {
 			if !slices.Contains(pool.Tx_list, txid) {
 				delete(program.node.transactions, txid)
+				logger.Info("explorer", "status", "tx removed from pool")
 			}
 		}
 		for i := range pool.Tx_list {
 			if _, ok := program.node.transactions[pool.Tx_list[i]]; !ok {
+				logger.Info("explorer", "status", "tx added to pool")
 				program.node.transactions[pool.Tx_list[i]] = getTransaction(rpc.GetTransaction_Params{
 					Tx_Hashes: []string{pool.Tx_list[i]},
 				})
@@ -902,8 +934,7 @@ func explorer() {
 	tabs.SetTabLocation(container.TabLocationLeading)
 
 	program.explorer.SetOnClosed(func() {
-		program.node.blocks = make(map[uint64]rpc.GetBlock_Result)
-		program.node.transactions = make(map[string]rpc.GetTransaction_Result)
+		logger.Info("explorer", "status", "close")
 		updating = false
 	})
 	program.explorer.SetContent(tabs)
