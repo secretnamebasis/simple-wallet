@@ -7,6 +7,7 @@ import (
 
 // here is the simple way we log out
 func logout() {
+	logger.Info("logging out")
 	// update the header
 	updateHeader(program.hyperlinks.logout)
 
@@ -17,6 +18,7 @@ func logout() {
 		if program.rpc_server != nil && globals.Arguments["--rpc-server"] != nil {
 			// stop the rpc server
 			program.rpc_server.RPCServer_Stop()
+			logger.Info("logging out", "rpc", "stopped")
 
 			// make it noticable
 			program.labels.rpc_server.SetText("RPC: 🔴")
@@ -38,11 +40,13 @@ func logout() {
 		if program.ws_server != nil {
 			program.ws_server.Stop()
 			program.toggles.ws_server.SetSelected("off")
+			logger.Info("logging out", "ws", "stopped")
 
 		}
 
 		// close out the wallet
 		program.wallet.Close_Encrypted_Wallet()
+		logger.Info("logging out", "wallet", "closed")
 		program.wallet = nil // completely remove the wallet
 
 		// reset the balance
@@ -54,6 +58,7 @@ func logout() {
 		program.caches.assets = []asset{}
 		program.node.info = rpc.GetInfo_Result{}
 		program.node.pool = rpc.GetTxPool_Result{}
+		logger.Info("logging out", "caches", "emptied")
 
 		// close windows if any
 		if program.encryption != nil {
@@ -65,6 +70,7 @@ func logout() {
 		if program.explorer != nil {
 			program.explorer.Close()
 		}
+		logger.Info("logging out", "windows", "closed")
 
 	}
 
@@ -126,4 +132,6 @@ func logout() {
 
 	// show home
 	setContentAsHome()
+	logger.Info("logging out", "logout", "complete")
+
 }

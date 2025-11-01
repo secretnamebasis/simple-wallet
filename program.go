@@ -157,7 +157,7 @@ Please do not leave this page.
 		list:         node_list,
 	},
 
-	name: "simple wallet",
+	name: "simple-wallet",
 	size: fyne.NewSize(
 		900,
 		600,

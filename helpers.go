@@ -255,8 +255,7 @@ func notificationNewEntry() {
 func updateBalance() {
 	var previous_bal uint64
 	var bal uint64
-	ticker := time.NewTicker(time.Second * 2)
-	for range ticker.C {
+	callback := func() {
 		// check to see if we are logged-in first
 		if !program.preferences.Bool("loggedIn") {
 			fyne.DoAndWait(func() {
@@ -292,8 +291,10 @@ func updateBalance() {
 
 			// get the balance
 			if !program.preferences.Bool("loggedIn") {
-				break
-			} // hella sensitive
+				return
+			}
+
+			// hella sensitive
 			bal, _ = program.wallet.Get_Balance()
 
 			// check it against previous
@@ -309,6 +310,18 @@ func updateBalance() {
 
 				})
 			}
+		}
+	}
+	callback()
+	ticker := time.NewTicker(time.Second * 2)
+	new := int64(0)
+	for range ticker.C {
+		height := walletapi.Get_Daemon_TopoHeight()
+		if new < height {
+			new = height
+			callback()
+		} else {
+			continue
 		}
 	}
 }
@@ -375,34 +388,34 @@ func buildAssetHashList() {
 	program.caches.assets = []asset{}
 	assets := program.wallet.GetAccount().EntriesNative
 	var wg sync.WaitGroup
-	wg.Add(len(assets))
 	// range over any pre-existing entries in the account
 	for a := range assets {
-		go func() {
+		// skip DERO's scid
+		if crypto.HashHexToHash(a.String()).IsZero() {
+			continue
+		}
+		wg.Add(1)
+		go func(scid string) {
 			defer wg.Done()
-			// skip DERO's scid
-			if !a.IsZero() {
-				name := getSCNameFromVars(a.String())
-				hash := a.String()
-				image := getSCIDImage(a.String())
-				t := asset{name: name, hash: hash, image: image}
-				// load each has into the cache
-				program.caches.assets = append(program.caches.assets, t)
+			keys := getSCValues(scid).VariableStringKeys
+			t := asset{
+				name:  getSCNameFromVars(keys),
+				hash:  scid,
+				image: getSCIDImage(keys),
 			}
-		}()
+			logger.Info("asset cache", "loading into the cache", truncator(scid))
+			// load each has into the cache
+			program.caches.assets = append(program.caches.assets, t)
+		}(a.String())
 	}
 	wg.Wait()
 	// now sort them for consistency
-	sort.Slice(program.caches.assets, func(i, j int) bool {
-		return program.caches.assets[i].name > program.caches.assets[j].name
-	})
+	program.caches.assets.sort()
 }
-func getSCNameFromVars(scid string) string {
+func getSCNameFromVars(keys map[string]interface{}) string {
 	var text string
-	if crypto.HashHexToHash(scid).IsZero() {
-		return "DERO"
-	}
-	for k, v := range getSCValues(scid).VariableStringKeys {
+
+	for k, v := range keys {
 		if !strings.Contains(k, "name") {
 			continue
 		}
@@ -657,8 +670,8 @@ func setSCIDThumbnail(img image.Image, h, w float32) image.Image {
 	thumbnail = canvas.NewImageFromImage(thumb)
 	return thumbnail.Image
 }
-func getSCIDImage(scid string) image.Image {
-	for k, v := range getSCValues(scid).VariableStringKeys {
+func getSCIDImage(keys map[string]interface{}) image.Image {
+	for k, v := range keys {
 		if strings.Contains(k, "image") ||
 			strings.Contains(k, "icon") {
 			b, e := hex.DecodeString(v.(string))
@@ -716,11 +729,15 @@ func getSCIDBalancesContainer(balances map[string]uint64) *fyne.Container {
 	})
 	for _, pair := range balance_pairs {
 
+		scid := pair.key
+		amnt := pair.value
+		keys := getSCValues(scid).VariableStringKeys
+
 		bals.Add(container.NewAdaptiveGrid(5,
 			layout.NewSpacer(),
-			widget.NewLabel(getSCNameFromVars(pair.key)),
-			widget.NewLabel(truncator(pair.key)),
-			widget.NewLabel(rpc.FormatMoney(pair.value)),
+			widget.NewLabel(getSCNameFromVars(keys)),
+			widget.NewLabel(truncator(scid)),
+			widget.NewLabel(rpc.FormatMoney(amnt)),
 			layout.NewSpacer(),
 		))
 	}

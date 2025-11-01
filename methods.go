@@ -5,6 +5,11 @@ import (
 	"strings"
 )
 
+func (a assets) sort() {
+	sort.Slice(a, func(i, j int) bool {
+		return a[i].name > a[j].name
+	})
+}
 func (w wallet_entries) sort() {
 	sort.Slice(w, func(i, j int) bool {
 		return w[i].Height > w[j].Height
