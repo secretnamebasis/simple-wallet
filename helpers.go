@@ -584,16 +584,16 @@ func makeCenteredWrappedLabel(s string) *widget.Label {
 	label.Wrapping = fyne.TextWrapWord
 	return label
 }
-func callRPC[T any](method string, params any, validator func(T) bool) T {
-	result, err := handleResult[T](method, params)
+func callRPC[t any](method string, params any, validator func(t) bool) t {
+	result, err := handleResult[t](method, params)
 	if err != nil {
 		logger.Error(err, "RPC error", "method", method)
-		var zero T
+		var zero t
 		return zero
 	}
 
 	if !validator(result) {
-		var zero T
+		var zero t
 		return zero
 	}
 
