@@ -472,15 +472,8 @@ func testConnection(s string) error {
 	// if there is an error
 	if err != nil {
 		// return the error
-		if strings.Contains(err.Error(), "connect: connection refused") {
-			return err
-		} else if strings.Contains(err.Error(), "context deadline exceeded") {
-			return err
-		} else {
-			// show these errors in the terminal just because
-			logger.Error(err, "unhandled err")
-			return err
-		}
+		logger.Error(err, "connection error")
+		return err
 	}
 
 	// defer closing the body
