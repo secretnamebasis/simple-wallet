@@ -864,72 +864,65 @@ func explorer() {
 	searchBar := container.NewVBox(search)
 
 	var updating bool = true
-
-	go func() {
+	update := func() {
 		height := program.node.info.TopoHeight
 		for range time.NewTicker(time.Second * 2).C {
-			if updating {
-				if height != program.node.info.TopoHeight {
-					height = program.node.info.TopoHeight
-
-					updateDiffData()
-
-					newGraph := &graph{hd_map: diff_map}
-					g.ExtendBaseWidget(g)
-
-					// Replace content in graph container
-					diff_graph = newGraph
-
-					updatePoolCache()
-
-					updateBlocksData()
-
-					fyne.DoAndWait(func() {
-						diff_graph.Refresh()
-						pool_table.Refresh()
-						block_table.Refresh()
-					})
-
-					stats = []string{
-						strconv.Itoa(int(program.node.info.Height)),
-						strconv.Itoa(int(program.node.info.AverageBlockTime50)),
-						strconv.Itoa(int(program.node.info.Tx_pool_size)),
-						strconv.Itoa(int(program.node.info.Difficulty) / 1000000),
-						strconv.Itoa(int(program.node.info.Total_Supply)),
-						program.node.info.Status,
-					}
-					fyne.DoAndWait(func() {
-						diff.SetText("Network Height: " + stats[0])
-						average_blocktime.SetText("Network Blocktime: " + stats[1] + " seconds")
-						mem_pool.SetText("Mempool Size: " + stats[2])
-						hash_rate.SetText("Hash Rate: " + stats[3] + " MH/s")
-						supply.SetText("Total Supply: " + stats[4])
-						network_status.SetText("Network Status: " + stats[5])
-					})
-
-				}
-			} else {
+			if !updating {
 				return
 			}
+			if height != program.node.info.TopoHeight {
+				height = program.node.info.TopoHeight
+
+				updateDiffData()
+
+				newGraph := &graph{hd_map: diff_map}
+				g.ExtendBaseWidget(g)
+
+				// Replace content in graph container
+				diff_graph = newGraph
+
+				updatePoolCache()
+
+				updateBlocksData()
+
+				fyne.DoAndWait(func() {
+					diff_graph.Refresh()
+					pool_table.Refresh()
+					block_table.Refresh()
+				})
+
+				stats = []string{
+					strconv.Itoa(int(program.node.info.Height)),
+					strconv.Itoa(int(program.node.info.AverageBlockTime50)),
+					strconv.Itoa(int(program.node.info.Tx_pool_size)),
+					strconv.Itoa(int(program.node.info.Difficulty) / 1000000),
+					strconv.Itoa(int(program.node.info.Total_Supply)),
+					program.node.info.Status,
+				}
+				fyne.DoAndWait(func() {
+					diff.SetText("Network Height: " + stats[0])
+					average_blocktime.SetText("Network Blocktime: " + stats[1] + " seconds")
+					mem_pool.SetText("Mempool Size: " + stats[2])
+					hash_rate.SetText("Hash Rate: " + stats[3] + " MH/s")
+					supply.SetText("Total Supply: " + stats[4])
+					network_status.SetText("Network Status: " + stats[5])
+				})
+
+			}
 		}
-	}()
-	searchTab = container.NewTabItem("Search", container.NewBorder(
-		searchBar,     // top
-		nil,           // bottom
-		nil,           // left
-		nil,           // right
-		results_table, // center
-	))
-	tabs = container.NewAppTabs(
-		tab_stats,
-		container.NewTabItem("TX Pool", container.NewAdaptiveGrid(1,
-			pool_table,
-		)),
-		container.NewTabItem("Recent Blocks", container.NewAdaptiveGrid(1,
-			block_table,
-		)),
-		searchTab,
-	)
+	}
+	go update()
+
+	search_window := container.NewBorder(searchBar, nil, nil, nil, results_table)
+	tab_search = container.NewTabItem("Search", search_window)
+
+	pool := container.NewAdaptiveGrid(1, pool_table)
+	tab_pool := container.NewTabItem("TX Pool", pool)
+
+	blocks := container.NewAdaptiveGrid(1, block_table)
+	tab_blocks := container.NewTabItem("Recent Blocks", blocks)
+
+	tabs = container.NewAppTabs(tab_stats, tab_pool, tab_blocks, tab_search)
 
 	tabs.SetTabLocation(container.TabLocationLeading)
 
