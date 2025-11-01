@@ -661,16 +661,9 @@ func getDaemonInfo() rpc.GetInfo_Result {
 
 func getSC(scParam rpc.GetSC_Params) rpc.GetSC_Result {
 	validator := func(r rpc.GetSC_Result) bool {
-		switch {
-		case scParam.Code && scParam.Variables:
-			return r.Code != "" && (len(r.VariableStringKeys) != 0 && len(r.VariableUint64Keys) != 0)
-		case scParam.Code && !scParam.Variables:
+		if scParam.Code {
 			return r.Code != ""
-		case !scParam.Code && scParam.Variables:
-			return (len(r.VariableStringKeys) != 0 && len(r.VariableUint64Keys) != 0)
-		case !scParam.Code && !scParam.Variables:
-			fallthrough
-		default:
+		}
 			return true
 		}
 	}
