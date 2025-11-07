@@ -705,14 +705,17 @@ func getSCIDImage(keys map[string]interface{}) image.Image {
 		if !strings.Contains(k, "image") && !strings.Contains(k, "icon") {
 			continue
 		}
-		b, e := hex.DecodeString(v.(string))
+		encoded := v.(string)
+		b, e := hex.DecodeString(encoded)
 		if e != nil {
-			logger.Error(e, v.(string))
+			logger.Error(e, encoded)
 			continue
 		}
 		value := string(b)
+		logger.Info("scid", "key", k, "value", value)
 		uri, err := storage.ParseURI(value)
 		if err != nil {
+			logger.Error(err, value)
 			return nil
 		} else {
 			ctx, cancel := context.WithTimeout(context.Background(), timeout)

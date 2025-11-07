@@ -50,11 +50,13 @@ func xswdAppHandler(data *xswd.ApplicationData) bool {
 	var msg []byte
 	msg, err = hex.DecodeString(string(message))
 	if err != nil {
-		panic(err)
+		showError(err, program.window)
+		return reject
 	}
 	id, err := hex.DecodeString(data.Id)
 	if err != nil {
-		panic(err)
+		showError(err, program.window)
+		return reject
 	}
 
 	if !bytes.Equal(msg, id) {
@@ -133,12 +135,14 @@ func xswdRequestHandler(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permi
 
 	msg, err := hex.DecodeString(string(message))
 	if err != nil {
-		panic(err)
+		showError(err, program.window)
+		return xswd.Deny
 	}
 
 	id, err := hex.DecodeString(data.Id)
 	if err != nil {
-		panic(err)
+		showError(err, program.window)
+		return xswd.Deny
 	}
 
 	if !bytes.Equal(msg, id) {
