@@ -161,17 +161,17 @@ func xswdRequestHandler(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permi
 	content := container.NewBorder(app, nil, nil, nil)
 	// if it has params, process them
 	if r.HasParams() {
-		var params rpc.EventNotification
+		// var params rpc.EventNotification
 
 		// un-marshal the params
-		if err := r.UnmarshalParams(&params); err != nil {
+		// if err := r.UnmarshalParams(&params); err != nil {
 
-			// if the params fail, serve the error
-			showError(fmt.Errorf("app request resulted in err:\n%s", err), program.window)
+		// 	// if the params fail, serve the error
+		// 	showError(fmt.Errorf("app request resulted in err:\n%s", err), program.window)
 
-			// // and then deny the request
-			return xswd.Deny
-		}
+		// 	// // and then deny the request
+		// 	return xswd.Deny
+		// }
 		// add param string to the request
 		label := widget.NewLabel("")
 		switch r.Method() {
