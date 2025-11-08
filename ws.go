@@ -40,7 +40,7 @@ func xswdAppHandler(data *xswd.ApplicationData) bool {
 	// let's verify this real quick
 	address, message, err := program.wallet.CheckSignature([]byte(data.Signature))
 	if err != nil {
-		showError(err, program.window)
+		showError(fmt.Errorf("app authorization resulted in err:\n%s", err), program.window)
 		return reject
 	}
 	// fmt.Println(address.String(), string(message))
@@ -50,11 +50,13 @@ func xswdAppHandler(data *xswd.ApplicationData) bool {
 	var msg []byte
 	msg, err = hex.DecodeString(string(message))
 	if err != nil {
-		panic(err)
+		showError(fmt.Errorf("app authorization resulted in err:\n%s", err), program.window)
+		return reject
 	}
 	id, err := hex.DecodeString(data.Id)
 	if err != nil {
-		panic(err)
+		showError(fmt.Errorf("app authorization resulted in err:\n%s", err), program.window)
+		return reject
 	}
 
 	if !bytes.Equal(msg, id) {
@@ -124,7 +126,7 @@ func xswdRequestHandler(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permi
 	// let's verify this real quick
 	address, message, err := program.wallet.CheckSignature([]byte(data.Signature))
 	if err != nil {
-		showError(err, program.window)
+		showError(fmt.Errorf("app request resulted in err:\n%s", err), program.window)
 		return xswd.Deny
 	}
 	// fmt.Println(address.String(), string(message))
@@ -133,12 +135,14 @@ func xswdRequestHandler(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permi
 
 	msg, err := hex.DecodeString(string(message))
 	if err != nil {
-		panic(err)
+		showError(fmt.Errorf("app request resulted in err:\n%s", err), program.window)
+		return xswd.Deny
 	}
 
 	id, err := hex.DecodeString(data.Id)
 	if err != nil {
-		panic(err)
+		showError(fmt.Errorf("app request resulted in err:\n%s", err), program.window)
+		return xswd.Deny
 	}
 
 	if !bytes.Equal(msg, id) {
@@ -157,17 +161,17 @@ func xswdRequestHandler(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permi
 	content := container.NewBorder(app, nil, nil, nil)
 	// if it has params, process them
 	if r.HasParams() {
-		var params rpc.EventNotification
+		// var params rpc.EventNotification
 
 		// un-marshal the params
-		if err := r.UnmarshalParams(&params); err != nil {
+		// if err := r.UnmarshalParams(&params); err != nil {
 
-			// if the params fail, serve the error
-			showError(err, program.window)
+		// 	// if the params fail, serve the error
+		// 	showError(fmt.Errorf("app request resulted in err:\n%s", err), program.window)
 
-			// // and then deny the request
-			return xswd.Deny
-		}
+		// 	// // and then deny the request
+		// 	return xswd.Deny
+		// }
 		// add param string to the request
 		label := widget.NewLabel("")
 		switch r.Method() {
@@ -177,12 +181,12 @@ func xswdRequestHandler(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permi
 		case "scinvoke":
 			p := rpc.SC_Invoke_Params{}
 			if err := json.Unmarshal([]byte(r.ParamString()), &p); err != nil {
-				showError(err, program.window)
+				showError(fmt.Errorf("app request resulted in err:\n%s", err), program.window)
 				break
 			}
 			pretty, err := json.MarshalIndent(p, "", "  ")
 			if err != nil {
-				showError(err, program.window)
+				showError(fmt.Errorf("app request resulted in err:\n%s", err), program.window)
 				break
 			}
 			label.SetText(string(pretty))
@@ -190,7 +194,7 @@ func xswdRequestHandler(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permi
 		case "transfer":
 			p := rpc.Transfer_Params{}
 			if err := json.Unmarshal([]byte(r.ParamString()), &p); err != nil {
-				showError(err, program.window)
+				showError(fmt.Errorf("app request resulted in err:\n%s", err), program.window)
 				break
 			}
 			text := ""
