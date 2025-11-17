@@ -30,6 +30,11 @@ func xswdServer(port int) *xswd.XSWD {
 // the wallet is receiving application data from a source,
 // and then granting permission based on the data therein
 func xswdAppHandler(data *xswd.ApplicationData) bool {
+
+	// reject all connection attempts while screen is locked.
+	if program.preferences.Bool("isLocked") {
+		return reject
+	}
 	// let's serve up the data
 
 	text := "\tID: \n" + data.Id + "\n" +
@@ -118,6 +123,11 @@ func xswdAppHandler(data *xswd.ApplicationData) bool {
 // we are going to make it as simple as it gets:
 // do you allow it, do you reject it
 func xswdRequestHandler(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permission {
+	// reject all connection attempts while screen is locked.
+	if program.preferences.Bool("isLocked") {
+		return xswd.Deny
+	}
+
 	// let's serve up some content
 	text := "\tID: \n" + data.Id + "\n" +
 		"\tNAME: " + data.Name + "\n" +

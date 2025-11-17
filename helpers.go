@@ -990,7 +990,7 @@ func showInfoFast(t, m string, w fyne.Window) {
 func setContentAsHome() { program.window.SetContent(program.containers.home) }
 
 func lockScreen() {
-
+	program.preferences.SetBool("isLocked", true)
 	content := container.NewVBox(
 		layout.NewSpacer(),
 		container.NewAdaptiveGrid(3,
@@ -1019,7 +1019,7 @@ func lockScreen() {
 			showError(errors.New("wrong password"), program.window)
 			return
 		}
-
+		program.preferences.SetBool("isLocked", false)
 		lockscreen.Dismiss()
 	}
 
