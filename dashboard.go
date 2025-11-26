@@ -47,8 +47,8 @@ func keys() {
 
 	// if they press enter, it is the same as clicking confirm
 	program.entries.pass.OnSubmitted = func(s string) {
-		k.Dismiss()
 		k.Submit()
+		k.Dismiss()
 	}
 	callback := func(b bool) {
 		pass := program.entries.pass.Text
