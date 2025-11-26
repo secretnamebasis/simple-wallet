@@ -837,6 +837,7 @@ func explorer() {
 	search.OnSubmitted = func(s string) {
 		tapped()
 	}
+	search.SetPlaceHolder("search txid/scid/blockid/blockheight")
 	searchBar := container.NewVBox(search)
 
 	var updating bool = true

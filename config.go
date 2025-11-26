@@ -18,6 +18,7 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 	"github.com/chzyer/readline"
+	"github.com/creachadair/jrpc2/handler"
 	"github.com/deroproject/derohe/blockchain"
 	derodrpc "github.com/deroproject/derohe/cmd/derod/rpc"
 	"github.com/deroproject/derohe/config"
@@ -509,6 +510,10 @@ func ws_server() {
 			program.entries.port.Disable()
 
 			program.ws_server = xswdServer(p)
+
+			// let's set some custom methods
+			program.ws_server.SetCustomMethod("GetAssets", handler.New(getAssets))
+
 			if program.ws_server != nil && program.ws_server.IsRunning() {
 				// assuming there are now errors here...
 				program.toggles.ws_server.SetSelected("on")

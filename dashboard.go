@@ -44,15 +44,17 @@ func keys() {
 
 	// simple way to see keys
 	var k *dialog.FormDialog
-
+	password := widget.NewPasswordEntry()
+	password.SetPlaceHolder("w41137-p@55w0rd")
 	// if they press enter, it is the same as clicking confirm
-	program.entries.pass.OnSubmitted = func(s string) {
+	password.OnSubmitted = func(s string) {
 		k.Submit()
 		k.Dismiss()
 	}
+
 	callback := func(b bool) {
-		pass := program.entries.pass.Text
-		program.entries.pass.SetText("")
+		pass := password.Text
+		password.SetText("")
 
 		if !b { // if they cancel
 			return
@@ -113,7 +115,7 @@ func keys() {
 	}
 
 	// create a simple form content
-	content := []*widget.FormItem{widget.NewFormItem("", program.entries.pass)}
+	content := []*widget.FormItem{widget.NewFormItem("", password)}
 
 	// set the content and callback
 	k = dialog.NewForm("Display Keys?", confirm, dismiss, content, callback, program.window)

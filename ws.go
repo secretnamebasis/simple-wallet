@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -261,4 +262,16 @@ func xswdRequestHandler(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permi
 
 	// default is to deny
 	return xswd.Deny
+}
+
+type getAssetsResult struct {
+	SCIDS []string
+}
+
+func getAssets(ctx context.Context) (getAssetsResult, error) {
+	scids := []string{}
+	for _, each := range program.caches.assets {
+		scids = append(scids, each.hash)
+	}
+	return getAssetsResult{scids}, nil
 }
