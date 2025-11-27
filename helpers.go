@@ -1659,6 +1659,7 @@ func asset_scan() {
 				showInfo("Asset Scan", "Scan complete", program.window)
 				syncing.Stop()
 				syncing.Hide()
+				program.lists.asset_list.Refresh()
 				syncro.Dismiss()
 			})
 		}()
