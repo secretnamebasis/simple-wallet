@@ -46,7 +46,7 @@ func xswdAppHandler(data *xswd.ApplicationData) bool {
 	// let's verify this real quick
 	address, message, err := program.wallet.CheckSignature([]byte(data.Signature))
 	if err != nil {
-		showError(fmt.Errorf("app authorization resulted in err:\n%s", err), program.window)
+		showError(fmt.Errorf("app authorization signature resulted in err:\n%s", err), program.window)
 		return reject
 	}
 	// fmt.Println(address.String(), string(message))
@@ -56,12 +56,12 @@ func xswdAppHandler(data *xswd.ApplicationData) bool {
 	var msg []byte
 	msg, err = hex.DecodeString(string(message))
 	if err != nil {
-		showError(fmt.Errorf("app authorization resulted in err:\n%s", err), program.window)
+		showError(fmt.Errorf("app authorization message decoding resulted in err:\n%s", err), program.window)
 		return reject
 	}
 	id, err := hex.DecodeString(data.Id)
 	if err != nil {
-		showError(fmt.Errorf("app authorization resulted in err:\n%s", err), program.window)
+		showError(fmt.Errorf("app authorization data.Id resulted in err:\n%s", err), program.window)
 		return reject
 	}
 
