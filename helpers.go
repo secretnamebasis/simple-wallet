@@ -1719,6 +1719,11 @@ func slide_network(f float64) {
 		program.labels.current_node.SetText("Current Node: " + program.node.current)
 		program.entries.node.Refresh()
 		globals.InitNetwork()
+		// lets create data directories
+		if err := os.MkdirAll(globals.GetDataDirectory(), 0750); err != nil {
+			panic(err)
+		}
+
 		setText(msg, program.labels.notice)
 	}
 	if program.sliders.network.Value > 0.33 && program.sliders.network.Value < 0.66 {
@@ -1739,6 +1744,11 @@ func slide_network(f float64) {
 		program.labels.current_node.SetText("Current Node: " + program.node.current)
 		program.entries.node.Refresh()
 		globals.InitNetwork()
+		// lets create data directories
+		if err := os.MkdirAll(globals.GetDataDirectory(), 0750); err != nil {
+			panic(err)
+		}
+
 		setText(msg, program.labels.notice)
 	}
 	if program.sliders.network.Value > 0.66 && program.sliders.network.Value <= 1 {
@@ -1758,6 +1768,11 @@ func slide_network(f float64) {
 		program.labels.current_node.SetText("Current Node: " + program.node.current)
 		program.entries.node.Refresh()
 		globals.InitNetwork()
+		// lets create data directories
+		if err := os.MkdirAll(globals.GetDataDirectory(), 0750); err != nil {
+			panic(err)
+		}
+
 		setText(msg, program.labels.notice)
 	}
 }
