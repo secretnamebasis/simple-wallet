@@ -524,6 +524,10 @@ func ws_server() {
 					method:      "GetAssetBalance",
 					handlerfunc: handler.New(getAssetBalance),
 				},
+				{
+					method:      "AttemptEPOCHWithAddr",
+					handlerfunc: handler.New(attemptEPOCHWithAddr),
+				},
 			} {
 				program.ws_server.SetCustomMethod(each.method, each.handlerfunc)
 			}

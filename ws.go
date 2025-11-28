@@ -5,12 +5,16 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"runtime"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
+	"github.com/civilware/epoch"
 	"github.com/creachadair/jrpc2"
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
@@ -266,7 +270,7 @@ func xswdRequestHandler(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permi
 }
 
 type getAssetsResult struct {
-	SCIDS []string
+	SCIDS []string `json:"scids"`
 }
 
 func getAssets(ctx context.Context) (getAssetsResult, error) {
@@ -282,7 +286,7 @@ type getAssetBalanceParams struct {
 	SCID   string
 }
 type getAssetBalanceResult struct {
-	Balance uint64
+	Balance uint64 `json:"balance"`
 }
 
 func getAssetBalance(ctx context.Context, params getAssetBalanceParams) (getAssetBalanceResult, error) {
@@ -300,4 +304,42 @@ func getAssetBalance(ctx context.Context, params getAssetBalanceParams) (getAsse
 	}
 
 	return getAssetBalanceResult{bal}, nil
+}
+
+type getAttemptEpochParams struct {
+	Hashes  int    `json:"hashes"`
+	Address string `json:"address"`
+}
+
+func attemptEPOCHWithAddr(ctx context.Context, params getAttemptEpochParams) (epoch.EPOCH_Result, error) {
+
+	reserve := 2 // one for the app and one for the os
+	threads := runtime.GOMAXPROCS(0)
+	maximum := threads - reserve
+
+	epoch.SetMaxThreads(maximum)
+	addr, err := rpc.NewAddress(params.Address)
+	if err != nil {
+		return epoch.EPOCH_Result{}, errors.New("invalid address")
+	}
+
+	endpoint := program.node.current
+
+	err = epoch.StartGetWork(addr.String(), endpoint)
+	if err != nil {
+		return epoch.EPOCH_Result{}, errors.New("failed start get work server")
+	}
+	defer epoch.StopGetWork()
+
+	timeout := time.Second * 10
+
+	err = epoch.JobIsReady(timeout)
+	if err != nil {
+		return epoch.EPOCH_Result{}, errors.New("failed get job before timeout")
+	}
+
+	// the smaller of the two
+	hashes := min(params.Hashes, epoch.LIMIT_MAX_HASHES)
+
+	return epoch.AttemptHashes(hashes)
 }
