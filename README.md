@@ -67,7 +67,8 @@ simple-wallet
 
 With the addition of XSWD, the wallet has custom methods: { 
   `"GetAssets"`, 
-  `"GetAssetBalance"` 
+  `"GetAssetBalance"`,
+  `"AttemptEPOCHWithAddr"`
 }
 
 ## `GetAssets`
@@ -91,6 +92,7 @@ _none_
     ]
 }
 ```
+
 ## `GetAssetBalance`
 ### Body
 ```
@@ -116,6 +118,32 @@ _none_
 }
 ```
 
+## `AttemptEPOCHWithAddr`
+### Body
+```
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "GetAssetBalance"
+    "params": {
+      "address": "dero1qyvqpdftj8r6005xs20rnflakmwa5pdxg9vcjzdcuywq2t8skqhvwqglt6x0g"
+      "hashes": 1000,
+  }
+}
+```
+### Parameters
+- Address - required
+- Hashes - required
+
+### Response
+```
+{
+  "epochDuration":580, 
+  "epochHashPerSecond":1721.21, 
+  "epochHashes":1000, 
+  "epochSubmitted":0
+}
+```
 
 # Development
 
@@ -136,7 +164,7 @@ There are many additional Dero-related technologies that could be integrated int
   - ~~Gnomon integration~~ 
   - ~~XSWD Websocket~~
   - Tela Installer & Server
-  - Epoch Management
+  - ~~Epoch Management~~
 
 # Image Gallery
 
