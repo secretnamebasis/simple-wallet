@@ -6,11 +6,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"runtime"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
+	"github.com/civilware/epoch"
 	"github.com/creachadair/jrpc2"
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
@@ -300,4 +303,39 @@ func getAssetBalance(ctx context.Context, params getAssetBalanceParams) (getAsse
 	}
 
 	return getAssetBalanceResult{bal}, nil
+}
+
+type getAttemptEpochParams struct {
+	Hashes  int    `json:"hashes"`
+	Address string `json:"address"`
+}
+
+func attemptEPOCHWithAddr(ctx context.Context, params getAttemptEpochParams) (result epoch.EPOCH_Result, err error) {
+
+	reserve := 2 // one for the app and one for the os
+	threads := runtime.GOMAXPROCS(0)
+	maximum := threads - reserve
+
+	epoch.SetMaxThreads(maximum)
+
+	addr := params.Address
+	endpoint := program.node.current
+
+	err = epoch.StartGetWork(addr, endpoint)
+	if err != nil {
+		return
+	}
+	defer epoch.StopGetWork()
+
+	timeout := time.Second * 10
+
+	err = epoch.JobIsReady(timeout)
+	if err != nil {
+		return
+	}
+
+	// the smaller of the two
+	hashes := min(params.Hashes, epoch.LIMIT_MAX_HASHES)
+
+	return epoch.AttemptHashes(hashes)
 }
