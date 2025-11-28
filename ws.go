@@ -266,7 +266,7 @@ func xswdRequestHandler(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permi
 }
 
 type getAssetsResult struct {
-	SCIDS []string
+	SCIDS []string `json:"scids"`
 }
 
 func getAssets(ctx context.Context) (getAssetsResult, error) {
@@ -282,7 +282,7 @@ type getAssetBalanceParams struct {
 	SCID   string
 }
 type getAssetBalanceResult struct {
-	Balance uint64
+	Balance uint64 `json:"balance"`
 }
 
 func getAssetBalance(ctx context.Context, params getAssetBalanceParams) (getAssetBalanceResult, error) {
