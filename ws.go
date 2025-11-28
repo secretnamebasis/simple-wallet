@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"runtime"
 	"time"
@@ -310,20 +311,23 @@ type getAttemptEpochParams struct {
 	Address string `json:"address"`
 }
 
-func attemptEPOCHWithAddr(ctx context.Context, params getAttemptEpochParams) (result epoch.EPOCH_Result, err error) {
+func attemptEPOCHWithAddr(ctx context.Context, params getAttemptEpochParams) (epoch.EPOCH_Result, error) {
 
 	reserve := 2 // one for the app and one for the os
 	threads := runtime.GOMAXPROCS(0)
 	maximum := threads - reserve
 
 	epoch.SetMaxThreads(maximum)
+	addr, err := rpc.NewAddress(params.Address)
+	if err != nil {
+		return epoch.EPOCH_Result{}, errors.New("invalid address")
+	}
 
-	addr := params.Address
 	endpoint := program.node.current
 
-	err = epoch.StartGetWork(addr, endpoint)
+	err = epoch.StartGetWork(addr.String(), endpoint)
 	if err != nil {
-		return
+		return epoch.EPOCH_Result{}, errors.New("failed start get work server")
 	}
 	defer epoch.StopGetWork()
 
@@ -331,7 +335,7 @@ func attemptEPOCHWithAddr(ctx context.Context, params getAttemptEpochParams) (re
 
 	err = epoch.JobIsReady(timeout)
 	if err != nil {
-		return
+		return epoch.EPOCH_Result{}, errors.New("failed get job before timeout")
 	}
 
 	// the smaller of the two
