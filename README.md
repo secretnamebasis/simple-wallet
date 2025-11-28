@@ -63,13 +63,66 @@ go install github.com/secretnamebasis/simple-wallet@latest
 simple-wallet
 ```
 
+# Custom Methods
+
+With the addition of XSWD, the wallet has custom methods: { 
+  `"GetAssets"`, 
+  `"GetAssetBalance"` 
+}
+
+## `GetAssets`
+### Body
+```
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "GetAssets"
+}
+```
+### Parameters
+_none_
+### Response
+```
+{
+  "scids": [ 
+      "a957231ba28b6b72bb361cad75f15f684f4cd3ef3e1e8986261bc82d20625cd8",
+      "9054fb4fa91289814336009f707881b6b99202b64d7cb1f9c589a66613a5149e",
+      "ad2e7b37c380cc1aed3a6b27224ddfc92a2d15962ca1f4d35e530dba0f9575a9"
+    ]
+}
+```
+## `GetAssetBalance`
+### Body
+```
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "GetAssetBalance"
+    "params": {
+      "scid": "86acadbda70bbaf25b03425a84612072db03fe8488837b534a1d6049833490fc"
+      "height": -1,
+  }
+}
+```
+### Parameters
+- SCID - required
+- Height - required
+> Use `-1` for current topo height
+
+### Response
+```
+{
+  "balance": 123456
+}
+```
+
+
 # Development
 
 Most of the dev process has been to imbue a GUI with as much of the present wallet client tools as possible, while also introducing some components that make it easier to dev on the DERO blockchain.   
 
 Some other developments that could be useful:
 - Expand the public node list
-- Multiple desktop environments, there have been zero tests in Microsoft or MacOS environments — strongly doubt iOS app would ever happen.
 
 There are many additional Dero-related technologies that could be integrated into this program:
 
