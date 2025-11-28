@@ -529,7 +529,7 @@ func ws_server() {
 			}
 
 			if program.ws_server != nil && program.ws_server.IsRunning() {
-				// assuming there are now errors here...
+				// assuming there are no errors here...
 				program.toggles.ws_server.SetSelected("on")
 				program.labels.ws_server.SetText("WS: ✅")
 			}
