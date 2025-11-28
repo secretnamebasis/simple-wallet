@@ -512,7 +512,21 @@ func ws_server() {
 			program.ws_server = xswdServer(p)
 
 			// let's set some custom methods
-			program.ws_server.SetCustomMethod("GetAssets", handler.New(getAssets))
+			for _, each := range []struct {
+				method      string
+				handlerfunc handler.Func
+			}{
+				{
+					method:      "GetAssets",
+					handlerfunc: handler.New(getAssets),
+				},
+				{
+					method:      "GetAssetBalance",
+					handlerfunc: handler.New(getAssetBalance),
+				},
+			} {
+				program.ws_server.SetCustomMethod(each.method, each.handlerfunc)
+			}
 
 			if program.ws_server != nil && program.ws_server.IsRunning() {
 				// assuming there are now errors here...
