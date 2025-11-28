@@ -1121,12 +1121,12 @@ These wallets are started with RPC servers ON without username or password. Endp
 func balance_rescan() {
 	// nice big notice
 	big_notice :=
-		"This action will clear all transfer history and balances. " +
-			"Balances are nearly instant in resync; however... " +
-			"Tx history depends on node status, eg pruned/full... " +
-			"Some txs may not be available at your node connection. " +
-			"For full history, and privacy, run a full node starting at block 0 upto current topoheight. " +
-			"This operation could take a long time with many token assets and transfers. "
+		"This action is a non-cancelable action that will clear all transfer history and balances.\n" +
+			"Balances are nearly instant in resync; however...\n" +
+			"Tx history depends on node status, eg pruned/full...\n" +
+			"Some txs may not be available at your node connection.\n" +
+			"For full history, and privacy, run a full node starting at block 0 upto current topoheight.\n" +
+			"This operation could take a long time with many token assets and transfers."
 
 	// create a callback function
 	callback := func(b bool) {
