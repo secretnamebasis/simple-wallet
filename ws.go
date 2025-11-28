@@ -12,6 +12,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 	"github.com/creachadair/jrpc2"
+	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/walletapi/xswd"
 )
@@ -274,4 +275,29 @@ func getAssets(ctx context.Context) (getAssetsResult, error) {
 		scids = append(scids, each.hash)
 	}
 	return getAssetsResult{scids}, nil
+}
+
+type getAssetBalanceParams struct {
+	Height int64
+	SCID   string
+}
+type getAssetBalanceResult struct {
+	Balance uint64
+}
+
+func getAssetBalance(ctx context.Context, params getAssetBalanceParams) (getAssetBalanceResult, error) {
+
+	hash := crypto.HashHexToHash(params.SCID)
+
+	height := params.Height // -1 is current topoheight
+
+	address := program.wallet.GetAddress()
+
+	bal, _, err := program.wallet.GetDecryptedBalanceAtTopoHeight(hash, height, address.String())
+
+	if err != nil {
+		return getAssetBalanceResult{}, err
+	}
+
+	return getAssetBalanceResult{bal}, nil
 }
