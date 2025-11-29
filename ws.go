@@ -275,8 +275,8 @@ type getAssetsResult struct {
 
 func getAssets(ctx context.Context) (getAssetsResult, error) {
 	scids := []string{}
-	for _, each := range program.caches.assets {
-		scids = append(scids, each.hash)
+	for each := range program.wallet.GetAccount().EntriesNative {
+		scids = append(scids, each.String())
 	}
 	return getAssetsResult{scids}, nil
 }
