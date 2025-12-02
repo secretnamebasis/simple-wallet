@@ -425,7 +425,12 @@ func getSCNameFromVars(keys map[string]interface{}) string {
 
 			continue
 		}
-		b, e := hex.DecodeString(v.(string))
+
+		str, ok := v.(string)
+		if !ok {
+			continue
+		}
+		b, e := hex.DecodeString(str)
 		if e != nil {
 			continue // what else can we do ?
 		}
