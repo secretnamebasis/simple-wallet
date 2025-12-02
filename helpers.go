@@ -534,6 +534,22 @@ func getSCNameFromVars(keys map[string]interface{}) string {
 	return text
 }
 
+func getSCIDImageURLFromVars(keys map[string]interface{}) string {
+	value := ""
+	for k, v := range keys {
+		if !strings.Contains(k, "image") && !strings.Contains(k, "icon") {
+			continue
+		}
+		encoded := v.(string)
+		b, e := hex.DecodeString(encoded)
+		if e != nil {
+			logger.Error(e, encoded)
+			continue
+		}
+		value = string(b)
+	}
+	return value
+}
 func getTxsAndTransactions(hashes []crypto.Hash) (txs []rpc.GetTransaction_Result, transactions []transaction.Transaction) {
 	for _, each := range hashes {
 		if _, ok := program.node.transactions[each.String()]; !ok {
@@ -809,44 +825,33 @@ func setSCIDThumbnail(img image.Image, h, w float32) image.Image {
 	thumbnail = canvas.NewImageFromImage(thumb)
 	return thumbnail.Image
 }
+
 func getSCIDImage(keys map[string]interface{}) image.Image {
-	for k, v := range keys {
-		if !strings.Contains(k, "image") && !strings.Contains(k, "icon") {
-			continue
-		}
-		encoded := v.(string)
-		b, e := hex.DecodeString(encoded)
-		if e != nil {
-			logger.Error(e, encoded)
-			continue
-		}
-		value := string(b)
-		logger.Info("scid", "key", k, "value", value)
-		uri, err := storage.ParseURI(value)
+	value := getSCIDImageURLFromVars(keys)
+	uri, err := storage.ParseURI(value)
+	if err != nil {
+		logger.Error(err, value)
+		return nil
+	} else {
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+
+		req, err := http.NewRequestWithContext(ctx, "GET", uri.String(), nil)
 		if err != nil {
-			logger.Error(err, value)
+			logger.Error(err, "get error")
+			return nil
+		}
+		client := http.DefaultClient
+		resp, err := client.Do(req)
+		if err != nil || resp.StatusCode != http.StatusOK {
 			return nil
 		} else {
-			ctx, cancel := context.WithTimeout(context.Background(), timeout)
-			defer cancel()
-
-			req, err := http.NewRequestWithContext(ctx, "GET", uri.String(), nil)
+			defer resp.Body.Close()
+			i, _, err := image.Decode(resp.Body)
 			if err != nil {
-				logger.Error(err, "get error")
 				return nil
 			}
-			client := http.DefaultClient
-			resp, err := client.Do(req)
-			if err != nil || resp.StatusCode != http.StatusOK {
-				return nil
-			} else {
-				defer resp.Body.Close()
-				i, _, err := image.Decode(resp.Body)
-				if err != nil {
-					return nil
-				}
-				return i
-			}
+			return i
 		}
 	}
 	return nil
