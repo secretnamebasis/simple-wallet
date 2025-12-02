@@ -712,7 +712,11 @@ func callRPC[t any](method string, params any, validator func(t) bool) t {
 	}
 
 	if !validator(result) {
-		logger.Error(errors.New("failed validation"), method)
+		switch method {
+		// there might be some additional handling to consider
+		default:
+			logger.Error(errors.New("failed validation"), "call", method, params, "result", result)
+		}
 		var zero t
 		return zero
 	}
