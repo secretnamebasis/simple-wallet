@@ -29,7 +29,7 @@ require (
 	github.com/cenkalti/hub v1.0.2 // indirect
 	github.com/cenkalti/rpc2 v1.0.4 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
-	github.com/civilware/tela v0.0.0-20240912213039-e4e13230c390 // indirect
+	github.com/civilware/tela v0.0.0-20250806221602-aa892d2ff8d4 // indirect
 	github.com/coder/websocket v1.8.14 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dchest/siphash v1.2.3 // indirect
