@@ -269,16 +269,16 @@ func xswdRequestHandler(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permi
 	return xswd.Deny
 }
 
-type getAssetsResult struct {
+type getSCIDsResult struct {
 	SCIDS []string `json:"scids"`
 }
 
-func getAssets(ctx context.Context) (getAssetsResult, error) {
+func getAssets(ctx context.Context) (getSCIDsResult, error) {
 	scids := []string{}
 	for each := range program.wallet.GetAccount().EntriesNative {
 		scids = append(scids, each.String())
 	}
-	return getAssetsResult{scids}, nil
+	return getSCIDsResult{scids}, nil
 }
 
 type getAssetBalanceParams struct {
