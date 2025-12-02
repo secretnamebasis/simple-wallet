@@ -416,7 +416,13 @@ func getSCNameFromVars(keys map[string]interface{}) string {
 	var text string
 
 	for k, v := range keys {
-		if !strings.Contains(k, "name") {
+		key := strings.ToLower(k)
+		if key != "name" || //explicit check
+			// infer a name
+			!strings.Contains(key, "name") ||
+			!strings.HasSuffix(key, "name") ||
+			!strings.HasPrefix(key, "name") {
+
 			continue
 		}
 		b, e := hex.DecodeString(v.(string))
