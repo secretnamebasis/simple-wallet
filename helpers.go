@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/gob"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strconv"
@@ -28,6 +30,7 @@ import (
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"github.com/chzyer/readline"
 	"github.com/deroproject/derohe/block"
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/globals"
@@ -35,6 +38,7 @@ import (
 	"github.com/deroproject/derohe/transaction"
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/deroproject/derohe/walletapi/mnemonics"
+	"github.com/go-logr/logr"
 	"github.com/ybbus/jsonrpc/v3"
 	"golang.org/x/image/draw"
 )
@@ -128,6 +132,98 @@ func createPreferred() {
 		if preferred_connection.ip != "" {
 			program.node.list[0] = preferred_connection
 		}
+	}
+}
+
+func initialize_logger() {
+	// We need to initialize readline first, so it changes stderr to ansi processor on windows
+	l, err := readline.NewEx(&readline.Config{
+		Prompt: "\033[92mDERO:\033[32m»\033[0m",
+		// Prompt:          prompt,
+		HistoryFile: "", // wallet never saves any history file anywhere, to prevent any leakage
+		// AutoComplete:    completer,
+		InterruptPrompt: "^C",
+		EOFPrompt:       "exit",
+
+		HistorySearchFold: true,
+		// FuncFilterInputRune: filterInput,
+	})
+	if err != nil {
+		panic(err)
+	}
+	defer l.Close()
+
+	// parse arguments and setup logging , print basic information
+	f, err := os.Create(filepath.Join(globals.GetDataDirectory(), program.name+".log"))
+	if err != nil {
+		fmt.Printf("Error while opening log file err: %s filename %s\n", err, program.name+".log")
+		return
+	}
+	globals.InitializeLog(l.Stdout(), f)
+	logger = globals.Logger.WithName(program.name)
+
+}
+
+var logger logr.Logger
+
+var only_once sync.Once
+
+// let's make sure this is only loaded once
+func initialize_table() {
+	only_once.Do(func() {
+		big_table := os.Getenv("USE_BIG_TABLE")
+		handleTable := func(s string, i int) {
+			logger.Info("Please wait, generating precompute table.... ")
+			if loadTable(s) {
+				logger.Info("Loaded lookup table from disk.")
+			} else {
+				msg := "(1<<21)"
+				if big_table != "" {
+					msg = "(1<<24)"
+				}
+				logger.Info("Generating lookup table " + msg + "... this may take a while.")
+				walletapi.Initialize_LookupTable(1, i)
+				saveTable(s, walletapi.Balance_lookup_table)
+			}
+
+			tables := len(*walletapi.Balance_lookup_table)
+			if walletapi.Balance_lookup_table != nil && tables > 0 {
+				tableLen := float64(len((*walletapi.Balance_lookup_table)[0]))
+				logger.Info(fmt.Sprintf("Lookup table info: %d table, with %.f entries (~%.f MiB)",
+					tables, tableLen, tableLen*8/kilobyte/kilobyte))
+			}
+		}
+		if big_table != "" {
+			handleTable("big_table.gob", 1<<24)
+		} else {
+			handleTable("small_table.gob", 1<<21)
+		}
+		logger.Info("Precompute table loaded into memory")
+	})
+}
+
+func loadTable(filename string) bool {
+	f, err := os.Open(filepath.Join(globals.GetDataDirectory(), filename))
+	if err != nil {
+		return false // file not found
+	}
+	defer f.Close()
+	if err := gob.NewDecoder(f).Decode(&walletapi.Balance_lookup_table); err != nil {
+		fmt.Println("Failed to decode lookup table:", err)
+		return false
+	}
+	return true
+}
+
+func saveTable(filename string, table any) {
+	f, err := os.Create(filepath.Join(globals.GetDataDirectory(), filename))
+	if err != nil {
+		fmt.Println("Failed to create table file:", err)
+		return
+	}
+	defer f.Close()
+	if err := gob.NewEncoder(f).Encode(table); err != nil {
+		fmt.Println("Failed to encode lookup table:", err)
 	}
 }
 
@@ -416,10 +512,21 @@ func getSCNameFromVars(keys map[string]interface{}) string {
 	var text string
 
 	for k, v := range keys {
-		if !strings.Contains(k, "name") {
+		key := strings.ToLower(k)
+		if key != "name" || //explicit check
+			// infer a name
+			!strings.Contains(key, "name") ||
+			!strings.HasSuffix(key, "name") ||
+			!strings.HasPrefix(key, "name") {
+
 			continue
 		}
-		b, e := hex.DecodeString(v.(string))
+
+		str, ok := v.(string)
+		if !ok {
+			continue
+		}
+		b, e := hex.DecodeString(str)
 		if e != nil {
 			continue // what else can we do ?
 		}
@@ -431,6 +538,22 @@ func getSCNameFromVars(keys map[string]interface{}) string {
 	return text
 }
 
+func getSCIDImageURLFromVars(keys map[string]interface{}) string {
+	value := ""
+	for k, v := range keys {
+		if !strings.Contains(k, "image") && !strings.Contains(k, "icon") {
+			continue
+		}
+		encoded := v.(string)
+		b, e := hex.DecodeString(encoded)
+		if e != nil {
+			logger.Error(e, encoded)
+			continue
+		}
+		value = string(b)
+	}
+	return value
+}
 func getTxsAndTransactions(hashes []crypto.Hash) (txs []rpc.GetTransaction_Result, transactions []transaction.Transaction) {
 	for _, each := range hashes {
 		if _, ok := program.node.transactions[each.String()]; !ok {
@@ -593,7 +716,11 @@ func callRPC[t any](method string, params any, validator func(t) bool) t {
 	}
 
 	if !validator(result) {
-		logger.Error(errors.New("failed validation"), method)
+		switch method {
+		// there might be some additional handling to consider
+		default:
+			logger.Error(errors.New("failed validation"), "call", method, params, "result", result)
+		}
 		var zero t
 		return zero
 	}
@@ -661,8 +788,14 @@ func getDaemonInfo() rpc.GetInfo_Result {
 
 func getSC(scParam rpc.GetSC_Params) rpc.GetSC_Result {
 	validator := func(r rpc.GetSC_Result) bool {
-		if scParam.Code {
+		if scParam.Code && scParam.Variables {
+			return r.Code != "" && len(r.VariableStringKeys) != 0
+		}
+		if scParam.Code && !scParam.Variables {
 			return r.Code != ""
+		}
+		if !scParam.Code && scParam.Variables {
+			return len(r.VariableStringKeys) != 0
 		}
 		return true
 	}
@@ -700,44 +833,33 @@ func setSCIDThumbnail(img image.Image, h, w float32) image.Image {
 	thumbnail = canvas.NewImageFromImage(thumb)
 	return thumbnail.Image
 }
+
 func getSCIDImage(keys map[string]interface{}) image.Image {
-	for k, v := range keys {
-		if !strings.Contains(k, "image") && !strings.Contains(k, "icon") {
-			continue
-		}
-		encoded := v.(string)
-		b, e := hex.DecodeString(encoded)
-		if e != nil {
-			logger.Error(e, encoded)
-			continue
-		}
-		value := string(b)
-		logger.Info("scid", "key", k, "value", value)
-		uri, err := storage.ParseURI(value)
+	value := getSCIDImageURLFromVars(keys)
+	uri, err := storage.ParseURI(value)
+	if err != nil {
+		logger.Error(err, value)
+		return nil
+	} else {
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+
+		req, err := http.NewRequestWithContext(ctx, "GET", uri.String(), nil)
 		if err != nil {
-			logger.Error(err, value)
+			logger.Error(err, "get error")
+			return nil
+		}
+		client := http.DefaultClient
+		resp, err := client.Do(req)
+		if err != nil || resp.StatusCode != http.StatusOK {
 			return nil
 		} else {
-			ctx, cancel := context.WithTimeout(context.Background(), timeout)
-			defer cancel()
-
-			req, err := http.NewRequestWithContext(ctx, "GET", uri.String(), nil)
+			defer resp.Body.Close()
+			i, _, err := image.Decode(resp.Body)
 			if err != nil {
-				logger.Error(err, "get error")
 				return nil
 			}
-			client := http.DefaultClient
-			resp, err := client.Do(req)
-			if err != nil || resp.StatusCode != http.StatusOK {
-				return nil
-			} else {
-				defer resp.Body.Close()
-				i, _, err := image.Decode(resp.Body)
-				if err != nil {
-					return nil
-				}
-				return i
-			}
+			return i
 		}
 	}
 	return nil
