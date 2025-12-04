@@ -115,12 +115,14 @@ func maintain_connection() {
 	for range ticker.C {
 		// assuming the localhost connection works, if not preference
 		walletapi.Daemon_Endpoint = program.node.current
-		// the connection should be working
-		height = walletapi.Get_Daemon_TopoHeight()
+
 		// get the height directly from the daemon
-		if height == 0 || // if it is not zero, it will advance
+		height = getDaemonInfo().TopoHeight
+
+		if height == 0 || !walletapi.Connected {
+
 			// otherwise, try to connect to the walletapi
-			walletapi.Connect(walletapi.Daemon_Endpoint) != nil { // if it fails...
+			walletapi.Connect(walletapi.Daemon_Endpoint) // the connection should be working
 
 			// update the label and show dancing bit
 			dance := func() {
