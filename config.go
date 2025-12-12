@@ -526,6 +526,11 @@ func ws_server() {
 					method:      "GetAssetBalance",
 					handlerfunc: handler.New(getAssetBalance),
 				},
+				// we are going to make a custom method for gas estimates
+				{
+					method:      "GetTXEstimate",
+					handlerfunc: handler.New(getTXEstimate),
+				},
 				{
 					method:      "AttemptEPOCHWithAddr",
 					handlerfunc: handler.New(attemptEPOCHWithAddr),

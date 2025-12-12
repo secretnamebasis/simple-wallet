@@ -269,6 +269,29 @@ func xswdRequestHandler(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permi
 	return xswd.Deny
 }
 
+// because the gas estimater doesn't do gas estimates for transfers...
+func getTXEstimate(ctx context.Context, params rpc.Transfer_Params) uint64 {
+	if len(params.Transfers) == 0 {
+		return 0
+	}
+
+	dry_run := true
+
+	tx, err := program.wallet.TransferPayload0(
+		params.Transfers,
+		params.Ringsize,
+		false,
+		params.SC_RPC,
+		0, // dry_run does not require gasstorage
+		dry_run,
+	)
+	if err != nil {
+		return 0
+	}
+
+	return tx.Fees()
+}
+
 type getSCIDsResult struct {
 	SCIDS []string `json:"scids"`
 }
