@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -29,6 +31,8 @@ import (
 	"github.com/deroproject/derohe/transaction"
 	"github.com/deroproject/derohe/walletapi"
 	"github.com/deroproject/derohe/walletapi/rpcserver"
+	"github.com/gorilla/websocket"
+	structures "github.com/secretnamebasis/simple-gnomon/structs"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -55,6 +59,8 @@ func configs() *fyne.Container {
 	// let's start off by hiding it
 	program.buttons.rpc_server.Hide()
 
+	program.buttons.indexer.OnTapped = indexer
+
 	// let's make a simple way to update the password
 	program.buttons.update_password.OnTapped = passwordUpdate
 
@@ -80,6 +86,7 @@ func configs() *fyne.Container {
 				program.buttons.connections,
 				program.buttons.ws_server,
 				program.buttons.rpc_server,
+				program.buttons.indexer,
 				program.buttons.balance_rescan,
 				program.buttons.update_password,
 				program.buttons.notifications,
@@ -476,11 +483,11 @@ func connections() {
 
 func ws_server() {
 
-	if !program.entries.port.Disabled() {
-		program.entries.port.SetText("44326")
+	if !program.entries.ws_port.Disabled() {
+		program.entries.ws_port.SetText("44326")
 	}
 
-	notice := makeCenteredWrappedLabel("WS Server runs at ws://127.0.0.1:" + program.entries.port.Text + "/xswd")
+	notice := makeCenteredWrappedLabel("WS Server runs at ws://127.0.0.1:" + program.entries.ws_port.Text + "/xswd")
 
 	// let's position toggle horizontally
 	program.toggles.ws_server.Horizontal = true
@@ -495,7 +502,7 @@ func ws_server() {
 
 			var p int
 			var err error
-			port := program.entries.port.Text
+			port := program.entries.ws_port.Text
 			if port != "" {
 				p, err = strconv.Atoi(port)
 				if err != nil {
@@ -508,8 +515,8 @@ func ws_server() {
 					return
 				}
 			}
-			notice.SetText("WS Server runs at ws://127.0.0.1:" + program.entries.port.Text + "/xswd")
-			program.entries.port.Disable()
+			notice.SetText("WS Server runs at ws://127.0.0.1:" + program.entries.ws_port.Text + "/xswd")
+			program.entries.ws_port.Disable()
 
 			program.ws_server = xswdServer(p)
 
@@ -535,6 +542,14 @@ func ws_server() {
 					method:      "AttemptEPOCHWithAddr",
 					handlerfunc: handler.New(attemptEPOCHWithAddr),
 				},
+				{
+					method:      "Gnomon.GetAllOwnersAndSCIDs",
+					handlerfunc: handler.New(getAllSCIDSAndOwners),
+				},
+				{
+					method:      "Gnomon.GetAllSCIDVariableDetails",
+					handlerfunc: handler.New(getAllSCIDVariableDetails),
+				},
 			} {
 				program.ws_server.SetCustomMethod(each.method, each.handlerfunc)
 			}
@@ -550,7 +565,7 @@ func ws_server() {
 			if program.ws_server != nil {
 				program.ws_server.Stop()
 			}
-			program.entries.port.Enable()
+			program.entries.ws_port.Enable()
 			// default:
 		}
 	}
@@ -572,7 +587,7 @@ Application requests will arrive as pop-ups for confirmation or dismissal.
 
 Only have ON when necessary.
 		`),
-		program.entries.port,
+		program.entries.ws_port,
 		notice,
 		container.NewCenter(program.toggles.ws_server),
 		layout.NewSpacer(),
@@ -582,13 +597,6 @@ Only have ON when necessary.
 	ws := dialog.NewCustom("ws server", dismiss, content, program.window)
 	ws.Resize(fyne.NewSize(program.size.Width/3, program.size.Height/2))
 	ws.Show()
-	ws.SetOnClosed(func() {
-		// let's be clear about the software
-		program.labels.notice = makeCenteredWrappedLabel(`
-THIS SOFTWARE IS ALPHA STAGE SOFTWARE
-USE ONLY FOR TESTING & EVALUATION PURPOSES 
-`)
-	})
 }
 
 func rpc_server() {
@@ -710,6 +718,114 @@ RPC server runs at http://127.0.0.1:10103/json_rpc
 	rpc.Show()
 }
 
+var indexer_connection *websocket.Conn
+
+func indexer() {
+
+	if !program.entries.indexer_port.Disabled() {
+		program.entries.indexer_port.SetText("9190")
+	}
+
+	notice := makeCenteredWrappedLabel("WS Server runs at ws://127.0.0.1:" + program.entries.ws_port.Text + "/ws")
+
+	// let's position toggle horizontally
+	program.toggles.indexer.Horizontal = true
+
+	// simple options to choose from
+	program.toggles.indexer.Options = []string{
+		"off", "on",
+	}
+	onChanged := func(s string) {
+		switch s {
+		case "on":
+
+			var p int
+			var err error
+			port := program.entries.indexer_port.Text
+			if port != "" {
+				p, err = strconv.Atoi(port)
+				if err != nil {
+					showError(err, program.window)
+					program.toggles.indexer.SetSelected("off")
+					return
+				} else if p > 10000 {
+					showError(errors.New("port must be below 10000"), program.window)
+					program.toggles.indexer.SetSelected("off")
+					return
+				}
+			}
+
+			notice.SetText("simple-gnomon websocket runs at ws://127.0.0.1:" + program.entries.indexer_port.Text + "/ws")
+			program.entries.indexer_port.Disable()
+			url := "ws://127.0.0.1:" + program.entries.indexer_port.Text + "/ws"
+			dialer := websocket.Dialer{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // allow self-signed certs
+			}
+			indexer_connection, _, err = dialer.Dial(url, nil)
+			if err != nil {
+				panic(err)
+			}
+			msg := map[string]any{
+				"method": "test",
+				"id":     "boogers",
+				"params": structures.GnomonSCIDQuery{},
+			}
+			if err := indexer_connection.WriteJSON(msg); err != nil {
+				panic(err)
+			}
+
+			_, b, err := indexer_connection.ReadMessage()
+			if err != nil {
+				panic(err)
+			}
+
+			var r structures.JSONRpcResp
+			if err := json.Unmarshal(b, &r); err != nil {
+				panic(err)
+			}
+			if r.Error == nil && r.Result.(string) == "test" {
+				// assuming there are no errors here...
+				program.toggles.indexer.SetSelected("on")
+				program.labels.indexer.SetText("IDX: ✅")
+			}
+		case "off":
+			program.toggles.indexer.SetSelected("off")
+			program.labels.indexer.SetText("IDX: 🔴")
+			indexer_connection = nil
+			program.entries.indexer_port.Enable()
+			// default:
+		}
+	}
+
+	program.toggles.indexer.OnChanged = onChanged
+
+	// if there isn't anything toggled, set to off
+	if program.toggles.indexer.Selected == "" {
+		program.toggles.indexer.SetSelected("off")
+	}
+
+	// load up the widgets into a container
+	content := container.NewVBox(
+		layout.NewSpacer(),
+		makeCenteredWrappedLabel(`
+Indexers allow for simple-wallet to obtain indexed details regarding the dero blockchain. 
+
+Applications requesting index queries (eg. Gnomon) will require this connection to obtain the data.
+`),
+		program.entries.indexer_port,
+		notice,
+		container.NewCenter(program.toggles.indexer),
+		layout.NewSpacer(),
+	)
+
+	// let's build a walkthru for the user, resize and show
+	indexer_ws := dialog.NewCustom("indexer web socket", dismiss, content, program.window)
+	indexer_ws.Resize(fyne.NewSize(program.size.Width/3, program.size.Height/2))
+	indexer_ws.Show()
+	indexer_ws.SetOnClosed(func() {
+
+	})
+}
 func passwordUpdate() {
 	// let's get some confirmation
 	var pass_confirm *dialog.ConfirmDialog

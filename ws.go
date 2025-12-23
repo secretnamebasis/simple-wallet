@@ -19,6 +19,7 @@ import (
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/walletapi/xswd"
+	structures "github.com/secretnamebasis/simple-gnomon/structs"
 )
 
 func xswdServer(port int) *xswd.XSWD {
@@ -290,6 +291,84 @@ func getTXEstimate(ctx context.Context, params rpc.Transfer_Params) uint64 {
 	}
 
 	return tx.Fees()
+}
+
+type getAllSCIDSAndOwnersResult struct {
+	Result map[string]any `json:"allOwners"`
+}
+
+type getAllSCIDSAndOwnersParams struct {
+	Tag string
+}
+
+func getAllSCIDSAndOwners(ctx context.Context, params getAllSCIDSAndOwnersParams) (getAllSCIDSAndOwnersResult, error) {
+	if params.Tag == "" {
+		params.Tag = "all"
+	}
+	msg := map[string]any{
+		"method": "GetAllOwnersAndSCIDs",
+		"id":     "1",
+		"params": params,
+	}
+
+	var err error
+
+	if err := indexer_connection.WriteJSON(msg); err != nil {
+		return getAllSCIDSAndOwnersResult{}, errors.New("failed to write")
+	}
+
+	_, b, err := indexer_connection.ReadMessage()
+	if err != nil {
+		return getAllSCIDSAndOwnersResult{}, errors.New("failed to read")
+	}
+
+	var r structures.JSONRpcResp
+	if err := json.Unmarshal(b, &r); err != nil {
+		return getAllSCIDSAndOwnersResult{}, errors.New("failed to unmarshal")
+	}
+
+	return getAllSCIDSAndOwnersResult{r.Result.(map[string]any)}, nil
+}
+
+type getAllSCIDVariableDetailsResult struct {
+	Result []any `json:"allVariables"`
+}
+
+type getAllSCIDVariableDetailsParams struct {
+	Tag  string
+	SCID string
+}
+
+func getAllSCIDVariableDetails(ctx context.Context, params getAllSCIDVariableDetailsParams) (getAllSCIDVariableDetailsResult, error) {
+
+	// if they aren't pointing at a db, just assume it is the big one
+	if params.Tag == "" {
+		params.Tag = "all"
+	}
+
+	msg := map[string]any{
+		"method": "GetAllSCIDVariableDetails",
+		"id":     "1",
+		"params": params,
+	}
+
+	var err error
+
+	if err := indexer_connection.WriteJSON(msg); err != nil {
+		return getAllSCIDVariableDetailsResult{}, errors.New("failed to write")
+	}
+
+	_, b, err := indexer_connection.ReadMessage()
+	if err != nil {
+		return getAllSCIDVariableDetailsResult{}, errors.New("failed to read")
+	}
+
+	var r structures.JSONRpcResp
+	if err := json.Unmarshal(b, &r); err != nil {
+		return getAllSCIDVariableDetailsResult{}, errors.New("failed to unmarshal")
+	}
+
+	return getAllSCIDVariableDetailsResult{r.Result.([]any)}, nil
 }
 
 type getSCIDsResult struct {

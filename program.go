@@ -56,6 +56,7 @@ var program = components{
 	},
 	toggles: toggles{
 		ws_server:  widget.NewRadioGroup([]string{}, nil),
+		indexer:    widget.NewRadioGroup([]string{}, nil),
 		rpc_server: widget.NewRadioGroup([]string{}, nil),
 		simulator:  widget.NewRadioGroup([]string{}, nil),
 	},
@@ -72,6 +73,7 @@ var program = components{
 		transactions:    widget.NewButton("TXS", nil),
 		ws_server:       widget.NewButton("WS SERVER", nil),
 		rpc_server:      widget.NewButton("RPC SERVER", nil),
+		indexer:         widget.NewButton("INDEXER", nil),
 		update_password: widget.NewButton("UPDATE PASSWORD", nil),
 		simulator:       widget.NewButton("SIMULATOR", nil),
 		simulation:      widget.NewButton("TURN SIMULATOR ON", nil),
@@ -107,6 +109,7 @@ var program = components{
 		loggedin:     widget.NewLabel("WALLET: 🔴"),
 		ws_server:    widget.NewLabel("WS: 🔴"),
 		rpc_server:   widget.NewLabel("RPC: 🔴"),
+		indexer:      widget.NewLabel("IDX: 🔴"),
 		current_node: widget.NewLabel(""),
 		notice:       widget.NewLabel(""),
 		balance:      widget.NewLabel("0.00000"),
@@ -138,7 +141,8 @@ Please do not leave this page.
 		amount:       widget.NewEntry(),
 		dst:          widget.NewEntry(),
 		comment:      widget.NewEntry(),
-		port:         widget.NewEntry(),
+		ws_port:      widget.NewEntry(),
+		indexer_port: widget.NewEntry(),
 	},
 	selections: selections{
 		assets: widget.NewSelect([]string{""}, func(s string) {}),
