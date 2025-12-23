@@ -26,6 +26,9 @@ func topbar() *fyne.Container {
 
 			// also want to see if the rpc server is on
 			program.labels.rpc_server,
+
+			// gonna need to have access to an indexer
+			program.labels.indexer,
 		),
 	)
 }

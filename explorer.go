@@ -7,7 +7,6 @@ import (
 	"slices"
 	"sort"
 	"strconv"
-	"sync"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -54,70 +53,57 @@ func explorer() {
 	diff_map := map[int]int{}
 	updateDiffData := func() {
 		// don't do more than this...
-		const limit = 300
+		const limit = 48 // 1 / 100th of a day
 
-		// concurrency!
-		var wg sync.WaitGroup
-		var mu sync.RWMutex
-
-		wg.Add(limit)
 		for i := range limit {
-			func(i int) {
-				defer wg.Done()
 
-				h := uint64(walletapi.Get_Daemon_TopoHeight()) - (uint64(i))
+			h := uint64(walletapi.Get_Daemon_TopoHeight()) - (uint64(i)) - 1
 
-				_, exists := diff_map[int(h)]
+			_, exists := diff_map[int(h)]
 
-				_, havBlock := program.node.blocks[h]
+			_, havBlock := program.node.blocks[h]
 
-				if exists {
-					mu.Lock()
-					defer mu.Unlock()
-					x := int(walletapi.Get_Daemon_TopoHeight()) - limit
-					if len(diff_map) >= limit {
-						delete(diff_map, x)
+			if exists {
+				x := int(walletapi.Get_Daemon_TopoHeight()) - limit
+				if len(diff_map) >= limit {
+					delete(diff_map, x)
+				}
+				if havBlock {
+					if len(program.node.blocks) >= limit {
+						delete(program.node.blocks, uint64(x))
+						logger.Info("explorer", "block removed from map", strconv.Itoa(int(x)))
 					}
-					if havBlock {
-						if len(program.node.blocks) >= limit {
-							delete(program.node.blocks, uint64(x))
-							logger.Info("explorer", "block removed from map", strconv.Itoa(int(x)))
-						}
-					}
-					return
 				}
+				return
+			}
 
-				r := getBlockInfo(rpc.GetBlock_Params{
-					Height: h,
-				})
+			r := getBlockInfo(rpc.GetBlock_Params{
+				Height: h,
+			})
 
-				b, err := hex.DecodeString(r.Blob)
-				if err != nil {
-					return
-				}
+			b, err := hex.DecodeString(r.Blob)
+			if err != nil {
+				return
+			}
 
-				var bl block.Block
-				err = bl.Deserialize(b)
-				if err != nil {
-					return
-				}
+			var bl block.Block
+			err = bl.Deserialize(b)
+			if err != nil {
+				return
+			}
 
-				d, e := strconv.Atoi(r.Block_Header.Difficulty)
-				if e != nil {
-					return
-				}
-				mu.Lock()
-				if !exists {
-					diff_map[int(bl.Height)] = d
-				}
-				if !havBlock {
-					program.node.blocks[h] = r
-					logger.Info("explorer", "block added to map", strconv.Itoa(int(h)))
-				}
-				mu.Unlock()
-			}(i)
+			d, e := strconv.Atoi(r.Block_Header.Difficulty)
+			if e != nil {
+				return
+			}
+			if !exists {
+				diff_map[int(bl.Height)] = d
+			}
+			if !havBlock {
+				program.node.blocks[h] = r
+				logger.Info("explorer", "block added to map", strconv.Itoa(int(h)))
+			}
 		}
-		wg.Wait()
 	}
 
 	updateDiffData()

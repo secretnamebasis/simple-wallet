@@ -9,6 +9,8 @@ require (
 	github.com/creachadair/jrpc2 v0.35.4
 	github.com/deroproject/derohe v0.0.0-20250813215012-9b6a8b82c839
 	github.com/go-logr/logr v1.4.3
+	github.com/gorilla/websocket v1.5.3
+	github.com/secretnamebasis/simple-gnomon v0.0.0-20251204181213-fbcff0548119
 	github.com/ybbus/jsonrpc/v3 v3.1.7
 	golang.org/x/image v0.33.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
@@ -48,7 +50,6 @@ require (
 	github.com/go-text/render v0.2.0 // indirect
 	github.com/go-text/typesetting v0.2.1 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
-	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/hack-pad/go-indexeddb v0.3.2 // indirect
 	github.com/hack-pad/safejs v0.1.0 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
@@ -70,14 +71,13 @@ require (
 	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
-	github.com/templexxx/cpu v0.0.9 // indirect
-	github.com/templexxx/xorsimd v0.4.1 // indirect
+	github.com/templexxx/cpu v0.1.1 // indirect
+	github.com/templexxx/xorsimd v0.4.3 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/valyala/fastrand v1.1.0 // indirect
 	github.com/valyala/histogram v1.2.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xtaci/kcp-go/v5 v5.6.42 // indirect
-	github.com/ybbus/jsonrpc v2.1.2+incompatible // indirect
 	github.com/yuin/goldmark v1.7.8 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	go.uber.org/zap v1.27.1 // indirect

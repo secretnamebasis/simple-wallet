@@ -88,6 +88,7 @@ type (
 	toggles struct {
 		rpc_server *widget.RadioGroup
 		ws_server  *widget.RadioGroup
+		indexer    *widget.RadioGroup
 		simulator  *widget.RadioGroup
 	}
 	containers struct {
@@ -129,6 +130,7 @@ type (
 		connections,
 		ws_server,
 		rpc_server,
+		indexer,
 		update_password,
 		contracts,
 		encryption,
@@ -163,7 +165,8 @@ type (
 		amount,
 		dst,
 		comment,
-		port,
+		ws_port,
+		indexer_port,
 		secret,
 		public *widget.Entry
 	}
@@ -173,6 +176,7 @@ type (
 		current_node,
 		rpc_server,
 		ws_server,
+		indexer,
 		balance,
 		counter,
 		notice,
