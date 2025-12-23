@@ -1697,20 +1697,13 @@ func asset_scan() {
 		go func() {
 
 			var list_of_scids []string
-
-			big_map := getSCValues(gnomonSC).VariableStringKeys
-			lenMap := len(big_map)
-			if lenMap == 0 {
-				showError(errors.New("gnomon values are not in memory"), program.window)
+			r, err := getAllSCIDSAndOwners(context.Background(), getAllSCIDSAndOwnersParams{})
+			if err != nil {
+				showError(err, program.window)
 				return
 			}
-			for k := range big_map {
-				if strings.Contains(k, "owner") ||
-					strings.Contains(k, "height") ||
-					strings.Contains(k, "C") ||
-					len(k) < 64 {
-					continue
-				}
+
+			for k := range r.Result {
 				list_of_scids = append(list_of_scids, k)
 			}
 
@@ -1802,7 +1795,6 @@ func asset_scan() {
 				})
 
 			}
-
 		}()
 	}
 	notice := `
