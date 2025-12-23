@@ -506,7 +506,13 @@ func assetsList() {
 
 	var list *fyne.Container
 
-	program.buttons.asset_scan.OnTapped = asset_scan
+	if !strings.Contains(program.labels.indexer.Text, "✅") {
+		program.buttons.asset_scan.OnTapped = func() {
+			showError(errors.New("please connect indexer"), program.window)
+		}
+	} else {
+		program.buttons.asset_scan.OnTapped = asset_scan
+	}
 
 	assets := program.caches.assets
 
