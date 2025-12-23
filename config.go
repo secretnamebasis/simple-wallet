@@ -763,7 +763,8 @@ func indexer() {
 			}
 			indexer_connection, _, err = dialer.Dial(url, nil)
 			if err != nil {
-				panic(err)
+				showError(err, program.window)
+				return
 			}
 			msg := map[string]any{
 				"method": "test",
@@ -771,17 +772,20 @@ func indexer() {
 				"params": structures.GnomonSCIDQuery{},
 			}
 			if err := indexer_connection.WriteJSON(msg); err != nil {
-				panic(err)
+				showError(err, program.window)
+				return
 			}
 
 			_, b, err := indexer_connection.ReadMessage()
 			if err != nil {
-				panic(err)
+				showError(err, program.window)
+				return
 			}
 
 			var r structures.JSONRpcResp
 			if err := json.Unmarshal(b, &r); err != nil {
-				panic(err)
+				showError(err, program.window)
+				return
 			}
 			if r.Error == nil && r.Result.(string) == "test" {
 				// assuming there are no errors here...
