@@ -276,11 +276,11 @@ func getTXEstimate(ctx context.Context, params rpc.Transfer_Params) uint64 {
 	}
 
 	dry_run := true
-
+	transfer_all := false
 	tx, err := program.wallet.TransferPayload0(
 		params.Transfers,
 		params.Ringsize,
-		false,
+		transfer_all, //not implemented
 		params.SC_RPC,
 		0, // dry_run does not require gasstorage
 		dry_run,
