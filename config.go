@@ -726,7 +726,7 @@ func indexer() {
 		program.entries.indexer_port.SetText("9190")
 	}
 
-	notice := makeCenteredWrappedLabel("WS Server runs at ws://127.0.0.1:" + program.entries.ws_port.Text + "/ws")
+	notice := makeCenteredWrappedLabel("not connected")
 
 	// let's position toggle horizontally
 	program.toggles.indexer.Horizontal = true
@@ -755,7 +755,6 @@ func indexer() {
 				}
 			}
 
-			notice.SetText("simple-gnomon websocket runs at ws://127.0.0.1:" + program.entries.indexer_port.Text + "/ws")
 			program.entries.indexer_port.Disable()
 			url := "ws://127.0.0.1:" + program.entries.indexer_port.Text + "/ws"
 			dialer := websocket.Dialer{
@@ -763,7 +762,10 @@ func indexer() {
 			}
 			indexer_connection, _, err = dialer.Dial(url, nil)
 			if err != nil {
-				panic(err)
+				notice.SetText("not connected")
+				program.toggles.indexer.SetSelected("off")
+				showError(err, program.window)
+				return
 			}
 			msg := map[string]any{
 				"method": "test",
@@ -771,22 +773,32 @@ func indexer() {
 				"params": structures.GnomonSCIDQuery{},
 			}
 			if err := indexer_connection.WriteJSON(msg); err != nil {
-				panic(err)
+				notice.SetText("not connected")
+				program.toggles.indexer.SetSelected("off")
+				showError(err, program.window)
+				return
 			}
 
 			_, b, err := indexer_connection.ReadMessage()
 			if err != nil {
-				panic(err)
+				notice.SetText("not connected")
+				program.toggles.indexer.SetSelected("off")
+				showError(err, program.window)
+				return
 			}
 
 			var r structures.JSONRpcResp
 			if err := json.Unmarshal(b, &r); err != nil {
-				panic(err)
+				notice.SetText("not connected")
+				program.toggles.indexer.SetSelected("off")
+				showError(err, program.window)
+				return
 			}
 			if r.Error == nil && r.Result.(string) == "test" {
 				// assuming there are no errors here...
 				program.toggles.indexer.SetSelected("on")
 				program.labels.indexer.SetText("IDX: ✅")
+				notice.SetText("Indexer websocket connected to ws://127.0.0.1:" + program.entries.indexer_port.Text + "/ws")
 			}
 		case "off":
 			program.toggles.indexer.SetSelected("off")
@@ -808,9 +820,11 @@ func indexer() {
 	content := container.NewVBox(
 		layout.NewSpacer(),
 		makeCenteredWrappedLabel(`
-Indexers allow for simple-wallet to obtain indexed details regarding the dero blockchain. 
+Indexers allow for simple-wallet to obtain indexed details regarding the DERO blockchain. 
 
 Applications requesting index queries (eg. Gnomon) will require this connection to obtain the data.
+
+Set the indexer websocket port, or use default: 9190
 `),
 		program.entries.indexer_port,
 		notice,
