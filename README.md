@@ -11,6 +11,7 @@ This is a simple Dero wallet built using Fyne.
     - "WALLET" - Wallet Logged-In 
     - "WS" - WS Server 
     - "RPC" - RPC Server 
+    - "IDX" - Inexer connection
 - "🔒" Lockscreen Button
 - Create/Login/Restore Wallets
 - Transaction History
@@ -19,7 +20,9 @@ This is a simple Dero wallet built using Fyne.
 - Sending with Options, including Token Assets
 - Public Node Auto-Connect
 - Simulator Launcher
+- WS Server
 - RPC Server
+- Indexer connection pass through over websocket
 - Integrated Address Generation
 - Token Adding
 - Asset Scanner - via Gnomon Smart Contact
@@ -69,6 +72,8 @@ With the addition of XSWD, the wallet has custom methods: {
   `"GetAssets"`, 
   `"GetAssetBalance"`,
   `"AttemptEPOCHWithAddr"`
+  `"Gnomon.GetAllOwnersAndSCIDs"`
+  `"Gnomon.GetAllSCIDVariableDetails"`
 }
 
 ## `GetAssets`
@@ -142,6 +147,100 @@ _none_
   "epochHashPerSecond":1721.21, 
   "epochHashes":1000, 
   "epochSubmitted":0
+}
+```
+## `Gnomon.GetAllOwnersAndSCIDs`
+### Body
+```
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "Gnomon.GetAllOwnersAndSCIDs"
+    "params": {
+      "tag": "all"
+  }
+}
+```
+### Parameters
+- tag - optional, if left blank defaults to all
+> (NOTE: this feature is subject to change as it relies on upstream tool) 
+
+
+### Response
+```
+{
+  "allOwners":[ 
+    fffe1bb8098646c13a03467dfe0581f292cb00559ac3dffc78a7430397c25aef:dero1qyq6p3cwu905q7urmdkmh67p6ceqh7kmaczvhfdmz8scfxf4j3kjgqqnvwfmj,
+    fffee4409d59e71bb48fabcfd3b2b64af49f2489b65c646d86a46dc8b4dedda2:dero1qy429gdgtwzz07pslkf8q3fd47lp75r6vc9qth79t8vmja5nxzvpjqqftz6n4
+    ...
+  ], 
+}
+```
+## `Gnomon.GetAllSCIDVariableDetails`
+### Body
+```
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "Gnomon.GetAllSCIDVariableDetails"
+    "params": {
+      "tag": "all"
+      "scid": "fffee4409d59e71bb48fabcfd3b2b64af49f2489b65c646d86a46dc8b4dedda2"
+  }
+}
+```
+### Parameters
+- scid - required
+- tag - optional, if left blank defaults to all
+> (NOTE: this feature is subject to change as it relies on upstream tool) 
+
+
+### Response
+```
+{
+  "allVariables": [
+    {
+      "Key": "type",
+      "Value": "G45-NFT"
+    },
+    {
+      "Key": "C",
+      "Value": "Function InitializePrivate(collection String, metadataFormat String, metadata String) Uint64\n1 IF EXISTS(\"minter\") == 1 THEN GOTO 11\n2 STORE(\"minter\", SIGNER())\n3 STORE(\"type\", \"G45-NFT\")\n4 STORE(\"owner\", \"\")\n5 STORE(\"timestamp\", BLOCK_TIMESTAMP())\n6 SEND_ASSET_TO_ADDRESS(SIGNER(), 1, SCID())\n7 STORE(\"collection\", collection)\n8 STORE(\"metadataFormat\", metadataFormat)\n9 STORE(\"metadata\", metadata)\n10 RETURN 0\n11 RETURN 1\nEnd Function\n\nFunction DisplayNFT() Uint64\n1 IF ADDRESS_STRING(SIGNER()) == \"\" THEN GOTO 5\n2 IF ASSETVALUE(SCID()) != 1 THEN GOTO 5\n3 STORE(\"owner\", ADDRESS_STRING(SIGNER()))\n4 RETURN 0\n5 RETURN 1\nEnd Function\n\nFunction RetrieveNFT() Uint64\n1 IF LOAD(\"owner\") != ADDRESS_STRING(SIGNER()) THEN GOTO 5\n2 SEND_ASSET_TO_ADDRESS(SIGNER(), 1, SCID())\n3 STORE(\"owner\", \"\")\n4 RETURN 0\n5 RETURN 1\nEnd Function"
+    },
+    {
+      "Key": "collection",
+      "Value": "92c8e4dbab3f9f3245be688eaa8d9456e660ad6031901a0c214988d5d29c2acf"
+    },
+    {
+      "Key": "metadata",
+      "Value": {
+        "attributes": {
+          "City": "Singapore",
+          "Country": "Singapore",
+          "Landmark": "Botanic Gardens"
+        },
+        "id": 48,
+        "image": "ipfs://QmfPXr65DVgECH5TRn6c7pWwgBWzWVyH7oJNYwC3PBVc8j/DerBnB%20%2348.jpg",
+        "name": "DerBNB #48"
+      }
+    },
+    {
+      "Key": "metadataFormat",
+      "Value": "json"
+    },
+    {
+      "Key": "minter",
+      "Value": "dero1qy3gr5zgxqlwtcaa03uvplczrrgaa8w6fagjpvsngc69hu884jedjqqj20tn6"
+    },
+    {
+      "Key": "owner",
+      "Value": "dero1qy429gdgtwzz07pslkf8q3fd47lp75r6vc9qth79t8vmja5nxzvpjqqftz6n4"
+    },
+    {
+      "Key": "timestamp",
+      "Value": 1684239153
+    }
+  ], 
 }
 ```
 
