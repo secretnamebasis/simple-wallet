@@ -269,7 +269,7 @@ func xswdRequestHandler(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permi
 	return xswd.Deny
 }
 
-// because the gas estimater doesn't do gas estimates for transfers...
+// because the GetGasEstimater doesn't do gas estimates for transfers...
 func getTXEstimate(ctx context.Context, params rpc.Transfer_Params) uint64 {
 	if len(params.Transfers) == 0 {
 		return 0
