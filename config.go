@@ -544,7 +544,7 @@ func ws_server() {
 				},
 				{
 					method:      "Gnomon.GetAllOwnersAndSCIDs",
-					handlerfunc: handler.New(getAllSCIDSAndOwners),
+					handlerfunc: handler.New(getAllOwnersAndSCIDs),
 				},
 				{
 					method:      "Gnomon.GetAllSCIDVariableDetails",
