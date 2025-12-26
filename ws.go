@@ -270,10 +270,14 @@ func xswdRequestHandler(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permi
 	return xswd.Deny
 }
 
+type getTXEstimateResult struct {
+	Fees uint64 `json:"fees"`
+}
+
 // because the GetGasEstimater doesn't do gas estimates for transfers...
-func getTXEstimate(ctx context.Context, params rpc.Transfer_Params) uint64 {
+func getTXEstimate(ctx context.Context, params rpc.Transfer_Params) getTXEstimateResult {
 	if len(params.Transfers) == 0 {
-		return 0
+		return getTXEstimateResult{Fees: 0}
 	}
 
 	dry_run := true
@@ -287,10 +291,10 @@ func getTXEstimate(ctx context.Context, params rpc.Transfer_Params) uint64 {
 		dry_run,
 	)
 	if err != nil {
-		return 0
+		return getTXEstimateResult{Fees: 0}
 	}
 
-	return tx.Fees()
+	return getTXEstimateResult{Fees: tx.Fees()}
 }
 
 type getAllOwnersAndSCIDsResult struct {
