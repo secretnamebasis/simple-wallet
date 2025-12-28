@@ -142,7 +142,7 @@ Please do not leave this page.
 		dst:          widget.NewEntry(),
 		comment:      widget.NewEntry(),
 		ws_port:      widget.NewEntry(),
-		indexer_port: widget.NewEntry(),
+		indexer:      widget.NewEntry(),
 	},
 	selections: selections{
 		assets: widget.NewSelect([]string{""}, func(s string) {}),
