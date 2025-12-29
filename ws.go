@@ -42,42 +42,66 @@ func xswdAppHandler(data *xswd.ApplicationData) bool {
 	if program.preferences.Bool("isLocked") {
 		return reject
 	}
+	var label, sig = widget.NewLabel(""), widget.NewLabel("")
 	// let's serve up the data
-
 	text := "\tID: \n" + data.Id + "\n" +
 		"\tNAME: " + data.Name + "\n" +
 		"\tDESCRIPTION: " + data.Description + "\n" +
 		"\tURL: " + data.Url + "\n"
 
 	// let's verify this real quick
-	address, message, err := program.wallet.CheckSignature([]byte(data.Signature))
-	if err != nil {
-		showError(fmt.Errorf("app authorization signature resulted in err:\n%s", err), program.window)
-		return reject
-	}
-	// fmt.Println(address.String(), string(message))
-	text += "\tDEVELOPER: \n" + address.String()
-	label := widget.NewLabel(text)
+	if data.Signature == nil {
+		deny := make(chan bool, 1)
+		dialog.ShowConfirm(
+			"App Signature is missing",
+			(data.Name + " does not contain an application signature.\nPlease be advised."),
+			func(b bool) {
+				if !b {
+					deny <- true
+					return
+				}
+				deny <- false
+				label.Alignment = fyne.TextAlignCenter
+				label.SetText(text)
+				sig.Alignment = fyne.TextAlignCenter
+				sig.SetText("✋⚠️ APP SIGNATURE MISSING ⚠️✋")
+			},
+			program.window,
+		)
+		if <-deny {
+			return reject
+		}
+	} else {
+		// let's verify this real quick
+		address, message, err := program.wallet.CheckSignature([]byte(data.Signature))
+		if err != nil {
+			showError(fmt.Errorf("app authorization signature resulted in err:\n%s", err), program.window)
+			return reject
+		}
+		// fmt.Println(address.String(), string(message))
+		text += "\tDEVELOPER: \n" + address.String()
+		label = widget.NewLabel(text)
 
-	var msg []byte
-	msg, err = hex.DecodeString(string(message))
-	if err != nil {
-		showError(fmt.Errorf("app authorization message decoding resulted in err:\n%s", err), program.window)
-		return reject
-	}
-	id, err := hex.DecodeString(data.Id)
-	if err != nil {
-		showError(fmt.Errorf("app authorization data.Id resulted in err:\n%s", err), program.window)
-		return reject
-	}
+		var msg []byte
+		msg, err = hex.DecodeString(string(message))
+		if err != nil {
+			showError(fmt.Errorf("app authorization message decoding resulted in err:\n%s", err), program.window)
+			return reject
+		}
+		id, err := hex.DecodeString(data.Id)
+		if err != nil {
+			showError(fmt.Errorf("app authorization data.Id resulted in err:\n%s", err), program.window)
+			return reject
+		}
 
-	if !bytes.Equal(msg, id) {
-		// showError(errors.New("application signature does not match app id"), program.window)
-		return reject
-	}
+		if !bytes.Equal(msg, id) {
+			// showError(errors.New("application signature does not match app id"), program.window)
+			return reject
+		}
 
-	sig := widget.NewLabel("✅APP SIGNATURE MATCH✅")
-	sig.Alignment = fyne.TextAlignCenter
+		sig = widget.NewLabel("✅APP SIGNATURE MATCH✅")
+		sig.Alignment = fyne.TextAlignCenter
+	}
 
 	// range through the permissions if any
 	app := container.NewVBox(label, sig)
@@ -135,41 +159,53 @@ func xswdRequestHandler(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permi
 		return xswd.Deny
 	}
 
+	var label, sig = widget.NewLabel(""), widget.NewLabel("")
 	// let's serve up some content
 	text := "\tID: \n" + data.Id + "\n" +
 		"\tNAME: " + data.Name + "\n" +
 		"\tDESCRIPTION: " + data.Description + "\n" +
 		"\tURL: " + data.Url + "\n"
+
 	// let's verify this real quick
-	address, message, err := program.wallet.CheckSignature([]byte(data.Signature))
-	if err != nil {
-		showError(fmt.Errorf("app request resulted in err:\n%s", err), program.window)
-		return xswd.Deny
-	}
-	// fmt.Println(address.String(), string(message))
-	text += "\tDEVELOPER: \n" + address.String()
-	label := widget.NewLabel(text)
+	if data.Signature == nil {
 
-	msg, err := hex.DecodeString(string(message))
-	if err != nil {
-		showError(fmt.Errorf("app request resulted in err:\n%s", err), program.window)
-		return xswd.Deny
-	}
+		label.Alignment = fyne.TextAlignCenter
+		label.SetText(text)
+		sig.Alignment = fyne.TextAlignCenter
+		sig.SetText("✋⚠️ APP SIGNATURE MISSING ⚠️✋")
 
-	id, err := hex.DecodeString(data.Id)
-	if err != nil {
-		showError(fmt.Errorf("app request resulted in err:\n%s", err), program.window)
-		return xswd.Deny
-	}
+	} else {
 
-	if !bytes.Equal(msg, id) {
-		// showError(errors.New("application signature does not match app id"), program.window)
-		// don't bother user with bad requests
-		return xswd.AlwaysDeny
-	}
+		address, message, err := program.wallet.CheckSignature([]byte(data.Signature))
+		if err != nil {
+			showError(fmt.Errorf("app request resulted in err:\n%s", err), program.window)
+			return xswd.Deny
+		}
+		// fmt.Println(address.String(), string(message))
+		text += "\tDEVELOPER: \n" + address.String()
+		label = widget.NewLabel(text)
 
-	sig := widget.NewLabel("✅APP SIGNATURE MATCH✅")
-	sig.Alignment = fyne.TextAlignCenter
+		msg, err := hex.DecodeString(string(message))
+		if err != nil {
+			showError(fmt.Errorf("app request resulted in err:\n%s", err), program.window)
+			return xswd.Deny
+		}
+
+		id, err := hex.DecodeString(data.Id)
+		if err != nil {
+			showError(fmt.Errorf("app request resulted in err:\n%s", err), program.window)
+			return xswd.Deny
+		}
+
+		if !bytes.Equal(msg, id) {
+			// showError(errors.New("application signature does not match app id"), program.window)
+			// don't bother user with bad requests
+			return xswd.AlwaysDeny
+		}
+
+		sig = widget.NewLabel("✅APP SIGNATURE MATCH✅")
+		sig.Alignment = fyne.TextAlignCenter
+	}
 
 	method := widget.NewLabel(`❓ METHOD REQUEST: ` + r.Method())
 	method.Alignment = fyne.TextAlignCenter
