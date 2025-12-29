@@ -71,6 +71,7 @@ simple-wallet
 With the addition of XSWD, the wallet has custom methods: { 
   `"GetAssets"`, 
   `"GetAssetBalance"`,
+  `"GetTXEstimate"`,
   `"AttemptEPOCHWithAddr"`
   `"Gnomon.GetAllOwnersAndSCIDs"`
   `"Gnomon.GetAllSCIDVariableDetails"`
@@ -109,6 +110,74 @@ _none_
       "scid": "86acadbda70bbaf25b03425a84612072db03fe8488837b534a1d6049833490fc"
       "height": -1,
   }
+}
+```
+### Parameters
+- SCID - required
+- Height - required
+> Use `-1` for current topo height
+
+### Response
+```
+{
+  "balance": 123456
+}
+```
+## `GetTXEstimate`
+### Body
+```
+{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "GetTXEstimate"
+    "params": {
+      "transfers": [
+        {
+          "scid": "4f3a9c2b1e0d8a7c6b5a4d3e2f1a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4",
+          "destination": "dero1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqg",
+          "amount": 2500000000,
+          "burn": 0,
+          "payload_rpc": [
+            {
+              "name": "entrypoint",
+              "datatype": "S",
+              "value": "FUNCTION_NAME"
+            },
+            {
+              "name": "function_arg",
+              "datatype": "S",
+              "value": "Test transfer"
+            }
+          ]
+        }
+      ],
+      "sc": "MySmartContract",
+      "sc_value": 1000000,
+      "scid": "8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d",
+      "sc_rpc": [
+        {
+          "name": "entrypoint",
+          "datatype": "S",
+          "value": "FUNCTION_NAME"
+        },
+        {
+          "name": "function_arg",
+          "datatype": "S",
+          "value": "Test transfer"
+        }
+      ],
+      "ringsize": 16,
+      "signer": "dero1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqg"
+    }
+}
+```
+### Parameters
+_none_
+> N.B. Build a transfer, get a fees estimate.
+### Response
+```
+{
+  "fees": 123456
 }
 ```
 ### Parameters

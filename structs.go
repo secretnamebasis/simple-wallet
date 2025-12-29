@@ -166,7 +166,7 @@ type (
 		dst,
 		comment,
 		ws_port,
-		indexer_port,
+		indexer,
 		secret,
 		public *widget.Entry
 	}

@@ -544,7 +544,7 @@ func ws_server() {
 				},
 				{
 					method:      "Gnomon.GetAllOwnersAndSCIDs",
-					handlerfunc: handler.New(getAllSCIDSAndOwners),
+					handlerfunc: handler.New(getAllOwnersAndSCIDs),
 				},
 				{
 					method:      "Gnomon.GetAllSCIDVariableDetails",
@@ -722,8 +722,8 @@ var indexer_connection *websocket.Conn
 
 func indexer() {
 
-	if !program.entries.indexer_port.Disabled() {
-		program.entries.indexer_port.SetText("9190")
+	if !program.entries.indexer.Disabled() {
+		program.entries.indexer.SetText("127.0.0.1:9190")
 	}
 
 	notice := makeCenteredWrappedLabel("not connected")
@@ -741,7 +741,9 @@ func indexer() {
 
 			var p int
 			var err error
-			port := program.entries.indexer_port.Text
+			parts := strings.Split(program.entries.indexer.Text, ":")
+			// ip := parts[0]
+			port := parts[1]
 			if port != "" {
 				p, err = strconv.Atoi(port)
 				if err != nil {
@@ -755,12 +757,12 @@ func indexer() {
 				}
 			}
 
-			program.entries.indexer_port.Disable()
-			url := "ws://127.0.0.1:" + program.entries.indexer_port.Text + "/ws"
+			program.entries.indexer.Disable()
+			u := "ws://" + program.entries.indexer.Text + "/ws"
 			dialer := websocket.Dialer{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // allow self-signed certs
 			}
-			indexer_connection, _, err = dialer.Dial(url, nil)
+			indexer_connection, _, err = dialer.Dial(u, nil)
 			if err != nil {
 				notice.SetText("not connected")
 				program.toggles.indexer.SetSelected("off")
@@ -798,13 +800,13 @@ func indexer() {
 				// assuming there are no errors here...
 				program.toggles.indexer.SetSelected("on")
 				program.labels.indexer.SetText("IDX: ✅")
-				notice.SetText("Indexer websocket connected to ws://127.0.0.1:" + program.entries.indexer_port.Text + "/ws")
+				notice.SetText("Indexer websocket connected to ws://127.0.0.1:" + program.entries.indexer.Text + "/ws")
 			}
 		case "off":
 			program.toggles.indexer.SetSelected("off")
 			program.labels.indexer.SetText("IDX: 🔴")
 			indexer_connection = nil
-			program.entries.indexer_port.Enable()
+			program.entries.indexer.Enable()
 			// default:
 		}
 	}
@@ -824,9 +826,9 @@ Indexers allow for simple-wallet to obtain indexed details regarding the DERO bl
 
 Applications requesting index queries (eg. Gnomon) will require this connection to obtain the data.
 
-Set the indexer websocket port, or use default: 9190
+Set the indexer websocket ip:port, or use default: 127.0.0.1:9190
 `),
-		program.entries.indexer_port,
+		program.entries.indexer,
 		notice,
 		container.NewCenter(program.toggles.indexer),
 		layout.NewSpacer(),

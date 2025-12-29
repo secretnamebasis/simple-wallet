@@ -1697,7 +1697,7 @@ func asset_scan() {
 		go func() {
 
 			var list_of_scids []string
-			r, err := getAllSCIDSAndOwners(context.Background(), getAllSCIDSAndOwnersParams{})
+			r, err := getAllOwnersAndSCIDs(context.Background())
 			if err != nil {
 				showError(err, program.window)
 				return

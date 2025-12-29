@@ -42,42 +42,66 @@ func xswdAppHandler(data *xswd.ApplicationData) bool {
 	if program.preferences.Bool("isLocked") {
 		return reject
 	}
+	var label, sig = widget.NewLabel(""), widget.NewLabel("")
 	// let's serve up the data
-
 	text := "\tID: \n" + data.Id + "\n" +
 		"\tNAME: " + data.Name + "\n" +
 		"\tDESCRIPTION: " + data.Description + "\n" +
 		"\tURL: " + data.Url + "\n"
 
 	// let's verify this real quick
-	address, message, err := program.wallet.CheckSignature([]byte(data.Signature))
-	if err != nil {
-		showError(fmt.Errorf("app authorization signature resulted in err:\n%s", err), program.window)
-		return reject
-	}
-	// fmt.Println(address.String(), string(message))
-	text += "\tDEVELOPER: \n" + address.String()
-	label := widget.NewLabel(text)
+	if data.Signature == nil {
+		deny := make(chan bool, 1)
+		dialog.ShowConfirm(
+			"App Signature is missing",
+			(data.Name + " does not contain an application signature.\nPlease be advised."),
+			func(b bool) {
+				if !b {
+					deny <- true
+					return
+				}
+				deny <- false
+				label.Alignment = fyne.TextAlignCenter
+				label.SetText(text)
+				sig.Alignment = fyne.TextAlignCenter
+				sig.SetText("✋⚠️ APP SIGNATURE MISSING ⚠️✋")
+			},
+			program.window,
+		)
+		if <-deny {
+			return reject
+		}
+	} else {
+		// let's verify this real quick
+		address, message, err := program.wallet.CheckSignature([]byte(data.Signature))
+		if err != nil {
+			showError(fmt.Errorf("app authorization signature resulted in err:\n%s", err), program.window)
+			return reject
+		}
+		// fmt.Println(address.String(), string(message))
+		text += "\tDEVELOPER: \n" + address.String()
+		label = widget.NewLabel(text)
 
-	var msg []byte
-	msg, err = hex.DecodeString(string(message))
-	if err != nil {
-		showError(fmt.Errorf("app authorization message decoding resulted in err:\n%s", err), program.window)
-		return reject
-	}
-	id, err := hex.DecodeString(data.Id)
-	if err != nil {
-		showError(fmt.Errorf("app authorization data.Id resulted in err:\n%s", err), program.window)
-		return reject
-	}
+		var msg []byte
+		msg, err = hex.DecodeString(string(message))
+		if err != nil {
+			showError(fmt.Errorf("app authorization message decoding resulted in err:\n%s", err), program.window)
+			return reject
+		}
+		id, err := hex.DecodeString(data.Id)
+		if err != nil {
+			showError(fmt.Errorf("app authorization data.Id resulted in err:\n%s", err), program.window)
+			return reject
+		}
 
-	if !bytes.Equal(msg, id) {
-		// showError(errors.New("application signature does not match app id"), program.window)
-		return reject
-	}
+		if !bytes.Equal(msg, id) {
+			// showError(errors.New("application signature does not match app id"), program.window)
+			return reject
+		}
 
-	sig := widget.NewLabel("✅APP SIGNATURE MATCH✅")
-	sig.Alignment = fyne.TextAlignCenter
+		sig = widget.NewLabel("✅APP SIGNATURE MATCH✅")
+		sig.Alignment = fyne.TextAlignCenter
+	}
 
 	// range through the permissions if any
 	app := container.NewVBox(label, sig)
@@ -135,41 +159,53 @@ func xswdRequestHandler(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permi
 		return xswd.Deny
 	}
 
+	var label, sig = widget.NewLabel(""), widget.NewLabel("")
 	// let's serve up some content
 	text := "\tID: \n" + data.Id + "\n" +
 		"\tNAME: " + data.Name + "\n" +
 		"\tDESCRIPTION: " + data.Description + "\n" +
 		"\tURL: " + data.Url + "\n"
+
 	// let's verify this real quick
-	address, message, err := program.wallet.CheckSignature([]byte(data.Signature))
-	if err != nil {
-		showError(fmt.Errorf("app request resulted in err:\n%s", err), program.window)
-		return xswd.Deny
-	}
-	// fmt.Println(address.String(), string(message))
-	text += "\tDEVELOPER: \n" + address.String()
-	label := widget.NewLabel(text)
+	if data.Signature == nil {
 
-	msg, err := hex.DecodeString(string(message))
-	if err != nil {
-		showError(fmt.Errorf("app request resulted in err:\n%s", err), program.window)
-		return xswd.Deny
-	}
+		label.Alignment = fyne.TextAlignCenter
+		label.SetText(text)
+		sig.Alignment = fyne.TextAlignCenter
+		sig.SetText("✋⚠️ APP SIGNATURE MISSING ⚠️✋")
 
-	id, err := hex.DecodeString(data.Id)
-	if err != nil {
-		showError(fmt.Errorf("app request resulted in err:\n%s", err), program.window)
-		return xswd.Deny
-	}
+	} else {
 
-	if !bytes.Equal(msg, id) {
-		// showError(errors.New("application signature does not match app id"), program.window)
-		// don't bother user with bad requests
-		return xswd.AlwaysDeny
-	}
+		address, message, err := program.wallet.CheckSignature([]byte(data.Signature))
+		if err != nil {
+			showError(fmt.Errorf("app request resulted in err:\n%s", err), program.window)
+			return xswd.Deny
+		}
+		// fmt.Println(address.String(), string(message))
+		text += "\tDEVELOPER: \n" + address.String()
+		label = widget.NewLabel(text)
 
-	sig := widget.NewLabel("✅APP SIGNATURE MATCH✅")
-	sig.Alignment = fyne.TextAlignCenter
+		msg, err := hex.DecodeString(string(message))
+		if err != nil {
+			showError(fmt.Errorf("app request resulted in err:\n%s", err), program.window)
+			return xswd.Deny
+		}
+
+		id, err := hex.DecodeString(data.Id)
+		if err != nil {
+			showError(fmt.Errorf("app request resulted in err:\n%s", err), program.window)
+			return xswd.Deny
+		}
+
+		if !bytes.Equal(msg, id) {
+			// showError(errors.New("application signature does not match app id"), program.window)
+			// don't bother user with bad requests
+			return xswd.AlwaysDeny
+		}
+
+		sig = widget.NewLabel("✅APP SIGNATURE MATCH✅")
+		sig.Alignment = fyne.TextAlignCenter
+	}
 
 	method := widget.NewLabel(`❓ METHOD REQUEST: ` + r.Method())
 	method.Alignment = fyne.TextAlignCenter
@@ -270,10 +306,14 @@ func xswdRequestHandler(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permi
 	return xswd.Deny
 }
 
+type getTXEstimateResult struct {
+	Fees uint64 `json:"fees"`
+}
+
 // because the GetGasEstimater doesn't do gas estimates for transfers...
-func getTXEstimate(ctx context.Context, params rpc.Transfer_Params) uint64 {
+func getTXEstimate(ctx context.Context, params rpc.Transfer_Params) getTXEstimateResult {
 	if len(params.Transfers) == 0 {
-		return 0
+		return getTXEstimateResult{Fees: 0}
 	}
 
 	dry_run := true
@@ -287,47 +327,40 @@ func getTXEstimate(ctx context.Context, params rpc.Transfer_Params) uint64 {
 		dry_run,
 	)
 	if err != nil {
-		return 0
+		return getTXEstimateResult{Fees: 0}
 	}
 
-	return tx.Fees()
+	return getTXEstimateResult{Fees: tx.Fees()}
 }
 
-type getAllSCIDSAndOwnersResult struct {
+type getAllOwnersAndSCIDsResult struct {
 	Result map[string]any `json:"allOwners"`
 }
 
-type getAllSCIDSAndOwnersParams struct {
-	Tag string
-}
+func getAllOwnersAndSCIDs(ctx context.Context) (getAllOwnersAndSCIDsResult, error) {
 
-func getAllSCIDSAndOwners(ctx context.Context, params getAllSCIDSAndOwnersParams) (getAllSCIDSAndOwnersResult, error) {
-	if params.Tag == "" {
-		params.Tag = "all"
-	}
 	msg := map[string]any{
 		"method": "GetAllOwnersAndSCIDs",
 		"id":     "1",
-		"params": params,
 	}
 
 	var err error
 
 	if err := indexer_connection.WriteJSON(msg); err != nil {
-		return getAllSCIDSAndOwnersResult{}, errors.New("failed to write")
+		return getAllOwnersAndSCIDsResult{}, errors.New("failed to write")
 	}
 
 	_, b, err := indexer_connection.ReadMessage()
 	if err != nil {
-		return getAllSCIDSAndOwnersResult{}, errors.New("failed to read")
+		return getAllOwnersAndSCIDsResult{}, errors.New("failed to read")
 	}
 
 	var r structures.JSONRpcResp
 	if err := json.Unmarshal(b, &r); err != nil {
-		return getAllSCIDSAndOwnersResult{}, errors.New("failed to unmarshal")
+		return getAllOwnersAndSCIDsResult{}, errors.New("failed to unmarshal")
 	}
 
-	return getAllSCIDSAndOwnersResult{r.Result.(map[string]any)}, nil
+	return getAllOwnersAndSCIDsResult{r.Result.(map[string]any)}, nil
 }
 
 type getAllSCIDVariableDetailsResult struct {
@@ -335,16 +368,10 @@ type getAllSCIDVariableDetailsResult struct {
 }
 
 type getAllSCIDVariableDetailsParams struct {
-	Tag  string
 	SCID string
 }
 
 func getAllSCIDVariableDetails(ctx context.Context, params getAllSCIDVariableDetailsParams) (getAllSCIDVariableDetailsResult, error) {
-
-	// if they aren't pointing at a db, just assume it is the big one
-	if params.Tag == "" {
-		params.Tag = "all"
-	}
 
 	msg := map[string]any{
 		"method": "GetAllSCIDVariableDetails",
