@@ -539,6 +539,10 @@ func ws_server() {
 					handlerfunc: handler.New(getTXEstimate),
 				},
 				{
+					method:      "HandleTELALinks",
+					handlerfunc: handler.New(handleTELALinks),
+				},
+				{
 					method:      "AttemptEPOCHWithAddr",
 					handlerfunc: handler.New(attemptEPOCHWithAddr),
 				},
@@ -760,7 +764,9 @@ func indexer() {
 			program.entries.indexer.Disable()
 			u := "ws://" + program.entries.indexer.Text + "/ws"
 			dialer := websocket.Dialer{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // allow self-signed certs
+				HandshakeTimeout: deadline,
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true}, // allow self-signed certs
 			}
 			indexer_connection, _, err = dialer.Dial(u, nil)
 			if err != nil {

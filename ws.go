@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"runtime"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 	"github.com/civilware/epoch"
+	"github.com/civilware/tela"
 	"github.com/creachadair/jrpc2"
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
@@ -346,6 +348,12 @@ func getAllOwnersAndSCIDs(ctx context.Context) (getAllOwnersAndSCIDsResult, erro
 
 	var err error
 
+	if indexer_connection == nil {
+		err = errors.New("indexer connection not established")
+		showError(err, program.window)
+		return getAllOwnersAndSCIDsResult{}, err
+	}
+
 	if err := indexer_connection.WriteJSON(msg); err != nil {
 		return getAllOwnersAndSCIDsResult{}, errors.New("failed to write")
 	}
@@ -380,7 +388,11 @@ func getAllSCIDVariableDetails(ctx context.Context, params getAllSCIDVariableDet
 	}
 
 	var err error
-
+	if indexer_connection == nil {
+		err = errors.New("indexer connection not established")
+		showError(err, program.window)
+		return getAllSCIDVariableDetailsResult{}, err
+	}
 	if err := indexer_connection.WriteJSON(msg); err != nil {
 		return getAllSCIDVariableDetailsResult{}, errors.New("failed to write")
 	}
@@ -393,6 +405,10 @@ func getAllSCIDVariableDetails(ctx context.Context, params getAllSCIDVariableDet
 	var r structures.JSONRpcResp
 	if err := json.Unmarshal(b, &r); err != nil {
 		return getAllSCIDVariableDetailsResult{}, errors.New("failed to unmarshal")
+	}
+	if r.Error != nil {
+		return getAllSCIDVariableDetailsResult{}, errors.New("for fucks sake")
+
 	}
 
 	return getAllSCIDVariableDetailsResult{r.Result.([]any)}, nil
@@ -435,9 +451,84 @@ func getAssetBalance(ctx context.Context, params getAssetBalanceParams) (getAsse
 	return getAssetBalanceResult{bal}, nil
 }
 
+type telaLink_Params struct {
+	TelaLink string `json:"telaLink"` // format is target://<arg>/<arg>/...
+}
+
+type telaLink_Display struct {
+	Name     string              `json:"nameHdr,omitempty"`
+	Descr    string              `json:"descrHdr,omitempty"`
+	DURL     string              `json:"dURL,omitempty"`
+	TelaLink string              `json:"telaLink"` // format is target://<arg>/<arg>/...
+	Rating   *tela.Rating_Result `json:"rating,omitempty"`
+}
+
+type telaLink_Result struct {
+	TelaLinkResult string `json:"telaLinkResult"`
+}
+
 type getAttemptEpochParams struct {
 	Hashes  int    `json:"hashes"`
 	Address string `json:"address"`
+}
+
+func handleTELALinks(ctx context.Context, params telaLink_Params) (result telaLink_Result, err error) {
+
+	target, args, err := tela.ParseTELALink(params.TelaLink)
+	if err != nil {
+		err = fmt.Errorf("could not parse tela link: %s", err)
+		return
+	}
+
+	if target != "tela" {
+		err = fmt.Errorf("unknown tela target %q", args[0])
+		return
+	}
+
+	if args[0] != "open" {
+		err = fmt.Errorf("unsupport tela argument %q", args[0])
+		return
+	}
+	var wait = make(chan bool, 1)
+	if !tela.UpdatesAllowed() {
+		dialog.ShowConfirm(
+			"TELA LINK UPDATED",
+			"This tela link's content has changed since first install.\nIf you would like to proceed anyway, please confirm.\nPlease be advised.",
+			func(b bool) {
+				if !b {
+					wait <- !b
+				}
+				tela.AllowUpdates(true)
+				wait <- tela.UpdatesAllowed()
+			},
+			program.window,
+		)
+		<-wait
+	}
+
+	var link string
+	link, err = tela.OpenTELALink(params.TelaLink, program.node.current)
+	if err != nil {
+		return
+	}
+
+	var url *url.URL
+	url, err = url.Parse(link)
+	if err != nil {
+		err = fmt.Errorf("could not parse URL: %s", err)
+		return
+	}
+
+	err = fyne.CurrentApp().OpenURL(url)
+	if err != nil {
+		err = fmt.Errorf("could not open tela link: %s", err)
+		return
+	}
+
+	result.TelaLinkResult = link
+	// case "gnomon":
+
+	return
 }
 
 func attemptEPOCHWithAddr(ctx context.Context, params getAttemptEpochParams) (epoch.EPOCH_Result, error) {
