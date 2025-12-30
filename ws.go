@@ -346,6 +346,12 @@ func getAllOwnersAndSCIDs(ctx context.Context) (getAllOwnersAndSCIDsResult, erro
 
 	var err error
 
+	if indexer_connection == nil {
+		err = errors.New("indexer connection not established")
+		showError(err, program.window)
+		return getAllOwnersAndSCIDsResult{}, err
+	}
+
 	if err := indexer_connection.WriteJSON(msg); err != nil {
 		return getAllOwnersAndSCIDsResult{}, errors.New("failed to write")
 	}
@@ -380,7 +386,11 @@ func getAllSCIDVariableDetails(ctx context.Context, params getAllSCIDVariableDet
 	}
 
 	var err error
-
+	if indexer_connection == nil {
+		err = errors.New("indexer connection not established")
+		showError(err, program.window)
+		return getAllSCIDVariableDetailsResult{}, err
+	}
 	if err := indexer_connection.WriteJSON(msg); err != nil {
 		return getAllSCIDVariableDetailsResult{}, errors.New("failed to write")
 	}
