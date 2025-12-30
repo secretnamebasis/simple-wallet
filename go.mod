@@ -6,6 +6,7 @@ require (
 	fyne.io/fyne/v2 v2.7.1
 	github.com/chzyer/readline v1.5.1
 	github.com/civilware/epoch v0.0.0-20241002060739-1ed2fc6f74cb
+	github.com/civilware/tela v0.0.0-20250806221602-aa892d2ff8d4
 	github.com/creachadair/jrpc2 v0.35.4
 	github.com/deroproject/derohe v0.0.0-20250813215012-9b6a8b82c839
 	github.com/go-logr/logr v1.4.3
@@ -31,7 +32,7 @@ require (
 	github.com/cenkalti/hub v1.0.2 // indirect
 	github.com/cenkalti/rpc2 v1.0.4 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
-	github.com/civilware/tela v0.0.0-20250806221602-aa892d2ff8d4 // indirect
+	github.com/civilware/Gnomon v0.0.0-20240403103529-8b2fdb2b3106 // indirect
 	github.com/coder/websocket v1.8.14 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dchest/siphash v1.2.3 // indirect
@@ -79,6 +80,7 @@ require (
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xtaci/kcp-go/v5 v5.6.42 // indirect
 	github.com/yuin/goldmark v1.7.8 // indirect
+	go.etcd.io/bbolt v1.3.7 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	go.uber.org/zap v1.27.1 // indirect
 	golang.org/x/crypto v0.45.0 // indirect
