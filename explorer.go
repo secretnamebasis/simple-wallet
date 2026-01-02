@@ -522,33 +522,36 @@ func explorer() {
 				delete(program.node.transactions, txid)
 				logger.Info("explorer", "status", "tx removed from pool")
 			}
+
 		}
-		for i := range pool.Tx_list {
-			if _, ok := program.node.transactions[pool.Tx_list[i]]; !ok {
-				logger.Info("explorer", "status", "tx added to pool")
-				program.node.transactions[pool.Tx_list[i]] = getTransaction(rpc.GetTransaction_Params{
-					Tx_Hashes: []string{pool.Tx_list[i]},
-				})
+
+		for _, tx := range pool.Tx_list {
+			if _, ok := program.node.transactions[tx]; ok {
+				continue
 			}
 
-			var tx transaction.Transaction
-			decoded, _ := hex.DecodeString(program.node.transactions[pool.Tx_list[i]].Txs_as_hex[0])
+			program.node.transactions[tx] = getTransaction(rpc.GetTransaction_Params{
+				Tx_Hashes: []string{tx},
+			})
 
-			if err := tx.Deserialize(decoded); err != nil {
+			var transact transaction.Transaction
+			decoded, _ := hex.DecodeString(program.node.transactions[tx].Txs_as_hex[0])
+
+			if err := transact.Deserialize(decoded); err != nil {
 				continue
 			}
 			var size int
-			for _, each := range program.node.transactions[pool.Tx_list[i]].Txs {
+			for _, each := range program.node.transactions[tx].Txs {
 				size += len(each.Ring)
 			}
 
 			// Build data row
 			pool_label_data = append(pool_label_data, []string{
-				strconv.Itoa(int(tx.Height)),
-				tx.GetHash().String(),
-				fmt.Sprintf("%0.5f", float64(tx.Fees())/atomic_units),
+				strconv.Itoa(int(transact.Height)),
+				transact.GetHash().String(),
+				fmt.Sprintf("%0.5f", float64(transact.Fees())/atomic_units),
 				strconv.Itoa(size),
-				fmt.Sprintf("%.03f", float32(len(tx.Serialize()))/1024),
+				fmt.Sprintf("%.03f", float32(len(transact.Serialize()))/1024),
 			})
 		}
 	}
