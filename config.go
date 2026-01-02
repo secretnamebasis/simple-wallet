@@ -106,8 +106,8 @@ func maintain_connection() {
 	// we will track retries
 	var retries, height int64 // track the height
 
-	// the purpose of this function is to obtain topo height every 2 seconds
-	ticker := time.NewTicker(time.Second * 2)
+	// the purpose of this function is to obtain topo height every 1 seconds
+	ticker := time.NewTicker(time.Second * 1)
 
 	// so before we get started, let's assume that localhost is "first"
 	program.node.current = program.node.list[1].ip
@@ -118,7 +118,7 @@ func maintain_connection() {
 	}
 	var isDancing bool
 
-	// this is an 2 second loop
+	// this is an 1 second loop
 	for range ticker.C {
 		// assuming the localhost connection works, if not preference
 		walletapi.Daemon_Endpoint = program.node.current
