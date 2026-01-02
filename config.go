@@ -106,8 +106,8 @@ func maintain_connection() {
 	// we will track retries
 	var retries, height int64 // track the height
 
-	// the purpose of this function is to obtain topo height every 2 seconds
-	ticker := time.NewTicker(time.Second * 2)
+	// the purpose of this function is to obtain topo height every 1 seconds
+	ticker := time.NewTicker(time.Second * 1)
 
 	// so before we get started, let's assume that localhost is "first"
 	program.node.current = program.node.list[1].ip
@@ -118,7 +118,7 @@ func maintain_connection() {
 	}
 	var isDancing bool
 
-	// this is an 2 second loop
+	// this is an 1 second loop
 	for range ticker.C {
 		// assuming the localhost connection works, if not preference
 		walletapi.Daemon_Endpoint = program.node.current
@@ -953,6 +953,8 @@ func simulator() {
 				})
 			}()
 
+			// this should kick the maintain connection loop to try something else
+			walletapi.Connected = false
 			// program.preferences.SetBool("mainnet", false)
 			// let's turn on a simulation of the blockchain
 			// before we get started, let's clear something up
@@ -1024,11 +1026,13 @@ func simulator() {
 			// here is a list of arguments
 			globals.Arguments = map[string]interface{}{
 				"--rpc-bind":     daemon_endpoint,
-				"--testnet":      true,
-				"--debug":        true, // to get more info
-				"--simulator":    true, // obviously
 				"--p2p-bind":     ":0",
 				"--getwork-bind": "127.0.0.1:10100",
+				"--testnet":      true,
+				"--simulator":    true, // obviously
+				"--debug":        true, // to get more info
+				"--clog-level":   "2",
+				"--flog-level":   "2",
 			}
 
 			l, lerr := readline.NewEx(&readline.Config{
