@@ -953,6 +953,8 @@ func simulator() {
 				})
 			}()
 
+			// this should kick the maintain connection loop to try something else
+			walletapi.Connected = false
 			// program.preferences.SetBool("mainnet", false)
 			// let's turn on a simulation of the blockchain
 			// before we get started, let's clear something up
