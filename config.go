@@ -1026,11 +1026,13 @@ func simulator() {
 			// here is a list of arguments
 			globals.Arguments = map[string]interface{}{
 				"--rpc-bind":     daemon_endpoint,
-				"--testnet":      true,
-				"--debug":        true, // to get more info
-				"--simulator":    true, // obviously
 				"--p2p-bind":     ":0",
 				"--getwork-bind": "127.0.0.1:10100",
+				"--testnet":      true,
+				"--simulator":    true, // obviously
+				"--debug":        true, // to get more info
+				"--clog-level":   "2",
+				"--flog-level":   "2",
 			}
 
 			l, lerr := readline.NewEx(&readline.Config{
