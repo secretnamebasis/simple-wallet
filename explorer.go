@@ -535,7 +535,11 @@ func explorer() {
 			})
 
 			var transact transaction.Transaction
-			decoded, _ := hex.DecodeString(program.node.transactions[tx].Txs_as_hex[0])
+			if len(program.node.transactions[tx].Txs_as_hex) == 0 {
+				continue
+			}
+			tx_hex := program.node.transactions[tx].Txs_as_hex[0]
+			decoded, _ := hex.DecodeString(tx_hex)
 
 			if err := transact.Deserialize(decoded); err != nil {
 				continue
