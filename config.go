@@ -492,13 +492,6 @@ func ws_server() {
 	// let's position toggle horizontally
 	program.toggles.ws_server.Horizontal = true
 
-	// simple options to choose from
-	program.toggles.ws_server.Options = []string{
-		"off", "on",
-	}
-
-	program.toggles.ws_server.OnChanged = ws_toggle
-
 	// if there isn't anything toggled, set to off
 	if program.toggles.ws_server.Selected == "" {
 		program.toggles.ws_server.SetSelected("off")
@@ -536,7 +529,7 @@ func ws_toggle(s string) {
 		var err error
 		port := program.entries.ws_port.Text
 		if port == "" {
-			p = 44236
+			port = "44326"
 		}
 		if port != "" {
 			p, err = strconv.Atoi(port)
@@ -550,7 +543,7 @@ func ws_toggle(s string) {
 				return
 			}
 		}
-		program.labels.ws_notice.SetText("WS Server runs at ws://127.0.0.1:" + program.entries.ws_port.Text + "/xswd")
+		program.labels.ws_notice.SetText("WS Server runs at ws://127.0.0.1:" + port + "/xswd")
 		program.entries.ws_port.Disable()
 
 		program.ws_server = xswdServer(p)
@@ -743,11 +736,6 @@ func indexer() {
 
 	// let's position toggle horizontally
 	program.toggles.indexer.Horizontal = true
-
-	// simple options to choose from
-	program.toggles.indexer.Options = []string{
-		"off", "on",
-	}
 
 	program.toggles.indexer.OnChanged = idx_toggle
 

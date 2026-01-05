@@ -45,17 +45,17 @@ func dashboard() *fyne.Container {
 func idx_on_off() {
 	switch program.buttons.idx_on_off.Text {
 	case "TURN IDX ON":
-		idx_toggle("on")
+		program.toggles.indexer.SetSelected("on")
 	case "TURN IDX OFF":
-		idx_toggle("off")
+		program.toggles.indexer.SetSelected("off")
 	}
 }
 func ws_on_off() {
 	switch program.buttons.ws_on_off.Text {
 	case "TURN WS ON":
-		ws_toggle("on")
+		program.toggles.ws_server.SetSelected("on")
 	case "TURN WS OFF":
-		ws_toggle("off")
+		program.toggles.ws_server.SetSelected("off")
 	}
 }
 
