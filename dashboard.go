@@ -32,12 +32,31 @@ func dashboard() *fyne.Container {
 	// simple way to review assets and their transfer histories :)
 	program.buttons.assets.OnTapped = assetsList
 
+	// simple way to turn ws on off
+	program.buttons.ws_on_off.OnTapped = ws_on_off
+	program.buttons.idx_on_off.OnTapped = idx_on_off
+
 	// we'll return all this stuff into the home as a dashboard
-	return container.NewAdaptiveGrid(3,
-		program.buttons.transactions,
-		program.buttons.assets,
-		program.buttons.keys,
+	return container.NewVBox(
+		container.NewAdaptiveGrid(3, program.buttons.transactions, program.buttons.assets, program.buttons.keys),
+		container.NewAdaptiveGrid(2, program.buttons.ws_on_off, program.buttons.idx_on_off),
 	)
+}
+func idx_on_off() {
+	switch program.buttons.idx_on_off.Text {
+	case "TURN IDX ON":
+		idx_toggle("on")
+	case "TURN IDX OFF":
+		idx_toggle("off")
+	}
+}
+func ws_on_off() {
+	switch program.buttons.ws_on_off.Text {
+	case "TURN WS ON":
+		ws_toggle("on")
+	case "TURN WS OFF":
+		ws_toggle("off")
+	}
 }
 
 func keys() {
