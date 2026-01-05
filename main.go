@@ -146,6 +146,8 @@ func initialize() {
 
 	// some simple configs for the time being
 	program.containers.configs = configs()
+	program.toggles.ws_server.OnChanged = ws_toggle
+	program.toggles.indexer.OnChanged = idx_toggle
 
 	// here is a simple way to get started
 	program.preferences.SetBool("mainnet", true)

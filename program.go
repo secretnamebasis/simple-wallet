@@ -55,8 +55,8 @@ var program = components{
 		network:       widget.NewSlider(0.0, 1.0),
 	},
 	toggles: toggles{
-		ws_server:  widget.NewRadioGroup([]string{}, nil),
-		indexer:    widget.NewRadioGroup([]string{}, nil),
+		ws_server:  widget.NewRadioGroup([]string{"off", "on"}, nil),
+		indexer:    widget.NewRadioGroup([]string{"off", "on"}, nil),
 		rpc_server: widget.NewRadioGroup([]string{}, nil),
 		simulator:  widget.NewRadioGroup([]string{}, nil),
 	},

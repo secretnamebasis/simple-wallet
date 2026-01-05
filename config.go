@@ -492,13 +492,6 @@ func ws_server() {
 	// let's position toggle horizontally
 	program.toggles.ws_server.Horizontal = true
 
-	// simple options to choose from
-	program.toggles.ws_server.Options = []string{
-		"off", "on",
-	}
-
-	program.toggles.ws_server.OnChanged = ws_toggle
-
 	// if there isn't anything toggled, set to off
 	if program.toggles.ws_server.Selected == "" {
 		program.toggles.ws_server.SetSelected("off")
@@ -743,11 +736,6 @@ func indexer() {
 
 	// let's position toggle horizontally
 	program.toggles.indexer.Horizontal = true
-
-	// simple options to choose from
-	program.toggles.indexer.Options = []string{
-		"off", "on",
-	}
 
 	program.toggles.indexer.OnChanged = idx_toggle
 
