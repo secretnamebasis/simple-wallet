@@ -487,7 +487,7 @@ func ws_server() {
 		program.entries.ws_port.SetText("44326")
 	}
 
-	notice := makeCenteredWrappedLabel("WS Server runs at ws://127.0.0.1:" + program.entries.ws_port.Text + "/xswd")
+	program.labels.ws_notice = makeCenteredWrappedLabel("WS Server runs at ws://127.0.0.1:" + program.entries.ws_port.Text + "/xswd")
 
 	// let's position toggle horizontally
 	program.toggles.ws_server.Horizontal = true
@@ -496,85 +496,8 @@ func ws_server() {
 	program.toggles.ws_server.Options = []string{
 		"off", "on",
 	}
-	onChanged := func(s string) {
-		switch s {
-		case "on":
 
-			var p int
-			var err error
-			port := program.entries.ws_port.Text
-			if port != "" {
-				p, err = strconv.Atoi(port)
-				if err != nil {
-					showError(err, program.window)
-					program.toggles.ws_server.SetSelected("off")
-					return
-				} else if p < 10000 {
-					showError(errors.New("port must be above 10000"), program.window)
-					program.toggles.ws_server.SetSelected("off")
-					return
-				}
-			}
-			notice.SetText("WS Server runs at ws://127.0.0.1:" + program.entries.ws_port.Text + "/xswd")
-			program.entries.ws_port.Disable()
-
-			program.ws_server = xswdServer(p)
-
-			// let's set some custom methods
-			for _, each := range []struct {
-				method      string
-				handlerfunc handler.Func
-			}{
-				{
-					method:      "GetAssets",
-					handlerfunc: handler.New(getAssets),
-				},
-				{
-					method:      "GetAssetBalance",
-					handlerfunc: handler.New(getAssetBalance),
-				},
-				// we are going to make a custom method for gas estimates
-				{
-					method:      "GetTXEstimate",
-					handlerfunc: handler.New(getTXEstimate),
-				},
-				{
-					method:      "HandleTELALinks",
-					handlerfunc: handler.New(handleTELALinks),
-				},
-				{
-					method:      "AttemptEPOCHWithAddr",
-					handlerfunc: handler.New(attemptEPOCHWithAddr),
-				},
-				{
-					method:      "Gnomon.GetAllOwnersAndSCIDs",
-					handlerfunc: handler.New(getAllOwnersAndSCIDs),
-				},
-				{
-					method:      "Gnomon.GetAllSCIDVariableDetails",
-					handlerfunc: handler.New(getAllSCIDVariableDetails),
-				},
-			} {
-				program.ws_server.SetCustomMethod(each.method, each.handlerfunc)
-			}
-
-			if program.ws_server != nil && program.ws_server.IsRunning() {
-				// assuming there are no errors here...
-				program.toggles.ws_server.SetSelected("on")
-				program.labels.ws_server.SetText("WS: ✅")
-			}
-		case "off":
-			program.toggles.ws_server.SetSelected("off")
-			program.labels.ws_server.SetText("WS: 🔴")
-			if program.ws_server != nil {
-				program.ws_server.Stop()
-			}
-			program.entries.ws_port.Enable()
-			// default:
-		}
-	}
-
-	program.toggles.ws_server.OnChanged = onChanged
+	program.toggles.ws_server.OnChanged = ws_toggle
 
 	// if there isn't anything toggled, set to off
 	if program.toggles.ws_server.Selected == "" {
@@ -592,7 +515,7 @@ Application requests will arrive as pop-ups for confirmation or dismissal.
 Only have ON when necessary.
 		`),
 		program.entries.ws_port,
-		notice,
+		program.labels.ws_notice,
 		container.NewCenter(program.toggles.ws_server),
 		layout.NewSpacer(),
 	)
@@ -601,6 +524,92 @@ Only have ON when necessary.
 	ws := dialog.NewCustom("ws server", dismiss, content, program.window)
 	ws.Resize(fyne.NewSize(program.size.Width/3, program.size.Height/2))
 	ws.Show()
+}
+
+func ws_toggle(s string) {
+	switch s {
+	case "on":
+		if program.buttons.ws_on_off.Text == "TURN WS ON" {
+			program.buttons.ws_on_off.SetText("TURN WS OFF")
+		}
+		var p int
+		var err error
+		port := program.entries.ws_port.Text
+		if port == "" {
+			p = 44236
+		}
+		if port != "" {
+			p, err = strconv.Atoi(port)
+			if err != nil {
+				showError(err, program.window)
+				program.toggles.ws_server.SetSelected("off")
+				return
+			} else if p < 10000 {
+				showError(errors.New("port must be above 10000"), program.window)
+				program.toggles.ws_server.SetSelected("off")
+				return
+			}
+		}
+		program.labels.ws_notice.SetText("WS Server runs at ws://127.0.0.1:" + program.entries.ws_port.Text + "/xswd")
+		program.entries.ws_port.Disable()
+
+		program.ws_server = xswdServer(p)
+
+		// let's set some custom methods
+		for _, each := range []struct {
+			method      string
+			handlerfunc handler.Func
+		}{
+			{
+				method:      "GetAssets",
+				handlerfunc: handler.New(getAssets),
+			},
+			{
+				method:      "GetAssetBalance",
+				handlerfunc: handler.New(getAssetBalance),
+			},
+			// we are going to make a custom method for gas estimates
+			{
+				method:      "GetTXEstimate",
+				handlerfunc: handler.New(getTXEstimate),
+			},
+			{
+				method:      "HandleTELALinks",
+				handlerfunc: handler.New(handleTELALinks),
+			},
+			{
+				method:      "AttemptEPOCHWithAddr",
+				handlerfunc: handler.New(attemptEPOCHWithAddr),
+			},
+			{
+				method:      "Gnomon.GetAllOwnersAndSCIDs",
+				handlerfunc: handler.New(getAllOwnersAndSCIDs),
+			},
+			{
+				method:      "Gnomon.GetAllSCIDVariableDetails",
+				handlerfunc: handler.New(getAllSCIDVariableDetails),
+			},
+		} {
+			program.ws_server.SetCustomMethod(each.method, each.handlerfunc)
+		}
+
+		if program.ws_server != nil && program.ws_server.IsRunning() {
+			// assuming there are no errors here...
+			program.toggles.ws_server.SetSelected("on")
+			program.labels.ws_server.SetText("WS: ✅")
+		}
+	case "off":
+		program.toggles.ws_server.SetSelected("off")
+		if program.buttons.ws_on_off.Text == "TURN WS OFF" {
+			program.buttons.ws_on_off.SetText("TURN WS ON")
+		}
+		program.labels.ws_server.SetText("WS: 🔴")
+		if program.ws_server != nil {
+			program.ws_server.Stop()
+		}
+		program.entries.ws_port.Enable()
+		// default:
+	}
 }
 
 func rpc_server() {
@@ -730,7 +739,7 @@ func indexer() {
 		program.entries.indexer.SetText("127.0.0.1:9190")
 	}
 
-	notice := makeCenteredWrappedLabel("not connected")
+	program.labels.idx_notice = makeCenteredWrappedLabel("not connected")
 
 	// let's position toggle horizontally
 	program.toggles.indexer.Horizontal = true
@@ -739,85 +748,8 @@ func indexer() {
 	program.toggles.indexer.Options = []string{
 		"off", "on",
 	}
-	onChanged := func(s string) {
-		switch s {
-		case "on":
 
-			var p int
-			var err error
-			parts := strings.Split(program.entries.indexer.Text, ":")
-			// ip := parts[0]
-			port := parts[1]
-			if port != "" {
-				p, err = strconv.Atoi(port)
-				if err != nil {
-					showError(err, program.window)
-					program.toggles.indexer.SetSelected("off")
-					return
-				} else if p > 10000 {
-					showError(errors.New("port must be below 10000"), program.window)
-					program.toggles.indexer.SetSelected("off")
-					return
-				}
-			}
-
-			program.entries.indexer.Disable()
-			u := "ws://" + program.entries.indexer.Text + "/ws"
-			dialer := websocket.Dialer{
-				HandshakeTimeout: deadline,
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true}, // allow self-signed certs
-			}
-			indexer_connection, _, err = dialer.Dial(u, nil)
-			if err != nil {
-				notice.SetText("not connected")
-				program.toggles.indexer.SetSelected("off")
-				showError(err, program.window)
-				return
-			}
-			msg := map[string]any{
-				"method": "test",
-				"id":     "boogers",
-				"params": structures.GnomonSCIDQuery{},
-			}
-			if err := indexer_connection.WriteJSON(msg); err != nil {
-				notice.SetText("not connected")
-				program.toggles.indexer.SetSelected("off")
-				showError(err, program.window)
-				return
-			}
-
-			_, b, err := indexer_connection.ReadMessage()
-			if err != nil {
-				notice.SetText("not connected")
-				program.toggles.indexer.SetSelected("off")
-				showError(err, program.window)
-				return
-			}
-
-			var r structures.JSONRpcResp
-			if err := json.Unmarshal(b, &r); err != nil {
-				notice.SetText("not connected")
-				program.toggles.indexer.SetSelected("off")
-				showError(err, program.window)
-				return
-			}
-			if r.Error == nil && r.Result.(string) == "test" {
-				// assuming there are no errors here...
-				program.toggles.indexer.SetSelected("on")
-				program.labels.indexer.SetText("IDX: ✅")
-				notice.SetText("Indexer websocket connected to ws://127.0.0.1:" + program.entries.indexer.Text + "/ws")
-			}
-		case "off":
-			program.toggles.indexer.SetSelected("off")
-			program.labels.indexer.SetText("IDX: 🔴")
-			indexer_connection = nil
-			program.entries.indexer.Enable()
-			// default:
-		}
-	}
-
-	program.toggles.indexer.OnChanged = onChanged
+	program.toggles.indexer.OnChanged = idx_toggle
 
 	// if there isn't anything toggled, set to off
 	if program.toggles.indexer.Selected == "" {
@@ -835,7 +767,7 @@ Applications requesting index queries (eg. Gnomon) will require this connection 
 Set the indexer websocket ip:port, or use default: 127.0.0.1:9190
 `),
 		program.entries.indexer,
-		notice,
+		program.labels.idx_notice,
 		container.NewCenter(program.toggles.indexer),
 		layout.NewSpacer(),
 	)
@@ -847,6 +779,94 @@ Set the indexer websocket ip:port, or use default: 127.0.0.1:9190
 	indexer_ws.SetOnClosed(func() {
 
 	})
+}
+func idx_toggle(s string) {
+	switch s {
+	case "on":
+		if program.buttons.idx_on_off.Text == "TURN IDX ON" {
+			program.buttons.idx_on_off.SetText("TURN IDX OFF")
+		}
+		var p int
+		var err error
+		parts := strings.Split(program.entries.indexer.Text, ":")
+		if len(parts) != 2 {
+			parts = []string{
+				"127.0.0.1",
+				"9190",
+			}
+		}
+		ip := parts[0]
+		port := parts[1]
+		if port != "" {
+			p, err = strconv.Atoi(port)
+			if err != nil {
+				showError(err, program.window)
+				program.toggles.indexer.SetSelected("off")
+				return
+			} else if p > 10000 {
+				showError(errors.New("port must be below 10000"), program.window)
+				program.toggles.indexer.SetSelected("off")
+				return
+			}
+		}
+
+		program.entries.indexer.Disable()
+		u := "ws://" + ip + ":" + port + "/ws"
+		dialer := websocket.Dialer{
+			HandshakeTimeout: deadline,
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true}, // allow self-signed certs
+		}
+		indexer_connection, _, err = dialer.Dial(u, nil)
+		if err != nil {
+			program.labels.idx_notice.SetText("not connected")
+			program.toggles.indexer.SetSelected("off")
+			showError(err, program.window)
+			return
+		}
+		msg := map[string]any{
+			"method": "test",
+			"id":     "boogers",
+			"params": structures.GnomonSCIDQuery{},
+		}
+		if err := indexer_connection.WriteJSON(msg); err != nil {
+			program.labels.idx_notice.SetText("not connected")
+			program.toggles.indexer.SetSelected("off")
+			showError(err, program.window)
+			return
+		}
+
+		_, b, err := indexer_connection.ReadMessage()
+		if err != nil {
+			program.labels.idx_notice.SetText("not connected")
+			program.toggles.indexer.SetSelected("off")
+			showError(err, program.window)
+			return
+		}
+
+		var r structures.JSONRpcResp
+		if err := json.Unmarshal(b, &r); err != nil {
+			program.labels.idx_notice.SetText("not connected")
+			program.toggles.indexer.SetSelected("off")
+			showError(err, program.window)
+			return
+		}
+		if r.Error == nil && r.Result.(string) == "test" {
+			// assuming there are no errors here...
+			program.toggles.indexer.SetSelected("on")
+			program.labels.indexer.SetText("IDX: ✅")
+			program.labels.idx_notice.SetText("Indexer websocket connected to ws://127.0.0.1:" + program.entries.indexer.Text + "/ws")
+		}
+	case "off":
+		program.toggles.indexer.SetSelected("off")
+		if program.buttons.idx_on_off.Text == "TURN IDX OFF" {
+			program.buttons.idx_on_off.SetText("TURN IDX ON")
+		}
+		program.labels.indexer.SetText("IDX: 🔴")
+		indexer_connection = nil
+		program.entries.indexer.Enable()
+		// default:
+	}
 }
 func passwordUpdate() {
 	// let's get some confirmation
