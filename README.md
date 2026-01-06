@@ -99,13 +99,22 @@ simple-wallet
 
 # Custom Methods
 
-With the addition of XSWD, the wallet has custom methods: { 
+<details>
+  <summary>With the addition of XSWD, the wallet has custom methods: {</summary>
+
   `"GetAssets"`, 
+  
   `"GetAssetBalance"`,
+  
   `"GetTXEstimate"`,
+  
   `"AttemptEPOCHWithAddr"`
+  
   `"Gnomon.GetAllOwnersAndSCIDs"`
+  
   `"Gnomon.GetAllSCIDVariableDetails"`
+
+  </details>
 }
 
 Read more in [docs](./docs/methods.md).
