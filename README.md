@@ -72,26 +72,30 @@ This is a simple [Dero](https://deroproject.io/) wallet built using Fyne.
 
 # Installation
 
-You will need Go, and a newer version is recommended. Fyne has its own set of dependencies: [https://docs.fyne.io/started/](https://docs.fyne.io/started/)
+Be sure to check out the [releases](https://github.com/secretnamebasis/simple-wallet/releases) for linux and windows binaries.
 
-Be sure to check out the [releases](https://github.com/secretnamebasis/simple-wallet/releases) for linux and windows binaries; maybe one day I will be able to afford a mac...  
+## build from source:
 
-If you would like to build from source:
+You will need [`go`](https://go.dev/doc/install), and a newer version is recommended. 
+
+Fyne has its own set of dependencies: [https://docs.fyne.io/started/](https://docs.fyne.io/started/).
+
+### Install options
+#### `build` from source
 ```sh
 git clone https://github.com/secretnamebasis/simple-wallet
 cd simple-wallet
 go build .
 ./simple-wallet
 ```
-
-Or you can simply run the program:
+#### `run` from source:
 ```sh
 git clone https://github.com/secretnamebasis/simple-wallet
 cd simple-wallet
 go run .
 ```
 
-Or, assuming you have a properly configured `go` environment:
+#### Or `install`:
 ```sh
 go install github.com/secretnamebasis/simple-wallet@latest
 simple-wallet
