@@ -1,43 +1,74 @@
 # simple-wallet
 
-This is a simple Dero wallet built using Fyne.
+This is a simple [Dero](https://deroproject.io/) wallet built using Fyne.
 
 **This software is alpha stage software, use only for testing and evaluation purposes.**
 
 # Features
-- Easy-to-read topbar: 
-    - "BLOCK" - Block Beight 
-    - "NODE" - Node Connection 
-    - "WALLET" - Wallet Logged-In 
-    - "WS" - WS Server 
-    - "RPC" - RPC Server 
-    - "IDX" - Inexer connection
-- "🔒" Lockscreen Button
-- Create/Login/Restore Wallets
-- Transaction History
-- Asset Collections with Histories
-- Seed Phrase & Public/Secret Key Reveal
-- Sending with Options, including Token Assets
-- Public Node Auto-Connect
-- Simulator Launcher
-- WS Server
-- RPC Server
-- Indexer connection pass through over websocket
-- Integrated Address Generation
-- Token Adding
-- Asset Scanner - via Gnomon Smart Contact
-- Balance Rescaning
-- New Entry Notification Settings
-- Dero Tools:
-  - ENCRYPTION TOOLS
-    - File Signing/Verification
-    - Self-Encryption/Decryption
-    - Recipient Encryption/Decryption
-  - EXPLORE BLOCKCHAIN
-    - Nifty Difficulty Graph
-  - SMART CONTRACTS
-    - Contract Installer
-    - Contract Interactor
+<details>
+<summary><strong>Status & Connectivity</strong></summary>
+
+- Topbar indicators:
+  - **BLOCK** – Block height
+  - **NODE** – Node connection
+  - **WALLET** – Wallet logged-in state
+  - **WS** – WebSocket server
+  - **RPC** – RPC server
+  - **IDX** – Indexer connection
+- Public node auto-connect
+- WS server
+- RPC server
+- Indexer passthrough over WebSocket
+
+</details>
+
+<details>
+<summary><strong>Security & Access</strong></summary>
+
+- 🔒 Lockscreen button
+- Create / Login / Restore wallets
+- Seed phrase & public/secret key reveal
+- New entry notification settings
+
+</details>
+
+<details>
+<summary><strong>Wallet & Assets</strong></summary>
+
+- Transaction history
+- Asset collections with history
+- Token adding
+- Integrated address generation
+- Sending (including token assets)
+- Balance rescanning
+
+</details>
+
+<details>
+<summary><strong>Indexing & Scanning</strong></summary>
+
+- Asset scanner via **Gnomon Indexer**
+- Simulator launcher
+
+</details>
+
+<details>
+<summary><strong>DERO Tools</strong></summary>
+
+**Encryption**
+- File signing & verification
+- Self-encryption / decryption
+- Recipient encryption / decryption
+
+**Blockchain Exploration**
+- Difficulty graph
+
+**Smart Contracts**
+- Contract installer
+- Contract interactor
+
+</details>
+
 
 # Installation
 
@@ -68,13 +99,22 @@ simple-wallet
 
 # Custom Methods
 
-With the addition of XSWD, the wallet has custom methods: { 
+<details>
+  <summary>With the addition of XSWD, the wallet has custom methods: {</summary>
+
   `"GetAssets"`, 
+  
   `"GetAssetBalance"`,
+  
   `"GetTXEstimate"`,
+  
   `"AttemptEPOCHWithAddr"`
+  
   `"Gnomon.GetAllOwnersAndSCIDs"`
+  
   `"Gnomon.GetAllSCIDVariableDetails"`
+
+  </details>
 }
 
 Read more in [docs](./docs/methods.md).
