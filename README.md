@@ -354,6 +354,11 @@ There are many additional Dero-related technologies that could be integrated int
 # Contributing
 There's really only one rule for contributing to projects I maintain: have fun learning! Anyone is welcome to contribute as much as they'd like, or they can fork the project at any time to create their own version of simple-wallet.
 
+# SPONSORSHIP
+Like the proof of work? That's cool. Want to privately and anonymously sponsor the project? Rad! Pls send dero:
+```dero
+deroi1qyc96tgvz8fz623snpfwjgdhlqznamcsuh8rahrh2yvsf2gqqxdljqdzvfp4xatnd9khqmr994mkzmrvv46zqum4wpcx7un5vfz92qg8up0zt
+```
 # License
 You are welcome to do whatever you want with this code, as long as you first respect the RESEARCH LICENSE of Derohe (restrictive) and then observe the BSD 3-Clause license of Fyne (permissive). Please see LICENSE for more details. But the most important thing to remember:
 
