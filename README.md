@@ -133,7 +133,9 @@ You can find an [image gallery](./docs/image_gallery.md) for the application in 
 There's really only one rule for contributing to projects I maintain: have fun learning! Anyone is welcome to contribute as much as they'd like, or they can fork the project at any time to create their own version of simple-wallet.
 
 # SPONSORSHIP
-Like the proof of work? That's cool. Want to privately and anonymously sponsor the project? Rad! Pls send dero:
+Like the proof of work? That's cool. 
+
+Want to privately and anonymously sponsor the project? Rad! Pls send dero:
 ```dero
 deroi1qyc96tgvz8fz623snpfwjgdhlqznamcsuh8rahrh2yvsf2gqqxdljqdzvfp4xatnd9khqmr994mkzmrvv46zqum4wpcx7un5vfz92qg8up0zt
 ```
