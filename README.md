@@ -1,6 +1,6 @@
 # simple-wallet
 
-This is a simple Dero wallet built using Fyne.
+This is a simple [Dero](https://deroproject.io/) wallet built using Fyne.
 
 **This software is alpha stage software, use only for testing and evaluation purposes.**
 
