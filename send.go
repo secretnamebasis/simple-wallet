@@ -331,19 +331,21 @@ func sendForm() {
 
 func conductTransfer() {
 	var t *dialog.FormDialog
-	program.entries.pass.OnSubmitted = func(s string) {
+	pass := widget.NewPasswordEntry()
+	pass.SetPlaceHolder("w41137-p@55w0rd")
+	pass.OnSubmitted = func(s string) {
 		t.Submit()
 		t.Dismiss()
 	}
 	callback := func(b bool) {
 
 		// get the pass
-		pass := program.entries.pass.Text
+		p := pass.Text
 
 		// dump the pass
-		program.entries.pass.SetText("")
+		pass.SetText("")
 
-		passed := program.wallet.Check_Password(pass)
+		passed := program.wallet.Check_Password(p)
 
 		// if they get the password wrong
 		// in case they cancel
@@ -625,7 +627,7 @@ func conductTransfer() {
 	}
 
 	// make a simple form
-	content := []*widget.FormItem{widget.NewFormItem("", program.entries.pass)}
+	content := []*widget.FormItem{widget.NewFormItem("", pass)}
 
 	// make them confirm with password
 	t = dialog.NewForm("Password Confirmation", confirm, "Cancel", content, callback, program.window)
