@@ -527,7 +527,7 @@ func conductTransfer() {
 
 			} else { // if we have success
 
-				task := func(tx *transaction.Transaction, result rpc.GetTransaction_Result) {
+				task := func(tx *transaction.Transaction, result rpc.GetTransaction_Result) bool {
 
 					txid1 := tx.GetHash().String()
 
@@ -566,11 +566,12 @@ func conductTransfer() {
 								container.NewVBox(txid), program.window,
 							)
 						})
-						return
+						return true
 					}
+					return false
 				}
 
-				callback := func(tx *transaction.Transaction, hard_stop time.Time) {
+				callback := func(tx *transaction.Transaction, hard_stop time.Time) bool {
 
 					for waiting := range time.NewTicker(time.Second * 2).C {
 
@@ -578,15 +579,18 @@ func conductTransfer() {
 							sync.Stop()
 							transact.Dismiss()
 							showError(errors.New("manually confirm transfer"), program.window)
-							return
+							return false
 						}
 
 						result := getTransaction(rpc.GetTransaction_Params{
 							Tx_Hashes: []string{tx.GetHash().String()},
 						})
 
-						task(tx, result)
+						if task(tx, result) {
+							return true
+						}
 					}
+					return false
 				}
 
 				search := func(tx *transaction.Transaction, deadline time.Time) {
@@ -603,7 +607,9 @@ func conductTransfer() {
 						if len(program.node.pool.Tx_list) > 0 {
 							if slices.Contains(program.node.pool.Tx_list, tx.GetHash().String()) {
 								hard_stop := time.Now().Add(time.Second * 600)
-								callback(tx, hard_stop)
+								if callback(tx, hard_stop) {
+									return
+								}
 							}
 						}
 					}
