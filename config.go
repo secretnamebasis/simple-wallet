@@ -110,31 +110,7 @@ var isDancing bool
 // simple way to maintain connection to one of the nodes hardcoded
 func maintain_connection() {
 
-	if program.node.current == "" {
-
-		// now if the user hasn't stated a preference...
-		if program.node.list[0].ip == "" {
-			// skip this call
-			program.node.current = program.node.list[1].ip
-		}
-		// 	// so before we get started, let's assume that localhost is "first"
-		if err := testConnection(program.node.list[0].ip); err != nil {
-			program.node.current = program.node.list[1].ip
-		}
-
-		// the one that works gets it
-		program.node.current = program.node.list[0].ip
-
-	}
-
-	// this is an 1 second loop
-	// we will track retries
-	var retries, height int64 // track the height
-
-	// the purpose of this function is to obtain topo height every 1 seconds
-	ticker := time.NewTicker(time.Second * 1)
-	// update the label and show dancing bit
-	dance := func() {
+	dance := func() { // update the label and show dancing bit
 		var (
 			stop   = func() { isDancing = false }
 			update = func(msg string) {
@@ -178,6 +154,29 @@ func maintain_connection() {
 			}
 		}
 	}
+
+	if program.node.current == "" {
+
+		program.node.current = program.node.list[0].ip
+
+		// now if the user hasn't stated a preference...
+		if program.node.current == "" {
+			program.node.current = program.node.list[1].ip
+		}
+		// 	// so before we get started, let's assume that localhost is "first"
+		if err := testConnection(program.node.current); err != nil {
+			program.node.current = program.node.list[1].ip
+		}
+
+	}
+
+	// this is an 1 second loop
+	// we will track retries
+	var retries, height int64 // track the height
+
+	// the purpose of this function is to obtain topo height every 1 seconds
+	ticker := time.NewTicker(time.Second * 1)
+
 	for {
 		select {
 		case <-ctxConnection.Done():
