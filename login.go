@@ -1,6 +1,7 @@
 package main
 
 import (
+	"path/filepath"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -13,6 +14,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/deroproject/derohe/cryptography/crypto"
+	"github.com/deroproject/derohe/globals"
 	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/walletapi"
 )
@@ -270,6 +272,8 @@ func loginOpenFile() {
 
 func loginFunction() {
 
+	updateHeader(program.hyperlinks.login)
+
 	pass := widget.NewPasswordEntry()
 	// first, let's check to see if we are logged-in
 	if program.preferences.Bool("loggedIn") {
@@ -281,6 +285,9 @@ func loginFunction() {
 
 	// here is a simple way to find their existing wallet
 	program.entries.wallet.SetPlaceHolder("/path/to/wallet.db")
+	if fyne.CurrentDevice().IsMobile() {
+		program.entries.wallet.SetPlaceHolder("wallet.db")
+	}
 	pass.SetPlaceHolder("w41137-p@55w0rd")
 
 	// OnSubmitted accepts TypedKey Return as submission
@@ -303,7 +310,7 @@ func loginFunction() {
 
 			container.NewVBox(program.entries.wallet),
 			pass,
-			container.NewAdaptiveGrid(2,
+			container.NewGridWithColumns(2,
 				container.NewCenter(program.hyperlinks.create),
 				container.NewCenter(program.hyperlinks.restore),
 			),
@@ -315,6 +322,9 @@ func loginFunction() {
 	open_wallet := func(b bool) {
 		// get these entries
 		filename := program.entries.wallet.Text
+		if fyne.CurrentDevice().IsMobile() {
+			filename = filepath.Join(globals.GetDataDirectory(), filename)
+		}
 		password := pass.Text
 
 		// be sure to dump the entries

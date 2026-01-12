@@ -89,6 +89,7 @@ func updateHeader(bold *widget.Hyperlink) {
 		program.hyperlinks.home,
 		program.hyperlinks.tools,
 		program.hyperlinks.configs,
+		program.hyperlinks.login,
 		program.hyperlinks.logout,
 	} {
 		if link == bold {
@@ -100,8 +101,10 @@ func updateHeader(bold *widget.Hyperlink) {
 				Bold: false,
 			}
 		}
+		link.Refresh()
 	}
 }
+
 func createPreferred() {
 	filename := "preferred"
 	// let's make a simple way to have a preferred connection
@@ -109,12 +112,15 @@ func createPreferred() {
 		ip   string
 		name string
 	}{name: filename}
-
-	if _, err := os.Stat(filename + ".conf"); err != nil {
-		os.Create(filename + ".conf")
+	fp := filename + ".conf"
+	if fyne.CurrentDevice().IsMobile() {
+		fp = filepath.Join(program.preferences.String("HOME"), fp)
+	}
+	if _, err := os.Stat(fp); err != nil {
+		os.Create(fp)
 		// really
 	} else {
-		file, err := os.Open(filename + ".conf")
+		file, err := os.Open(fp)
 		if err != nil {
 
 			// we shouldn't report an err here...
@@ -126,12 +132,13 @@ func createPreferred() {
 			// we'll just try localhost and move on
 		}
 		// load the ip addres into the connection
-		preferred_connection.ip = string(b)
+		preferred_connection.ip = strings.TrimSpace(string(b))
 
 		// now if we have an error here...
 		if preferred_connection.ip != "" {
 			program.node.list[0] = preferred_connection
 		}
+		go maintain_connection()
 	}
 }
 
@@ -152,9 +159,11 @@ func initialize_logger() {
 		panic(err)
 	}
 	defer l.Close()
+	filename := program.name + ".log"
+	fp := filepath.Join(program.preferences.String("HOME"), filename)
 
 	// parse arguments and setup logging , print basic information
-	f, err := os.Create(filepath.Join(globals.GetDataDirectory(), program.name+".log"))
+	f, err := os.Create(fp)
 	if err != nil {
 		fmt.Printf("Error while opening log file err: %s filename %s\n", err, program.name+".log")
 		return
@@ -203,7 +212,8 @@ func initialize_table() {
 }
 
 func loadTable(filename string) bool {
-	f, err := os.Open(filepath.Join(globals.GetDataDirectory(), filename))
+	fp := filepath.Join(globals.GetDataDirectory(), filename)
+	f, err := os.Open(fp)
 	if err != nil {
 		return false // file not found
 	}
@@ -216,7 +226,9 @@ func loadTable(filename string) bool {
 }
 
 func saveTable(filename string, table any) {
-	f, err := os.Create(filepath.Join(globals.GetDataDirectory(), filename))
+	fp := filepath.Join(globals.GetDataDirectory(), filename)
+
+	f, err := os.Create(fp)
 	if err != nil {
 		fmt.Println("Failed to create table file:", err)
 		return
@@ -1832,6 +1844,7 @@ func setText(txt string, text *widget.Label) {
 	}
 
 	text.SetText(txt + opts)
+	text.Wrapping = fyne.TextWrapWord
 }
 
 func slide_network(f float64) {

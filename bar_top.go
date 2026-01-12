@@ -7,19 +7,20 @@ import (
 
 func topbar() *fyne.Container {
 
-	// again, let's center this container
-	return container.NewCenter(
-		// and have them fall horizontally
-		container.NewHBox(
-
-			// we are going to want to watch the current height, always
+	content := container.NewVBox(
+		// we are going to want to watch the current height, always
+		container.NewCenter(
+			// we always want to know if we are connected
 			program.labels.height,
-
+		),
+		container.NewGridWithColumns(2,
 			// we always want to know if we are connected
 			program.labels.connection,
-
 			// we also always want to know if we are logged in
 			program.labels.loggedin,
+		),
+		// and have them fall horizontally
+		container.NewHBox(
 
 			// as well as if the web socket
 			program.labels.ws_server,
@@ -31,4 +32,6 @@ func topbar() *fyne.Container {
 			program.labels.indexer,
 		),
 	)
+	// again, let's center this container
+	return container.NewCenter(content)
 }
