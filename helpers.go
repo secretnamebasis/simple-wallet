@@ -138,7 +138,6 @@ func createPreferred() {
 		if preferred_connection.ip != "" {
 			program.node.list[0] = preferred_connection
 		}
-		go maintain_connection()
 	}
 }
 
