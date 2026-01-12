@@ -185,18 +185,6 @@ var node_list = []struct {
 		ip:   "127.0.0.1:10102",
 		name: "localhost",
 	},
-	{
-		ip:   "173.208.130.94:11012",
-		name: "node.derofoundation.org",
-	},
-	{
-		ip:   "64.226.81.37:10102",
-		name: "dero-node.net",
-	},
-	{
-		ip:   "51.81.96.25:10102",
-		name: "dero.geeko.cloud",
-	},
 }
 var pool_headers = []string{
 	"height built",
