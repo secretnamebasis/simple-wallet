@@ -117,11 +117,9 @@ var program = components{
 		current_node: widget.NewLabel(""),
 		notice:       widget.NewLabel(""),
 		balance:      widget.NewLabel("0.00000"),
-		counter: makeCenteredWrappedLabel(`
-Registration POW takes time 20min-2hrs...
-If on battery, plug your computer in.
-Please do not leave this page.
-			`),
+		counter: makeCenteredWrappedLabel(`Registration POW takes time 20min-2hrs...
+If on battery, plug device in.
+Please do not leave this page.`),
 		address:   widget.NewLabel("ADDRESS: "),
 		seed:      widget.NewLabel("SEED PHRASE"),
 		secret:    widget.NewLabel("SECRET KEY"),

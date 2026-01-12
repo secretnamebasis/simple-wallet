@@ -331,19 +331,21 @@ func sendForm() {
 
 func conductTransfer() {
 	var t *dialog.FormDialog
-	program.entries.pass.OnSubmitted = func(s string) {
+	pass := widget.NewPasswordEntry()
+	pass.SetPlaceHolder("w41137-p@55w0rd")
+	pass.OnSubmitted = func(s string) {
 		t.Submit()
 		t.Dismiss()
 	}
 	callback := func(b bool) {
 
 		// get the pass
-		pass := program.entries.pass.Text
+		p := pass.Text
 
 		// dump the pass
-		program.entries.pass.SetText("")
+		pass.SetText("")
 
-		passed := program.wallet.Check_Password(pass)
+		passed := program.wallet.Check_Password(p)
 
 		// if they get the password wrong
 		// in case they cancel
@@ -526,65 +528,98 @@ func conductTransfer() {
 				// and return
 
 			} else { // if we have success
-				start := time.Now().Add(time.Second * 600)
-				for searching := range time.NewTicker(time.Second * 2).C {
-					if searching.After(start) {
-						sync.Stop()
-						transact.Dismiss()
-						showError(errors.New("manually confirm transfer"), program.window)
-						return
+
+				task := func(tx *transaction.Transaction, result rpc.GetTransaction_Result) bool {
+
+					txid1 := tx.GetHash().String()
+
+					for _, each := range result.Txs_as_hex {
+
+						b, _ := hex.DecodeString(each)
+						var tr transaction.Transaction
+						tr.Deserialize(b)
+						txid2 := tr.GetHash().String()
+
+						if !strings.EqualFold(txid1, txid2) {
+							continue
+						}
+
+						// let's make a link
+						link := truncator(tx.GetHash().String())
+
+						// set it into a new widget -> consider launching your own explorer
+						txid := widget.NewHyperlink(link, nil)
+
+						// align it center
+						txid.Alignment = fyne.TextAlignCenter
+
+						// when tapped, copy to clipboard
+						txid.OnTapped = func() {
+							program.application.Clipboard().SetContent(tx.GetHash().String())
+							showInfo("", "txid copied to clipboard", program.window)
+						}
+
+						fyne.DoAndWait(func() {
+							sync.Stop()
+							transact.Dismiss()
+							// set it to a new dialog screen and show
+							dialog.ShowCustom(
+								"Transaction Dispatched", "dismissed",
+								container.NewVBox(txid), program.window,
+							)
+						})
+						return true
 					}
-					if len(program.node.pool.Tx_list) > 0 {
+					return false
+				}
 
-						if slices.Contains(program.node.pool.Tx_list, tx.GetHash().String()) {
-							in_pool := time.Now().Add(time.Second * 600)
-							for on_chain := range time.NewTicker(time.Second * 2).C {
-								if on_chain.After(in_pool) {
-									sync.Stop()
-									transact.Dismiss()
-									showError(errors.New("manually confirm transfer"), program.window)
+				callback := func(tx *transaction.Transaction, hard_stop time.Time) bool {
+
+					for waiting := range time.NewTicker(time.Second * 2).C {
+
+						if waiting.After(hard_stop) {
+							sync.Stop()
+							transact.Dismiss()
+							showError(errors.New("manually confirm transfer"), program.window)
+							return false
+						}
+
+						result := getTransaction(rpc.GetTransaction_Params{
+							Tx_Hashes: []string{tx.GetHash().String()},
+						})
+
+						if task(tx, result) {
+							return true
+						}
+					}
+					return false
+				}
+
+				search := func(tx *transaction.Transaction, deadline time.Time) {
+
+					for searching := range time.NewTicker(time.Second * 2).C {
+
+						if searching.After(deadline) {
+							sync.Stop()
+							transact.Dismiss()
+							showError(errors.New("manually confirm transfer"), program.window)
+							return
+						}
+
+						if len(program.node.pool.Tx_list) > 0 {
+							if slices.Contains(program.node.pool.Tx_list, tx.GetHash().String()) {
+								hard_stop := time.Now().Add(time.Second * 600)
+								if callback(tx, hard_stop) {
 									return
-								}
-
-								result := getTransaction(rpc.GetTransaction_Params{
-									Tx_Hashes: []string{tx.GetHash().String()},
-								})
-								for _, each := range result.Txs_as_hex {
-									b, _ := hex.DecodeString(each)
-									var tr transaction.Transaction
-									tr.Deserialize(b)
-									t := tr.GetHash().String()
-									if strings.Contains(t, tx.GetHash().String()) {
-										// let's make a link
-										link := truncator(tx.GetHash().String())
-
-										// set it into a new widget -> consider launching your own explorer
-										txid := widget.NewHyperlink(link, nil)
-
-										// align it center
-										txid.Alignment = fyne.TextAlignCenter
-
-										// when tapped, copy to clipboard
-										txid.OnTapped = func() {
-											program.application.Clipboard().SetContent(tx.GetHash().String())
-											showInfo("", "txid copied to clipboard", program.window)
-										}
-										fyne.DoAndWait(func() {
-											sync.Stop()
-											transact.Dismiss()
-											// set it to a new dialog screen and show
-											dialog.ShowCustom(
-												"Transaction Dispatched", "dismissed",
-												container.NewVBox(txid), program.window,
-											)
-										})
-										return
-									}
 								}
 							}
 						}
 					}
 				}
+
+				deadline := time.Now().Add(time.Second * 600)
+				search(tx, deadline)
+
 			}
 		}()
 
@@ -592,7 +627,7 @@ func conductTransfer() {
 	}
 
 	// make a simple form
-	content := []*widget.FormItem{widget.NewFormItem("", program.entries.pass)}
+	content := []*widget.FormItem{widget.NewFormItem("", pass)}
 
 	// make them confirm with password
 	t = dialog.NewForm("Password Confirmation", confirm, "Cancel", content, callback, program.window)

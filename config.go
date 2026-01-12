@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
@@ -47,6 +48,10 @@ func configs() *fyne.Container {
 
 	// here is the simulator
 	program.buttons.simulator.OnTapped = simulator
+	// because there are too many hurdles at the moment to make simulator work for mobile
+	if fyne.CurrentDevice().IsMobile() {
+		program.buttons.simulator.Hide()
+	}
 
 	// let's make a simple way to connect via websocket
 	program.buttons.ws_server.OnTapped = ws_server
@@ -103,211 +108,237 @@ func configs() *fyne.Container {
 // simple way to maintain connection to one of the nodes hardcoded
 func maintain_connection() {
 
+	if program.node.current == "" {
+
+		// first, range the connection list:
+		// preferred, localhost foundation, dero-node, geeko
+		for _, each := range program.node.list {
+
+			// now if the user hasn't stated a preference...
+			if program.node.list[0].ip == "" {
+				// skip this call
+				continue
+			}
+			// 	// so before we get started, let's assume that localhost is "first"
+			if err := testConnection(each.ip); err != nil {
+				continue // which will fail on mobile... most likely
+			}
+
+			// the one that works gets it
+			program.node.current = each.ip
+			break
+		}
+
+		// 	program.node.current = program.node.list[1].ip
+	}
+
+	var isDancing bool
+
+	// this is an 1 second loop
 	// we will track retries
 	var retries, height int64 // track the height
 
 	// the purpose of this function is to obtain topo height every 1 seconds
 	ticker := time.NewTicker(time.Second * 1)
 
-	// so before we get started, let's assume that localhost is "first"
-	program.node.current = program.node.list[1].ip
+	for {
+		select {
+		case <-ctxConnection.Done():
+			fmt.Println("connection loop cancelled")
+			return
+		case <-ticker.C:
+			// assuming the localhost connection works, if not preference
+			walletapi.Daemon_Endpoint = program.node.current
 
-	// now if you have stated a preference...
-	if program.node.list[0].ip != "" {
-		program.node.current = program.node.list[0].ip
-	}
-	var isDancing bool
+			// get the height directly from the daemon
+			height = getDaemonInfo().TopoHeight
 
-	// this is an 1 second loop
-	for range ticker.C {
-		// assuming the localhost connection works, if not preference
-		walletapi.Daemon_Endpoint = program.node.current
+			if height == 0 || !walletapi.Connected {
+				fmt.Println("attempting connection", walletapi.Daemon_Endpoint)
 
-		// get the height directly from the daemon
-		height = getDaemonInfo().TopoHeight
+				// otherwise, try to connect to the walletapi
+				walletapi.Connect(walletapi.Daemon_Endpoint) // the connection should be working
 
-		if height == 0 || !walletapi.Connected {
-
-			// otherwise, try to connect to the walletapi
-			walletapi.Connect(walletapi.Daemon_Endpoint) // the connection should be working
-
-			// update the label and show dancing bit
-			dance := func() {
-				var (
-					stop   = func() { isDancing = false }
-					update = func(msg string) {
-						text := "BLOCK: " + msg
-						fyne.DoAndWait(func() { program.labels.height.SetText(text) })
-						time.Sleep(100 * time.Millisecond)
-					}
-
-					bit  uint16 = 1
-					bits uint16 = bit // start with a bit
-
-					max uint8 = 13 // zero index
-
-					isConnected bool = strings.Contains(program.labels.connection.Text, "✅")
-				)
-
-				for !isConnected {
-					isDancing = true
-					defer stop()
-
-					for range max {
-						isConnected = strings.Contains(program.labels.connection.Text, "✅")
-
-						if isConnected {
-							return
+				// update the label and show dancing bit
+				dance := func() {
+					var (
+						stop   = func() { isDancing = false }
+						update = func(msg string) {
+							text := "BLOCK: " + msg
+							fyne.DoAndWait(func() { program.labels.height.SetText(text) })
+							time.Sleep(100 * time.Millisecond)
 						}
 
-						update(fmt.Sprintf("%014b", bits))
-						bits <<= bit // shift left, fill rightmost bitwith 1
-					}
-					for range max {
-						isConnected = strings.Contains(program.labels.connection.Text, "✅")
+						bit  uint16 = 1
+						bits uint16 = bit // start with a bit
 
-						if isConnected {
-							return
-						}
+						max uint8 = 13 // zero index
 
-						update(fmt.Sprintf("%014b", bits))
-						bits >>= bit // shift right, drop rightmost bit
-					}
-				}
-			}
-			if !isDancing {
-				go dance()
-			}
-
-			fyne.DoAndWait(func() {
-				program.labels.connection.SetText("NODE: 🟡") // signalling unstable
-				if program.buttons.register.Visible() {
-					program.buttons.register.Disable()
-				} else if program.activities.registration.Visible() {
-					program.activities.registration.Stop()
-					program.activities.registration.Hide()
-				}
-			})
-
-			if program.preferences.Bool("mainnet") {
-				// now we need to range and connect
-				var fastest int64 = 10000 // we assume 10 second
-				logger.Info("Ranging node list")
-				// now range through the nodes in the list
-				for _, node := range program.node.list {
-
-					// make a start time for determining how fast this goes
-					start := time.Now()
-					// here is a helper
-					if err := testConnection(node.ip); err != nil {
-						continue
-					}
-					if node.name == "preferred" {
-						logger.Info("Connecting to preferred node")
-						break
-					}
-					// now that the connection has been tested, get the time
-					result := time.Now().UnixMilli() - start.UnixMilli()
-
-					// if the result is faster than fastest
-					if result < fastest {
-
-						// it is now the new fastest
-						fastest = result
-
-						// and it is now the current node
-						program.node.current = node.ip
-
-						logger.Info("Fastest node", node.name, node.ip, "ping", result)
-					}
-				}
-				// assuming the fastest connection works
-				walletapi.Daemon_Endpoint = program.node.current
-			}
-			logger.Info(fmt.Sprintf("Connecting to: %s", program.node.current))
-			// re-test the connection
-			if err := walletapi.Connect(walletapi.Daemon_Endpoint); err != nil {
-				// show why?
-				// showError(err)
-
-				// be sure to drop the rpc server
-				if program.rpc_server != nil {
-					program.rpc_server = nil
-				}
-				//  if the number of tries is 1...
-				if retries == 1 {
-					fyne.DoAndWait(func() {
-
-						// then notify the user
-						if strings.Contains(err.Error(), "Mainnet/TestNet") {
-							showError(errors.New("please visit connections page and select appropriate network"), program.window)
-						} else {
-							showError(err, program.window)
-
-						}
-						// update the label
-						program.labels.connection.SetText("NODE: 🔴")
-						program.labels.height.SetText("BLOCK: 00000000000000")
-						program.buttons.send.Disable()
-						program.entries.recipient.Disable()
-						program.buttons.token_add.Disable()
-						program.buttons.balance_rescan.Disable()
-					})
-
-					// and if we are logged in, update to offline mode
-					if program.preferences.Bool("loggedIn") {
-						program.wallet.SetOfflineMode()
-					}
-					// don't break the loop
-				}
-				// increment the retries
-				retries++
-				logger.Error(errors.New("connection"), "connection retry attempt", retries)
-			}
-		} else {
-
-			// now if they are able to connect...
-			// update the height and node label
-			fyne.DoAndWait(func() {
-
-				program.labels.connection.SetText("NODE: ✅")
-				program.labels.current_node.SetText("Current Node: " + program.node.current)
-				program.labels.current_node.Refresh()
-				// obviously registration is different
-				if program.preferences.Bool("loggedIn") && program.wallet != nil {
-					if !program.wallet.IsRegistered() {
-						program.buttons.register.Enable()
-					}
-					if !program.activities.registration.Visible() {
-						// and let them register
-						program.buttons.register.Show()
-					}
-				}
-			})
-
-			// retries is reset
-			retries = 0
-
-			// simple way to see if height has changed
-			if height >= walletapi.Get_Daemon_Height() {
-				fyne.DoAndWait(func() {
-					program.labels.height.SetText(
-						fmt.Sprintf(("BLOCK: %0" + strconv.Itoa(len(max_height)) + "d"), height),
+						isConnected bool = strings.Contains(program.labels.connection.Text, "✅")
 					)
-					program.labels.height.Refresh()
-					program.buttons.send.Enable()
-					program.entries.recipient.Enable()
-					program.buttons.token_add.Enable()
-					program.buttons.balance_rescan.Enable()
+
+					for !isConnected {
+
+						isDancing = true
+						defer stop()
+
+						for range max {
+							isConnected = strings.Contains(program.labels.connection.Text, "✅")
+
+							if isConnected {
+								return
+							}
+
+							update(fmt.Sprintf("%014b", bits))
+							bits <<= bit // shift left, fill rightmost bitwith 1
+						}
+						for range max {
+							isConnected = strings.Contains(program.labels.connection.Text, "✅")
+
+							if isConnected {
+								return
+							}
+
+							update(fmt.Sprintf("%014b", bits))
+							bits >>= bit // shift right, drop rightmost bit
+						}
+					}
+				}
+				if !isDancing {
+					go dance()
+				}
+
+				fyne.DoAndWait(func() {
+					program.labels.connection.SetText("NODE: 🟡") // signalling unstable
+					if program.buttons.register.Visible() {
+						program.buttons.register.Disable()
+					} else if program.activities.registration.Visible() {
+						program.activities.registration.Stop()
+						program.activities.registration.Hide()
+					}
 				})
-				// the above love to bark on signal interrupts
-			}
-			// also set the wallet to online mode
-			if program.preferences.Bool("loggedIn") {
-				program.wallet.SetOnlineMode()
+
+				if program.preferences.Bool("mainnet") {
+					// now we need to range and connect
+					var fastest int64 = 10000 // we assume 10 second
+					logger.Info("Ranging node list")
+					// now range through the nodes in the list
+					for _, node := range program.node.list {
+
+						// make a start time for determining how fast this goes
+						start := time.Now()
+						// here is a helper
+						if err := testConnection(node.ip); err != nil {
+							continue
+						}
+						if node.name == "preferred" {
+							logger.Info("Connecting to preferred node")
+							break
+						}
+						// now that the connection has been tested, get the time
+						result := time.Now().UnixMilli() - start.UnixMilli()
+
+						// if the result is faster than fastest
+						if result < fastest {
+
+							// it is now the new fastest
+							fastest = result
+
+							// and it is now the current node
+							program.node.current = node.ip
+
+							logger.Info("Fastest node", node.name, node.ip, "ping", result)
+						}
+					}
+					// assuming the fastest connection works
+					walletapi.Daemon_Endpoint = program.node.current
+				}
+				logger.Info(fmt.Sprintf("Connecting to: %s", program.node.current))
+				// re-test the connection
+				if err := walletapi.Connect(walletapi.Daemon_Endpoint); err != nil {
+					// show why?
+					// showError(err)
+
+					// be sure to drop the rpc server
+					if program.rpc_server != nil {
+						program.rpc_server = nil
+					}
+					//  if the number of tries is 1...
+					if retries == 1 {
+						fyne.DoAndWait(func() {
+
+							// then notify the user
+							if strings.Contains(err.Error(), "Mainnet/TestNet") {
+								showError(errors.New("please visit connections page and select appropriate network"), program.window)
+							} else {
+								showError(err, program.window)
+
+							}
+							// update the label
+							program.labels.connection.SetText("NODE: 🔴")
+							program.labels.height.SetText("BLOCK: 00000000000000")
+							program.buttons.send.Disable()
+							program.entries.recipient.Disable()
+							program.buttons.token_add.Disable()
+							program.buttons.balance_rescan.Disable()
+						})
+
+						// and if we are logged in, update to offline mode
+						if program.preferences.Bool("loggedIn") {
+							program.wallet.SetOfflineMode()
+						}
+						// don't break the loop
+					}
+					// increment the retries
+					retries++
+					logger.Error(errors.New("connection"), "connection retry attempt", retries)
+				}
+			} else {
+
+				// now if they are able to connect...
+				// update the height and node label
+				fyne.DoAndWait(func() {
+
+					program.labels.connection.SetText("NODE: ✅")
+					program.labels.current_node.SetText("Current Node: " + program.node.current)
+					program.labels.current_node.Refresh()
+					// obviously registration is different
+					if program.preferences.Bool("loggedIn") && program.wallet != nil {
+						if !program.wallet.IsRegistered() {
+							program.buttons.register.Enable()
+						}
+						if !program.activities.registration.Visible() {
+							// and let them register
+							program.buttons.register.Show()
+						}
+					}
+				})
+
+				// retries is reset
+				retries = 0
+
+				// simple way to see if height has changed
+				if height >= walletapi.Get_Daemon_Height() {
+					fyne.DoAndWait(func() {
+						program.labels.height.SetText(
+							fmt.Sprintf(("BLOCK: %0" + strconv.Itoa(len(max_height)) + "d"), height),
+						)
+						program.labels.height.Refresh()
+						program.buttons.send.Enable()
+						program.entries.recipient.Enable()
+						program.buttons.token_add.Enable()
+						program.buttons.balance_rescan.Enable()
+					})
+					// the above love to bark on signal interrupts
+				}
+				// also set the wallet to online mode
+				if program.preferences.Bool("loggedIn") {
+					program.wallet.SetOnlineMode()
+				}
 			}
 		}
 	}
+
 }
 
 func connections() {
@@ -377,30 +408,7 @@ func connections() {
 		}
 		endpoint := program.entries.node.Text
 		// program.entries.node.SetText("")
-
-		// test the connection point
-		if err := testConnection(endpoint); err != nil {
-			showError(err, program.window)
-			return
-		}
-		program.node.list[0] = struct {
-			ip   string
-			name string
-		}{ip: endpoint, name: "preferred"}
-
-		file, err := os.Create("preferred.conf")
-		if err != nil {
-			showError(err, program.window)
-			return
-		}
-		if _, err := io.WriteString(file, endpoint); err != nil {
-			showError(err, program.window)
-			return
-		}
-		path, _ := filepath.Abs(file.Name())
-
-		showInfo("Saved Preferred", "node endpoint saved to "+path, program.window)
-		program.tables.connections.Refresh()
+		savePreferred(endpoint)
 	}
 	// make a way for them to set the node endpoint
 	set := widget.NewHyperlink("set connection", nil)
@@ -431,6 +439,8 @@ func connections() {
 		} else {
 			// tell the user how cool they are
 			showInfoFast("Connection", "success", program.window)
+			cancelConnection()
+
 		}
 		// now the current node is the entry
 		program.node.current = endpoint
@@ -440,6 +450,9 @@ func connections() {
 
 		// set the walletapi endpoint for the maintain_connection function
 		walletapi.Daemon_Endpoint = program.node.current
+		ctxConnection, cancelConnection = context.WithCancel(context.Background())
+		go maintain_connection()
+
 	}
 
 	// set the on tapped function
@@ -449,7 +462,7 @@ func connections() {
 		onTapped()
 	}
 
-	desiredSize := fyne.NewSize(450, 200)
+	desiredSize := fyne.NewSize(350, 200)
 
 	fixedSizeTable := container.NewGridWrap(desiredSize, program.tables.connections)
 	centered := container.NewCenter(fixedSizeTable)
@@ -457,10 +470,10 @@ func connections() {
 	// walk the user through the process
 	content := container.NewBorder(
 		container.NewVBox(
-			container.NewAdaptiveGrid(3, program.labels.mainnet, program.labels.testnet, program.labels.simulator),
+			container.NewGridWithColumns(3, program.labels.mainnet, program.labels.testnet, program.labels.simulator),
 			program.sliders.network,
 			program.entries.node,
-			container.NewAdaptiveGrid(2, save, set),
+			container.NewGridWithColumns(2, save, set),
 			program.labels.current_node,
 			program.labels.notice,
 		),
@@ -477,10 +490,41 @@ func connections() {
 
 	// resize and show
 	size := fyne.NewSize(program.size.Width/3*2, program.size.Height/3*2)
+	if fyne.CurrentDevice().IsMobile() {
+		size = fyne.NewSize(program.size.Width/3, program.size.Height/3*2)
+	}
 	connect.Resize(size)
 	connect.Show()
 }
+func savePreferred(endpoint string) error {
+	endpoint = strings.TrimSpace(endpoint)
+	// test the connection point
+	if err := testConnection(endpoint); err != nil {
+		return err
+	}
 
+	program.node.list[0] = struct {
+		ip   string
+		name string
+	}{ip: endpoint, name: "preferred"}
+
+	fp := "preferred.conf"
+	if fyne.CurrentDevice().IsMobile() {
+		fp = filepath.Join(program.preferences.String("HOME"), fp)
+	}
+	file, err := os.Create(fp)
+	if err != nil {
+		return err
+	}
+	if _, err := io.WriteString(file, endpoint); err != nil {
+		return err
+	}
+	path, _ := filepath.Abs(file.Name())
+
+	showInfo("Saved Preferred", "node endpoint saved to "+path, program.window)
+	program.tables.connections.Refresh()
+	return nil
+}
 func ws_server() {
 
 	if !program.entries.ws_port.Disabled() {
@@ -967,6 +1011,22 @@ func simulator() {
 			// let's turn on a simulation of the blockchain
 			// before we get started, let's clear something up
 			globals.Arguments = nil // now that we have taken care of that...
+
+			// chose where the endpoint location
+			daemon_endpoint := "127.0.0.1:20000"
+
+			// here is a list of arguments
+			globals.Arguments = map[string]interface{}{
+				"--rpc-bind":     daemon_endpoint,
+				"--p2p-bind":     ":0",
+				"--getwork-bind": "127.0.0.1:10100",
+				"--testnet":      true,
+				"--simulator":    true, // obviously
+				"--debug":        true, // to get more info
+				"--clog-level":   "2",
+				"--flog-level":   "2",
+			}
+
 			// let's go pretend we are the captain
 			genesis_seed := "0206a2fca2d2da068dfa8f792ef190a352d656910895f6c541d54877fca95a77"
 
@@ -1028,21 +1088,6 @@ func simulator() {
 			config.Testnet.Genesis_Block_Hash = genesis_hash // mainnet uses the same hash
 			config.Mainnet.Genesis_Block_Hash = config.Testnet.Genesis_Block_Hash
 
-			// chose where the endpoint location
-			daemon_endpoint := "127.0.0.1:20000"
-
-			// here is a list of arguments
-			globals.Arguments = map[string]interface{}{
-				"--rpc-bind":     daemon_endpoint,
-				"--p2p-bind":     ":0",
-				"--getwork-bind": "127.0.0.1:10100",
-				"--testnet":      true,
-				"--simulator":    true, // obviously
-				"--debug":        true, // to get more info
-				"--clog-level":   "2",
-				"--flog-level":   "2",
-			}
-
 			l, lerr := readline.NewEx(&readline.Config{
 				//Prompt:          "\033[92mDERO:\033[32m»\033[0m",
 				Prompt:      "\033[92mDEROSIM:\033[32m>>>\033[0m ",
@@ -1069,10 +1114,10 @@ func simulator() {
 				MaxSize:    100, // megabytes
 				MaxBackups: 2,
 			})
-
 			// let's clean up anything that was here before
 			os.RemoveAll(globals.GetDataDirectory())
 
+			fmt.Println("globals", globals.GetDataDirectory())
 			// lets create data directories
 			if err := os.MkdirAll(globals.GetDataDirectory(), 0750); err != nil {
 				panic(err)

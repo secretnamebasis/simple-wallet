@@ -1,6 +1,7 @@
 package main
 
 import (
+	"path/filepath"
 	"runtime"
 	"strconv"
 
@@ -11,6 +12,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/deroproject/derohe/cryptography/crypto"
+	"github.com/deroproject/derohe/globals"
 	"github.com/deroproject/derohe/transaction"
 	"github.com/deroproject/derohe/walletapi"
 )
@@ -21,6 +23,7 @@ func create() {
 	if program.entries.wallet.Text != "" || pass.Text != "" {
 		program.entries.wallet.SetText("")
 	}
+	program.entries.wallet.SetPlaceHolder("filename: wallet.db")
 
 	pass.SetText(randomWords(4, "-"))
 
@@ -28,31 +31,24 @@ func create() {
 		layout.NewSpacer(),
 		program.entries.wallet,
 		pass,
-		program.hyperlinks.save,
 		layout.NewSpacer(),
 	)
-
-	new_account := dialog.NewCustom("Create Wallet", dismiss,
-		content, program.window)
+	var new_account *dialog.ConfirmDialog
+	callback := func(b bool) {
+		if !b {
+			return
+		}
+		create_account(pass.Text)
+		new_account.Dismiss()
+		// dump entries
+		program.entries.wallet.SetText("")
+		pass.SetText("")
+	}
+	new_account = dialog.NewCustomConfirm("Create Wallet", "save", dismiss,
+		content, callback, program.window)
 
 	// if they press enter, it is as if they pressed save
-	pass.OnSubmitted = func(s string) {
-		new_account.Dismiss()
-		create_account(s)
-		// dump entries
-		program.entries.wallet.SetText("")
-		pass.SetText("")
-	}
-
-	program.hyperlinks.save.Alignment = fyne.TextAlignCenter
-	program.hyperlinks.save.OnTapped = func() {
-		create_account(pass.Text)
-		// dump entries
-		program.entries.wallet.SetText("")
-		pass.SetText("")
-		new_account.Dismiss()
-
-	}
+	pass.OnSubmitted = func(s string) { callback(true) }
 
 	new_account.Resize(fyne.NewSize(program.size.Width/3, program.size.Height/3))
 	new_account.SetOnClosed(func() {
@@ -65,10 +61,14 @@ func create() {
 func create_account(password string) {
 	var err error
 	// get entries
+	// the problem is that if we are mobile,
+	// the wallet could be anywhere...
 	filename := program.entries.wallet.Text
 
+	fp := filepath.Join(globals.GetDataDirectory(), filename)
+
 	program.wallet, err = walletapi.Create_Encrypted_Wallet(
-		filename,
+		fp,
 		password,
 		crypto.RandomScalarBNRed(),
 	)

@@ -1,16 +1,19 @@
 package main
 
 import (
+	"context"
 	"crypto/rand"
 	"fmt"
 	m_rand "math/rand"
 	"os"
 	"strconv"
+	"sync"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"github.com/deroproject/derohe/globals"
 )
 
 // main caller
@@ -27,15 +30,25 @@ func main() {
 func run() {
 	// let's make some random session so that users can run multiple wallets at once
 	session_id := rand.Text()
-
 	// let's set up our program using the name we've chosen and the session id
 	program.application = app.NewWithID(program.name + "_" + session_id)
+
+	fyne.CurrentApp().SetIcon(resourceIconPng)
+	program.application.SetIcon(resourceIconPng)
 
 	// let's use a simple theme that changes only one thing
 	program.application.Settings().SetTheme(customTheme{})
 
 	// we''l assume some simple preferences
 	program.preferences = program.application.Preferences()
+
+	if fyne.CurrentDevice().IsMobile() {
+		store := fyne.CurrentApp().Storage()
+		dir := store.RootURI().Path()
+		fmt.Println("Storage path:", dir)
+		program.preferences.SetString("HOME", dir)
+		globals.Arguments["--data-dir"] = dir
+	}
 
 	// let's set a simple lifecycle policy when the app starts
 	program.application.Lifecycle().SetOnStarted(func() {
@@ -58,7 +71,7 @@ func run() {
 	program.window.CenterOnScreen()
 
 	// let's use a simple icon
-	program.window.SetIcon(theme.AccountIcon())
+	program.window.SetIcon(resourceIconPng)
 
 	// let's set a simple intercept close for the window
 	program.window.SetCloseIntercept(func() {
@@ -80,10 +93,28 @@ func run() {
 	setContentAsHome()
 
 	// let's simply show and run the program
-	program.window.ShowAndRun()
+
+	//  *** Error in Fyne call thread, this should have been called in fyne.Do[AndWait] ***
+	// From: github.com/secretnamebasis/simple-wallet/main.go:92
+	// doesn't seem like this caller works right
+	once()
 }
 
+var once = sync.OnceFunc(func() { program.window.ShowAndRun() })
+
 func initialize() {
+	// captain's orders
+	go initialize_table()
+
+	initialize_logger() // there is no logs in mobile, but we might be able to dump logs
+
+	// simple way to create a preferred ip endpoint file
+
+	createPreferred()
+
+	// test localhost first, then connect from a list of public nodes
+
+	ctxConnection, cancelConnection = context.WithCancel(context.Background())
 	// let's make sure those notifications are off at start :)
 	program.sliders.notifications.SetValue(.235)
 
@@ -165,14 +196,9 @@ func initialize() {
 	// and let's hide these for a moment
 	program.hyperlinks.lockscreen.Hide()
 
-	// captain's orders
-	go initialize_table()
+	// go maintain_connection()
 
-	initialize_logger()
-
-	// simple way to create a preferred ip endpoint file
-	createPreferred()
-
-	// test localhost first, then connect from a list of public nodes
-	go maintain_connection()
 }
+
+var ctxConnection context.Context
+var cancelConnection context.CancelFunc
