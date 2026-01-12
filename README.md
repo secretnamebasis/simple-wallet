@@ -15,7 +15,6 @@ This is a simple [Dero](https://deroproject.io/) wallet built using Fyne.
   - **WS** – WebSocket server
   - **RPC** – RPC server
   - **IDX** – Indexer connection
-- Public node auto-connect
 - WS server
 - RPC server
 - Indexer passthrough over WebSocket
