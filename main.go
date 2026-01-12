@@ -14,6 +14,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/deroproject/derohe/globals"
+	"github.com/deroproject/derohe/walletapi"
 )
 
 // main caller
@@ -32,6 +33,7 @@ func run() {
 	session_id := rand.Text()
 	// let's set up our program using the name we've chosen and the session id
 	program.application = app.NewWithID(program.name + "_" + session_id)
+	fyne.SetCurrentApp(program.application)
 
 	fyne.CurrentApp().SetIcon(resourceIconPng)
 	program.application.SetIcon(resourceIconPng)
@@ -115,6 +117,23 @@ func initialize() {
 	// test localhost first, then connect from a list of public nodes
 
 	ctxConnection, cancelConnection = context.WithCancel(context.Background())
+
+	// android prevents background networking,
+	// would need to create a permanent notification...
+	// we'll just disconnect and re-connect
+	fyne.CurrentApp().Lifecycle().SetOnEnteredForeground(func() {
+		ctxConnection, cancelConnection = context.WithCancel(context.Background())
+		if !walletapi.Connected && program.node.list[0].ip != "" {
+			go maintain_connection()
+		}
+	})
+	if fyne.CurrentDevice().IsMobile() {
+		fyne.CurrentApp().Lifecycle().SetOnExitedForeground(func() {
+			walletapi.Connected = false
+			cancelConnection()
+		})
+	}
+
 	// let's make sure those notifications are off at start :)
 	program.sliders.notifications.SetValue(.235)
 

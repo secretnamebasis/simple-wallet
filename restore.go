@@ -108,6 +108,14 @@ func restoration() {
 			return
 		}
 
+		program.wallet.SetNetwork(true)
+		program.wallet.SetOnlineMode()
+		program.wallet.SyncHistory(crypto.ZEROHASH)
+		logger.Info("sync history", "status", "initiated")
+		if !program.wallet.IsRegistered() {
+			time.Sleep(time.Second)
+		}
+
 		// proceed with log in stuff
 		loggedIn()
 
@@ -161,8 +169,8 @@ func restoration() {
 		program.wallet.SetOnlineMode()
 		program.wallet.SyncHistory(crypto.ZEROHASH)
 		logger.Info("sync history", "status", "initiated")
-		if program.wallet.IsRegistered() {
-			time.Sleep(time.Second * 1)
+		if !program.wallet.IsRegistered() {
+			time.Sleep(time.Second)
 		}
 
 		// proceed with the usuals
@@ -231,6 +239,13 @@ func restoration() {
 
 		// tell the user they have succeeded
 		showInfo("Restore Wallet", "successfully saved as wallet.db", program.window)
+		program.wallet.SetNetwork(true)
+		program.wallet.SetOnlineMode()
+		program.wallet.SyncHistory(crypto.ZEROHASH)
+		logger.Info("sync history", "status", "initiated")
+		if !program.wallet.IsRegistered() {
+			time.Sleep(time.Second)
+		}
 
 		// do the loggedIn dance
 		loggedIn()
