@@ -230,7 +230,8 @@ func reg() {
 		// if an error, show it
 		showError(err, program.window)
 		return
-	} else {
+	} else { // might not be a bad idea to make sure it has left the pool
+
 		// if successful, shout for joy!
 		showInfo("Registration", "registration successful", program.window)
 

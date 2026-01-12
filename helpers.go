@@ -378,14 +378,12 @@ func updateBalance() {
 			}
 
 			if bal == 0 && program.wallet.IsRegistered() {
-				fyne.DoAndWait(func() {
-					// update it
+				fyne.DoAndWait(func() { // update it
 					program.labels.balance.SetText(rpc.FormatMoney(0))
-
+					program.labels.loggedin.SetText("WALLET: ✅")
 				})
 			} else if bal == 0 && !program.wallet.IsRegistered() {
-				fyne.DoAndWait(func() {
-					// update it
+				fyne.DoAndWait(func() { // update it
 					program.labels.loggedin.SetText("WALLET: ✅")
 					program.labels.balance.SetText("unregistered")
 
