@@ -105,34 +105,27 @@ func configs() *fyne.Container {
 	)
 }
 
+var isDancing bool
+
 // simple way to maintain connection to one of the nodes hardcoded
 func maintain_connection() {
 
 	if program.node.current == "" {
 
-		// first, range the connection list:
-		// preferred, localhost foundation, dero-node, geeko
-		for _, each := range program.node.list {
-
-			// now if the user hasn't stated a preference...
-			if program.node.list[0].ip == "" {
-				// skip this call
-				continue
-			}
-			// 	// so before we get started, let's assume that localhost is "first"
-			if err := testConnection(each.ip); err != nil {
-				continue // which will fail on mobile... most likely
-			}
-
-			// the one that works gets it
-			program.node.current = each.ip
-			break
+		// now if the user hasn't stated a preference...
+		if program.node.list[0].ip == "" {
+			// skip this call
+			program.node.current = program.node.list[1].ip
+		}
+		// 	// so before we get started, let's assume that localhost is "first"
+		if err := testConnection(program.node.list[0].ip); err != nil {
+			program.node.current = program.node.list[1].ip
 		}
 
-		// 	program.node.current = program.node.list[1].ip
-	}
+		// the one that works gets it
+		program.node.current = program.node.list[0].ip
 
-	var isDancing bool
+	}
 
 	// this is an 1 second loop
 	// we will track retries
@@ -140,7 +133,51 @@ func maintain_connection() {
 
 	// the purpose of this function is to obtain topo height every 1 seconds
 	ticker := time.NewTicker(time.Second * 1)
+	// update the label and show dancing bit
+	dance := func() {
+		var (
+			stop   = func() { isDancing = false }
+			update = func(msg string) {
+				text := "BLOCK: " + msg
+				fyne.DoAndWait(func() { program.labels.height.SetText(text) })
+				time.Sleep(100 * time.Millisecond)
+			}
 
+			bit  uint16 = 1
+			bits uint16 = bit // start with a bit
+
+			max uint8 = 13 // zero index
+
+			isConnected bool = strings.Contains(program.labels.connection.Text, "✅")
+		)
+
+		for !isConnected {
+
+			isDancing = true
+			defer stop()
+
+			for range max {
+				isConnected = strings.Contains(program.labels.connection.Text, "✅")
+
+				if isConnected {
+					return
+				}
+
+				update(fmt.Sprintf("%014b", bits))
+				bits <<= bit // shift left, fill rightmost bitwith 1
+			}
+			for range max {
+				isConnected = strings.Contains(program.labels.connection.Text, "✅")
+
+				if isConnected {
+					return
+				}
+
+				update(fmt.Sprintf("%014b", bits))
+				bits >>= bit // shift right, drop rightmost bit
+			}
+		}
+	}
 	for {
 		select {
 		case <-ctxConnection.Done():
@@ -156,54 +193,6 @@ func maintain_connection() {
 			if height == 0 || !walletapi.Connected {
 				fmt.Println("attempting connection", walletapi.Daemon_Endpoint)
 
-				// otherwise, try to connect to the walletapi
-				walletapi.Connect(walletapi.Daemon_Endpoint) // the connection should be working
-
-				// update the label and show dancing bit
-				dance := func() {
-					var (
-						stop   = func() { isDancing = false }
-						update = func(msg string) {
-							text := "BLOCK: " + msg
-							fyne.DoAndWait(func() { program.labels.height.SetText(text) })
-							time.Sleep(100 * time.Millisecond)
-						}
-
-						bit  uint16 = 1
-						bits uint16 = bit // start with a bit
-
-						max uint8 = 13 // zero index
-
-						isConnected bool = strings.Contains(program.labels.connection.Text, "✅")
-					)
-
-					for !isConnected {
-
-						isDancing = true
-						defer stop()
-
-						for range max {
-							isConnected = strings.Contains(program.labels.connection.Text, "✅")
-
-							if isConnected {
-								return
-							}
-
-							update(fmt.Sprintf("%014b", bits))
-							bits <<= bit // shift left, fill rightmost bitwith 1
-						}
-						for range max {
-							isConnected = strings.Contains(program.labels.connection.Text, "✅")
-
-							if isConnected {
-								return
-							}
-
-							update(fmt.Sprintf("%014b", bits))
-							bits >>= bit // shift right, drop rightmost bit
-						}
-					}
-				}
 				if !isDancing {
 					go dance()
 				}
@@ -218,41 +207,6 @@ func maintain_connection() {
 					}
 				})
 
-				if program.preferences.Bool("mainnet") {
-					// now we need to range and connect
-					var fastest int64 = 10000 // we assume 10 second
-					logger.Info("Ranging node list")
-					// now range through the nodes in the list
-					for _, node := range program.node.list {
-
-						// make a start time for determining how fast this goes
-						start := time.Now()
-						// here is a helper
-						if err := testConnection(node.ip); err != nil {
-							continue
-						}
-						if node.name == "preferred" {
-							logger.Info("Connecting to preferred node")
-							break
-						}
-						// now that the connection has been tested, get the time
-						result := time.Now().UnixMilli() - start.UnixMilli()
-
-						// if the result is faster than fastest
-						if result < fastest {
-
-							// it is now the new fastest
-							fastest = result
-
-							// and it is now the current node
-							program.node.current = node.ip
-
-							logger.Info("Fastest node", node.name, node.ip, "ping", result)
-						}
-					}
-					// assuming the fastest connection works
-					walletapi.Daemon_Endpoint = program.node.current
-				}
 				logger.Info(fmt.Sprintf("Connecting to: %s", program.node.current))
 				// re-test the connection
 				if err := walletapi.Connect(walletapi.Daemon_Endpoint); err != nil {
