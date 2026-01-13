@@ -37,10 +37,13 @@ func dashboard() *fyne.Container {
 	program.buttons.idx_on_off.OnTapped = idx_on_off
 
 	// we'll return all this stuff into the home as a dashboard
-	return container.NewVBox(
-		container.NewAdaptiveGrid(3, program.buttons.transactions, program.buttons.assets, program.buttons.keys),
-		container.NewAdaptiveGrid(2, program.buttons.ws_on_off, program.buttons.idx_on_off),
-	)
+	content := container.NewVBox(container.NewAdaptiveGrid(3, program.buttons.transactions, program.buttons.assets, program.buttons.keys))
+	if !fyne.CurrentDevice().IsMobile() {
+		// you can't call xswd when the application is backgrounded
+		// and the user can just go config the indexer if they really need it... scanning assets
+		content.Add(container.NewAdaptiveGrid(2, program.buttons.ws_on_off, program.buttons.idx_on_off))
+	}
+	return content
 }
 func idx_on_off() {
 	switch program.buttons.idx_on_off.Text {
