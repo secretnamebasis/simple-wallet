@@ -87,6 +87,11 @@ func home() *fyne.Container {
 			container.NewVBox(
 				title,
 				subtitle,
+				// we are going to want to watch the current height, always
+				container.NewCenter(
+					// we always want to know if we are connected
+					program.labels.height,
+				),
 				layout.NewSpacer(),
 			),
 		),
@@ -143,6 +148,11 @@ func home() *fyne.Container {
 				container.NewVBox(
 					title,
 					subtitle,
+					// we are going to want to watch the current height, always
+					container.NewCenter(
+						// we always want to know if we are connected
+						program.labels.height,
+					),
 					layout.NewSpacer(),
 				),
 			),
