@@ -1935,6 +1935,9 @@ func addressValidator(s string) (err error) {
 		if len(s) < 5 {
 			return errors.New("cannot be less than 5 char, sry capt")
 		}
+		if program.node.info.TopoHeight == 0 {
+			return errors.New("node is not connected")
+		}
 		// check to see if it is a name
 		a, err := program.wallet.NameToAddress(s)
 		if err != nil && strings.Contains(err.Error(), "leaf not found") {
