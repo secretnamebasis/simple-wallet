@@ -3,7 +3,8 @@ package main
 import (
 	"encoding/base64"
 	"errors"
-	"os"
+	"io"
+	"path/filepath"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -39,15 +40,31 @@ func encryption() {
 
 // this is a pretty under-rated feature
 func filesign() *fyne.Container {
-	file_entry := widget.NewEntry()
+	label := widget.NewLabel("")
 	// let's make an simple way to open files
-	open := openExplorer(file_entry, program.encryption)
-	file_entry.ActionItem = widget.NewButtonWithIcon("", theme.FolderOpenIcon(), func() {
+	open := dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
+		if err != nil {
+			showError(err, program.encryption)
+			return
+		}
+		if reader == nil {
+			return
+		}
+		defer reader.Close()
+		byt, err := io.ReadAll(reader)
+		selectionBuffer <- fileSelection{
+			Name:    reader.URI().Name(),
+			Content: byt,
+		}
+		label.SetText("file loaded")
+	}, program.encryption)
+
+	open_btn := widget.NewButtonWithIcon("select file", theme.FolderOpenIcon(), func() {
+		open.Resize(program.size)
 		open.Show()
 	})
 
 	// let's make it noticeable that you can select the file
-	file_entry.SetPlaceHolder("/path/to/file.txt")
 	// here is a simple way to select a file in general
 
 	pass := widget.NewPasswordEntry()
@@ -83,25 +100,19 @@ func filesign() *fyne.Container {
 				showError(errors.New("wrong password"), program.encryption)
 
 				// dump the filepath
-				file_entry.SetText("")
+				// label.SetText("")
 				return
 			} else {
-				// get the filename
-				filename := file_entry.Text
-
-				//dump the entry
-				file_entry.SetText("")
-
-				// read the file
-				file, err := os.ReadFile(filename)
-				if err != nil {
-					showError(err, program.encryption)
-
+				if len(selectionBuffer) == 0 {
+					showError(errors.New("nothing to sign"), program.encryption)
 					return
 				}
 
+				file := <-selectionBuffer
+				label.SetText("file unloaded")
+
 				// sign the file into bytes
-				data := program.wallet.SignData(file)
+				data := program.wallet.SignData(file.Content)
 
 				// it is possible to sign data as an unregistered user
 				if !isRegistered(program.wallet.GetAddress().String()) {
@@ -112,16 +123,36 @@ func filesign() *fyne.Container {
 				}
 
 				// make a filename
-				save_path := filename + ".signed"
+				save_path := file.Name + ".signed"
+				save := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
+					if err != nil {
+						showError(err, program.encryption)
+						return
+					}
+					if writer == nil {
+						return
+					}
+					defer writer.Close()
 
-				// write the file to disc
-				os.WriteFile(save_path, data, default_file_permissions)
+					writer.Write(data)
+					if err != nil {
+						showError(err, program.encryption)
+					}
+					label.SetText("file signed")
+					save_path = writer.URI().Name()
+					// notify the user
+					notice := "File successfully signed\n" +
+						"Message saved as " + save_path
 
-				msg := "File successfully signed\n\n" +
-					"Located in " + save_path
+					// load the notice into the dialog
+					fv := dialog.NewInformation("FileSign", notice, program.encryption)
+					fv.Show()
+				}, program.encryption)
 
-				// notify the user
-				showInfo("Filesign", msg, program.encryption)
+				save.SetFileName(save_path)
+
+				save.Resize(program.size)
+				save.Show()
 
 			}
 		}
@@ -170,15 +201,22 @@ func filesign() *fyne.Container {
 				showError(errors.New("wrong password"), program.encryption)
 
 				//dump entry
-				file_entry.SetText("")
+				// label.SetText("")
 
 			} else {
 				// get the filename
-				filename := file_entry.Text
-				file_entry.SetText("")
+				// label.SetText("")
+
+				if len(selectionBuffer) == 0 {
+					showError(errors.New("nothing to verify"), program.encryption)
+					return
+				}
+
+				file := <-selectionBuffer
+				label.SetText("file unloaded")
 
 				// check if the file is a .signed file
-				if !strings.HasSuffix(filename, ".signed") {
+				if !strings.HasSuffix(file.Name, ".signed") {
 
 					// display error
 					showError(errors.New("not a .signed file"), program.encryption)
@@ -186,19 +224,11 @@ func filesign() *fyne.Container {
 					return
 				}
 
-				// if everything is good so far, read the files
-				file, err := os.ReadFile(filename)
-				if err != nil {
-					showError(err, program.encryption)
-
-					return
-				}
-
 				// now parse the file to get the details
 				sign, // this is the signer
-					contents, // this is the contents
-					err :=    // as well as an error
-					program.wallet.CheckSignature(file)
+					data,  // this is the contents
+					err := // as well as an error
+					program.wallet.CheckSignature(file.Content)
 
 				// if there is an error
 				if err != nil {
@@ -218,19 +248,40 @@ func filesign() *fyne.Container {
 				}
 
 				// now trim the .signed from the filename
-				save_path := strings.TrimSuffix(filename, ".signed")
+				save_path := strings.TrimSuffix(file.Name, ".signed")
 
-				// write the contents to disk
-				os.WriteFile(save_path, contents, default_file_permissions)
+				save := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
+					if err != nil {
+						showError(err, program.encryption)
+						return
+					}
+					if writer == nil {
+						return
+					}
+					defer writer.Close()
 
-				// notify the user
-				notice := "File successfully verified\n" +
-					"Signed by: " + truncator(sign.String()) + "\n" +
-					"Message saved as " + save_path
+					writer.Write(data)
+					if err != nil {
+						showError(err, program.encryption)
+					}
+					label.SetText("file verified")
+					save_path = writer.URI().Name()
 
-				// load the notice into the dialog
-				fv := dialog.NewInformation("FileVerify", notice, program.encryption)
-				fv.Show()
+					// notify the user
+					notice := "File successfully verified\n" +
+						"Signed by: " + truncator(sign.String()) + "\n" +
+						"Message saved as " + save_path
+
+					// load the notice into the dialog
+					fv := dialog.NewInformation("FileVerify", notice, program.encryption)
+					fv.Show()
+				}, program.encryption)
+
+				save.SetFileName(save_path)
+
+				save.Resize(program.size)
+				save.Show()
+
 				return
 			}
 
@@ -255,7 +306,8 @@ func filesign() *fyne.Container {
 	// let's load all the widgets into a container inside a dialog
 	content := container.NewVBox(
 		layout.NewSpacer(),
-		container.NewVBox(file_entry),
+		label,
+		open_btn,
 		container.NewGridWithColumns(2,
 			container.NewCenter(sign),
 			container.NewCenter(verify),
@@ -266,6 +318,14 @@ func filesign() *fyne.Container {
 	)
 	return content
 }
+
+type fileSelection struct {
+	Name    string
+	Content []byte
+}
+
+var selectionBuffer = make(chan fileSelection, 1)
+
 func self_crypt() *fyne.Container {
 	pass := widget.NewPasswordEntry()
 	pass.SetPlaceHolder("w41137-p@55w0rd")
@@ -274,36 +334,36 @@ func self_crypt() *fyne.Container {
 	entry.SetPlaceHolder("text to encrypt/decrypt")
 	entry.MultiLine = true
 	entry.Wrapping = fyne.TextWrapWord
-	// another round of make sure this works XD
-	file_entry := widget.NewEntry()
-	file_entry.SetPlaceHolder("/path/to/file.txt")
-	// here is a simple way to select a file in general
-	open := openExplorer(file_entry, program.encryption)
+	label := widget.NewLabel("")
 
-	file_entry.ActionItem = widget.NewButtonWithIcon("", theme.FolderOpenIcon(), func() {
+	// another round of make sure this works XD
+	// here is a simple way to select a file in general
+	var item *widget.FormItem
+
+	open := dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
+		if err != nil {
+			showError(err, program.encryption)
+			return
+		}
+		if reader == nil {
+			return
+		}
+		defer reader.Close()
+		byt, err := io.ReadAll(reader)
+		selectionBuffer <- fileSelection{
+			Name:    filepath.Base(reader.URI().Path()),
+			Content: byt,
+		}
+		label.SetText("file loaded")
+		entry.SetText("")
+	}, program.encryption)
+
+	open_btn := widget.NewButtonWithIcon("select file", theme.FolderOpenIcon(), func() {
 		open.Resize(program.size)
 		open.Show()
 	})
 
-	// let's make an simple way to open files
-	entry.OnChanged = func(s string) {
-		if s == "" {
-			file_entry.Enable()
-			return
-		} else {
-			file_entry.Disable()
-			return
-		}
-	}
-	file_entry.OnChanged = func(s string) {
-		if s == "" {
-			entry.Enable()
-			return
-		} else {
-			entry.Disable()
-			return
-		}
-	}
+	item = widget.NewFormItem("", open_btn)
 
 	// let's encrypt data
 	encrypt := widget.NewHyperlink("encrypt", nil)
@@ -332,46 +392,54 @@ func self_crypt() *fyne.Container {
 				// notify them when wrong
 				showError(errors.New("wrong password"), program.encryption)
 			} else {
-				if entry.Disabled() {
-					// get the filename
-					filename := file_entry.Text
-
-					// dump the entry
-					file_entry.SetText("")
-
-					// read the file
-					file, err := os.ReadFile(filename)
-					if err != nil {
-						// display error if there is one
-						showError(err, program.encryption)
-
+				if entry.Text == "" {
+					if len(selectionBuffer) == 0 {
+						showError(errors.New("nothing to encrypt"), program.encryption)
 						return
 					}
 
+					file := <-selectionBuffer
+					label.SetText("file unloaded")
 					// encrypt the data
-					data, err := program.wallet.Encrypt(file)
+					data, err := program.wallet.Encrypt(file.Content)
 					if err != nil {
 						showError(err, program.encryption)
 
 						return
 					}
+					save := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
+						if err != nil {
+							showError(err, program.encryption)
+							return
+						}
+						if writer == nil {
+							return
+						}
+						defer writer.Close()
 
-					// made a save path
-					save_path := filename + ".enc"
+						writer.Write([]byte(base64.StdEncoding.EncodeToString(data)))
+						if err != nil {
+							showError(err, program.encryption)
+						}
+						label.SetText("file encrypted")
+						save_path := writer.URI().Path()
+						// // make a success notice
+						notice := "File successfully encrypted\n" +
+							"Message saved as " + save_path
 
-					// write file to disk
-					os.WriteFile(save_path, []byte(base64.StdEncoding.EncodeToString(data)), default_file_permissions)
+						// load it , and show it
+						e := dialog.NewInformation("Encrypt", notice, program.encryption)
+						e.Resize(program.size)
+						e.Show()
+					}, program.encryption)
 
-					// make a success notice
-					notice := "File successfully encrypted\n" +
-						"Message saved as " + save_path
+					save.SetFileName(file.Name)
 
-					// load it , and show it
-					e := dialog.NewInformation("Encrypt", notice, program.encryption)
-					e.Resize(program.size)
-					e.Show()
+					save.Resize(program.size)
+					save.Show()
+
 					return
-				} else if !entry.Disabled() {
+				} else {
 					text := entry.Text
 					// encrypt the data
 					data, err := program.wallet.Encrypt([]byte(text))
@@ -383,6 +451,7 @@ func self_crypt() *fyne.Container {
 
 					entry.SetText(base64.StdEncoding.EncodeToString(data))
 					entry.Refresh()
+					label.SetText("text encrypted")
 				}
 			}
 		}
@@ -427,62 +496,60 @@ func self_crypt() *fyne.Container {
 				showError(errors.New("wrong password"), program.encryption)
 
 			} else {
-				if entry.Disabled() {
+				if entry.Text == "" {
 
-					// get the file name
-					filename := file_entry.Text
-
-					// dump the entry
-					file_entry.SetText("")
-
-					// check if this is an .enc file
-					if !strings.HasSuffix(filename, ".enc") {
-
-						// notify the user
-						showError(errors.New("not a .enc file"), program.encryption)
-
+					if len(selectionBuffer) == 0 {
+						showError(errors.New("nothing to decrypt"), program.encryption)
 						return
 					}
 
-					// read the file
-					file, err := os.ReadFile(filename)
+					file := <-selectionBuffer
+					label.SetText("file unloaded")
+					data, err := base64.RawStdEncoding.DecodeString(string(file.Content))
 					if err != nil {
 						showError(err, program.encryption)
 
 						return
 					}
-
-					data, err := base64.RawStdEncoding.DecodeString(string(file))
-					if err != nil {
-						showError(err, program.encryption)
-
-						return
-					}
-
-					// decrypt the file
+					// encrypt the data
 					data, err = program.wallet.Decrypt(data)
 					if err != nil {
 						showError(err, program.encryption)
 
 						return
 					}
+					save := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
+						save_path := ""
+						if err != nil {
+							showError(err, program.encryption)
+							return
+						}
+						if writer == nil {
+							return
+						}
+						defer writer.Close()
 
-					// trim the suffix off
-					save_path := strings.TrimSuffix(filename, ".enc")
+						writer.Write(data)
+						if err != nil {
+							showError(err, program.encryption)
+						}
+						label.SetText("file decrypted")
+						save_path = writer.URI().Path()
+						// build a notice
+						notice := "File successfully decrypted\n" +
+							"Message saved as " + save_path
 
-					// write the decrypted file
-					os.WriteFile(save_path, data, default_file_permissions)
+						// load the notice and show it
+						d := dialog.NewInformation("Decrypt", notice, program.encryption)
+						d.Resize(program.size)
+						d.Show()
+					}, program.encryption)
+					save.SetFileName(file.Name)
+					save.Resize(program.size)
+					save.Show()
 
-					// build a notice
-					notice := "File successfully decrypted\n" +
-						"Message saved as " + save_path
-
-					// load the notice and show it
-					d := dialog.NewInformation("Decrypt", notice, program.encryption)
-					d.Resize(program.size)
-					d.Show()
 					return
-				} else if !entry.Disabled() {
+				} else {
 					text := entry.Text
 					// decrypt the file
 
@@ -501,6 +568,7 @@ func self_crypt() *fyne.Container {
 					}
 					entry.SetText(string(data))
 					entry.Refresh()
+					label.SetText("text decrypted")
 				}
 			}
 		}
@@ -523,19 +591,20 @@ func self_crypt() *fyne.Container {
 	notice += "Encrypted content is base64Encoded, eg. VxE/12ZXvZzBaI3Sj1qcHcC18qRz/dNyQfihbRkz/Yg="
 
 	// create a label widget
-	label := makeCenteredWrappedLabel(notice)
+	info := makeCenteredWrappedLabel(notice)
 
 	content := container.NewVBox(
 		layout.NewSpacer(),
+		label,
 		widget.NewForm(
-			widget.NewFormItem("", file_entry),
+			item,
 			widget.NewFormItem("", entry),
 		),
 		container.NewGridWithColumns(2,
 			container.NewCenter(encrypt),
 			container.NewCenter(decrypt),
 		),
-		label,
+		info,
 		layout.NewSpacer(),
 	)
 
@@ -547,37 +616,36 @@ func recipient_crypt() *fyne.Container {
 	entry.MultiLine = true
 	entry.SetPlaceHolder("text to be encrypted / decrypted")
 	entry.Wrapping = fyne.TextWrapWord
+	label := widget.NewLabel("")
 
-	// let's make a simple way to open a file
-	file_entry := widget.NewEntry()
-	file_entry.SetPlaceHolder("/path/to/file.txt")
+	// another round of make sure this works XD
 	// here is a simple way to select a file in general
-	open := openExplorer(file_entry, program.encryption)
+	var item *widget.FormItem
 
-	file_entry.ActionItem = widget.NewButtonWithIcon("", theme.FolderOpenIcon(), func() {
+	open := dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
+		if err != nil {
+			showError(err, program.encryption)
+			return
+		}
+		if reader == nil {
+			return
+		}
+		defer reader.Close()
+		byt, err := io.ReadAll(reader)
+		selectionBuffer <- fileSelection{
+			Name:    filepath.Base(reader.URI().Path()),
+			Content: byt,
+		}
+		label.SetText("file loaded")
+		entry.SetText("")
+	}, program.encryption)
+
+	open_btn := widget.NewButtonWithIcon("select file", theme.FolderOpenIcon(), func() {
 		open.Resize(program.size)
 		open.Show()
 	})
 
-	entry.OnChanged = func(s string) {
-		if s == "" {
-			file_entry.Enable()
-			return
-		} else {
-			file_entry.Disable()
-			return
-		}
-	}
-
-	file_entry.OnChanged = func(s string) {
-		if s == "" {
-			entry.Enable()
-			return
-		} else {
-			entry.Disable()
-			return
-		}
-	}
+	item = widget.NewFormItem("", open_btn)
 
 	counterparty := widget.NewEntry()
 	counterparty.SetPlaceHolder("counterparty address: dero...")
@@ -621,24 +689,17 @@ func recipient_crypt() *fyne.Container {
 			if !program.wallet.Check_Password(p) {
 				showError(errors.New("wrong password"), program.encryption)
 				counterparty.SetText("")
-				file_entry.SetText("")
+				// file_entry.SetText("")
 			} else {
-				if entry.Disabled() {
+				if entry.Text == "" {
 
-					//get the filename
-					filename := file_entry.Text
-
-					// dump the entry
-					file_entry.SetText("")
-
-					// read the file
-					file, err := os.ReadFile(filename)
-					if err != nil {
-						showError(err, program.encryption)
-
-						counterparty.SetText("")
+					if len(selectionBuffer) == 0 {
+						showError(errors.New("nothing to encrypt"), program.encryption)
 						return
 					}
+
+					file := <-selectionBuffer
+					label.SetText("file unloaded")
 
 					// let's check the receiver
 					addr, err := rpc.NewAddress(recipient)
@@ -660,27 +721,49 @@ func recipient_crypt() *fyne.Container {
 					shared_key := crypto.GenerateSharedSecret(secret_key, reciever_pub_key)
 
 					// encrypt the file using the shared key
-
-					crypto.EncryptDecryptUserData(shared_key, file)
+					crypto.EncryptDecryptUserData(shared_key, file.Content)
 
 					// use the .enc suffix
-					save_path := filename + ".enc"
+					save_path := file.Name + ".enc"
 
-					// write the file to disk
-					os.WriteFile(save_path, []byte(base64.StdEncoding.EncodeToString(file)), default_file_permissions)
+					save := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
+						save_path := ""
+						if err != nil {
+							showError(err, program.encryption)
+							return
+						}
+						if writer == nil {
+							return
+						}
+						defer writer.Close()
 
-					// build a notice
-					notice := "File successfully encrypted\n" +
-						"Message saved as " + save_path
+						writer.Write([]byte(base64.StdEncoding.EncodeToString(file.Content)))
+						if err != nil {
+							showError(err, program.encryption)
+						}
+						label.SetText("file encrypted")
 
-					// load it into the dialog
-					e := dialog.NewInformation("Encrypt", notice, program.encryption)
+						save_path = writer.URI().Path()
+						// // make a success notice
+						// build a notice
+						notice := "File successfully encrypted\n" +
+							"Message saved as " + save_path
 
-					// resize and show
-					e.Resize(program.size)
-					e.Show()
+						// load it into the dialog
+						e := dialog.NewInformation("Encrypt", notice, program.encryption)
+
+						// resize and show
+						e.Resize(program.size)
+						e.Show()
+					}, program.encryption)
+
+					save.SetFileName(save_path)
+
+					save.Resize(program.size)
+					save.Show()
+
 					return
-				} else if !entry.Disabled() {
+				} else {
 					text := entry.Text
 					// let's check the receiver
 					addr, err := rpc.NewAddress(recipient)
@@ -758,24 +841,22 @@ func recipient_crypt() *fyne.Container {
 			if !program.wallet.Check_Password(p) {
 				showError(errors.New("wrong password"), program.encryption)
 
-				file_entry.SetText("")
 			} else {
-				if entry.Disabled() {
+				if entry.Text == "" {
 
+					if len(selectionBuffer) == 0 {
+						showError(errors.New("nothing to encrypt"), program.encryption)
+						return
+					}
+
+					file := <-selectionBuffer
+					label.SetText("file unloaded")
 					// get the filename
-					filename := file_entry.Text
+					filename := file.Name
 
 					// check if it is an .enc file
 					if !strings.HasSuffix(filename, ".enc") {
 						showError(errors.New("not a .enc file"), program.encryption)
-
-						return
-					}
-
-					// read the file
-					file, err := os.ReadFile(filename)
-					if err != nil {
-						showError(err, program.encryption)
 
 						return
 					}
@@ -797,7 +878,7 @@ func recipient_crypt() *fyne.Container {
 					// create a shared key
 					shared_key := crypto.GenerateSharedSecret(secret_key, reciever_pub_key)
 
-					data, err := base64.StdEncoding.DecodeString(string(file))
+					data, err := base64.StdEncoding.DecodeString(string(file.Content))
 
 					if err != nil {
 						showError(err, program.encryption)
@@ -812,20 +893,43 @@ func recipient_crypt() *fyne.Container {
 					save_path := strings.TrimSuffix(filename, ".enc")
 
 					// write the file to disk
-					os.WriteFile(save_path, data, default_file_permissions)
 
-					// let's make another notice
-					notice := "File successfully decrypted\n" +
-						"Message saved as " + save_path
+					save := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
+						save_path := ""
+						if err != nil {
+							showError(err, program.encryption)
+							return
+						}
+						if writer == nil {
+							return
+						}
+						defer writer.Close()
 
-					// load the notice in the dialog
-					e := dialog.NewInformation("Decrypt",
-						notice,
-						program.encryption)
+						writer.Write(file.Content)
+						if err != nil {
+							showError(err, program.encryption)
+						}
+						label.SetText("file encrypted")
+						save_path = writer.URI().Path()
+						// let's make another notice
+						notice := "File successfully decrypted\n" +
+							"Message saved as " + save_path
 
-					//resize and show
-					e.Resize(program.size)
-					e.Show()
+						// load the notice in the dialog
+						e := dialog.NewInformation("Decrypt",
+							notice,
+							program.encryption)
+
+						//resize and show
+						e.Resize(program.size)
+						e.Show()
+					}, program.encryption)
+
+					save.SetFileName(save_path)
+
+					save.Resize(program.size)
+					save.Show()
+
 					return
 				} else if !entry.Disabled() {
 					text := entry.Text
@@ -879,21 +983,20 @@ func recipient_crypt() *fyne.Container {
 	notice += "Text is base64Encoded, eg. 5vIlTk1XpQM3OOSkhw== "
 
 	// make the label
-	label := makeCenteredWrappedLabel(notice)
 
 	// let's make a nice content screen
 	content := container.NewVBox(
 		layout.NewSpacer(),
+		label,
 		widget.NewForm(
-			widget.NewFormItem("", entry),
-			widget.NewFormItem("", file_entry),
+			item,
 			widget.NewFormItem("", counterparty),
+			widget.NewFormItem("", entry),
 		),
 		container.NewGridWithColumns(2,
 			container.NewCenter(encrypt),
 			container.NewCenter(decrypt),
 		),
-		label,
 		layout.NewSpacer(),
 	)
 	return content
