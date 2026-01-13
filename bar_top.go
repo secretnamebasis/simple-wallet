@@ -6,32 +6,31 @@ import (
 )
 
 func topbar() *fyne.Container {
-
 	content := container.NewVBox(
-		// we are going to want to watch the current height, always
-		container.NewCenter(
+
+		container.NewCenter(container.NewGridWithColumns(3,
 			// we always want to know if we are connected
-			program.labels.height,
-		),
-		container.NewGridWithColumns(2,
-			// we always want to know if we are connected
-			program.labels.connection,
+			container.NewCenter(program.labels.connection),
 			// we also always want to know if we are logged in
-			program.labels.loggedin,
-		),
-		// and have them fall horizontally
-		container.NewHBox(
-
-			// as well as if the web socket
-			program.labels.ws_server,
-
-			// also want to see if the rpc server is on
-			program.labels.rpc_server,
-
+			container.NewCenter(program.labels.loggedin),
 			// gonna need to have access to an indexer
-			program.labels.indexer,
-		),
+			container.NewCenter(program.labels.indexer),
+		)),
 	)
+
+	// yeah... no sense in showing these settings right?
+	if !fyne.CurrentDevice().IsMobile() {
+		content.Add( // and have them fall horizontally
+			container.NewCenter(container.NewGridWithColumns(2,
+
+				// as well as if the web socket
+				program.labels.ws_server,
+
+				// also want to see if the rpc server is on
+				program.labels.rpc_server,
+			)))
+	}
+
 	// again, let's center this container
 	return container.NewCenter(content)
 }

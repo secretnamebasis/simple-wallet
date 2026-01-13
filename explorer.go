@@ -34,6 +34,7 @@ func explorer() {
 	))
 	program.explorer.Show()
 	// let's start with the stats tab
+
 	stats := []string{
 		strconv.Itoa(int(program.node.info.Height)),
 		strconv.Itoa(int(program.node.info.AverageBlockTime50)),
@@ -43,7 +44,7 @@ func explorer() {
 		program.node.info.Status,
 	}
 	diff := widget.NewLabel("Network Height: " + stats[0])
-	average_blocktime := widget.NewLabel("Network Blocktime: " + stats[1] + " seconds")
+	average_blocktime := widget.NewLabel("Network Blocktime: " + stats[1] + "s")
 	mem_pool := widget.NewLabel("Mempool Size: " + stats[2])
 	hash_rate := widget.NewLabel("Hash Rate: " + stats[3] + " MH/s")
 	supply := widget.NewLabel("Total Supply: " + stats[4])
@@ -836,7 +837,7 @@ func explorer() {
 	var updating bool = true
 	update := func() {
 		height := program.node.info.TopoHeight
-		for range time.NewTicker(time.Second * 2).C {
+		for range time.NewTicker(time.Second * 5).C {
 			if !updating {
 				return
 			}
@@ -871,7 +872,7 @@ func explorer() {
 				}
 				fyne.DoAndWait(func() {
 					diff.SetText("Network Height: " + stats[0])
-					average_blocktime.SetText("Network Blocktime: " + stats[1] + " seconds")
+					average_blocktime.SetText("Network Blocktime: " + stats[1] + " s")
 					mem_pool.SetText("Mempool Size: " + stats[2])
 					hash_rate.SetText("Hash Rate: " + stats[3] + " MH/s")
 					supply.SetText("Total Supply: " + stats[4])
@@ -887,10 +888,10 @@ func explorer() {
 	tab_search = container.NewTabItem("Search", search_window)
 
 	pool := container.NewAdaptiveGrid(1, pool_table)
-	tab_pool := container.NewTabItem("TX Pool", pool)
+	tab_pool := container.NewTabItem("Pool", pool)
 
 	blocks := container.NewAdaptiveGrid(1, block_table)
-	tab_blocks := container.NewTabItem("Recent Blocks", blocks)
+	tab_blocks := container.NewTabItem("Blocks", blocks)
 
 	tabs = container.NewAppTabs(tab_stats, tab_pool, tab_blocks, tab_search)
 
