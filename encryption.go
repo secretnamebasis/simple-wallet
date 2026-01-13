@@ -21,13 +21,13 @@ func encryption() {
 	program.encryption.SetIcon(theme.VisibilityOffIcon())
 	program.encryption.Resize(fyne.NewSize(program.size.Width/2, program.size.Height))
 	tabs := container.NewAppTabs(
-		container.NewTabItem("File Sign / Verify",
+		container.NewTabItem("Signing",
 			filesign(),
 		),
-		container.NewTabItem("Self Crypt",
+		container.NewTabItem("Self",
 			self_crypt(),
 		),
-		container.NewTabItem("Recipient Crypt",
+		container.NewTabItem("Other",
 			recipient_crypt(),
 		),
 	)
@@ -256,7 +256,7 @@ func filesign() *fyne.Container {
 	content := container.NewVBox(
 		layout.NewSpacer(),
 		container.NewVBox(file_entry),
-		container.NewAdaptiveGrid(2,
+		container.NewGridWithColumns(2,
 			container.NewCenter(sign),
 			container.NewCenter(verify),
 		),
@@ -531,7 +531,7 @@ func self_crypt() *fyne.Container {
 			widget.NewFormItem("", file_entry),
 			widget.NewFormItem("", entry),
 		),
-		container.NewAdaptiveGrid(2,
+		container.NewGridWithColumns(2,
 			container.NewCenter(encrypt),
 			container.NewCenter(decrypt),
 		),
@@ -889,7 +889,7 @@ func recipient_crypt() *fyne.Container {
 			widget.NewFormItem("", file_entry),
 			widget.NewFormItem("", counterparty),
 		),
-		container.NewAdaptiveGrid(2,
+		container.NewGridWithColumns(2,
 			container.NewCenter(encrypt),
 			container.NewCenter(decrypt),
 		),

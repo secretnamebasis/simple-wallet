@@ -136,8 +136,12 @@ func (r *graphRenderer) Layout(size fyne.Size) {
 	r.objects = []fyne.CanvasObject{makeGraph(r.graph.hd_map, size.Width, size.Height)}
 }
 
+// Minimum size for the graph
 func (r *graphRenderer) MinSize() fyne.Size {
-	return fyne.NewSize(600, 400) // Minimum size for the graph
+	if fyne.CurrentDevice().IsMobile() {
+		return fyne.NewSize(300, 400)
+	}
+	return fyne.NewSize(600, 400)
 }
 
 func (r *graphRenderer) Refresh() {
