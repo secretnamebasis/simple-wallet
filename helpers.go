@@ -432,6 +432,8 @@ func updateBalance() {
 }
 func updateCaches() {
 	marker := walletapi.Get_Daemon_TopoHeight()
+	program.node.info = getDaemonInfo()
+	program.node.pool = getTxPool()
 	for range time.NewTicker(time.Second * 2).C {
 		height := walletapi.Get_Daemon_TopoHeight()
 		if marker < height {
