@@ -38,11 +38,22 @@ func encryption() {
 	program.encryption.Show()
 }
 
+type fileSelection struct {
+	Name    string
+	Content []byte
+}
+
+var selectionBuffer = make(chan fileSelection, 1)
+
 // this is a pretty under-rated feature
 func filesign() *fyne.Container {
 	label := widget.NewLabel("")
 	// let's make an simple way to open files
 	open := dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
+		// if they have one in there already, dump it
+		if len(selectionBuffer) > 0 {
+			<-selectionBuffer
+		}
 		if err != nil {
 			showError(err, program.encryption)
 			return
@@ -319,13 +330,6 @@ func filesign() *fyne.Container {
 	return content
 }
 
-type fileSelection struct {
-	Name    string
-	Content []byte
-}
-
-var selectionBuffer = make(chan fileSelection, 1)
-
 func self_crypt() *fyne.Container {
 	pass := widget.NewPasswordEntry()
 	pass.SetPlaceHolder("w41137-p@55w0rd")
@@ -341,6 +345,10 @@ func self_crypt() *fyne.Container {
 	var item *widget.FormItem
 
 	open := dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
+		// if they have one in there already, dump it
+		if len(selectionBuffer) > 0 {
+			<-selectionBuffer
+		}
 		if err != nil {
 			showError(err, program.encryption)
 			return
@@ -623,6 +631,10 @@ func recipient_crypt() *fyne.Container {
 	var item *widget.FormItem
 
 	open := dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
+		// if they have one in there already, dump it
+		if len(selectionBuffer) > 0 {
+			<-selectionBuffer
+		}
 		if err != nil {
 			showError(err, program.encryption)
 			return
