@@ -425,6 +425,7 @@ func self_crypt() *fyne.Container {
 
 						return
 					}
+					filename := file.Name + ".enc"
 					save := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
 						if err != nil {
 							showError(err, program.encryption)
@@ -451,7 +452,7 @@ func self_crypt() *fyne.Container {
 						e.Show()
 					}, program.encryption)
 
-					save.SetFileName(file.Name)
+					save.SetFileName(filename)
 
 					save.Resize(program.size)
 					save.Show()
@@ -536,6 +537,7 @@ func self_crypt() *fyne.Container {
 
 						return
 					}
+					filename := strings.TrimSuffix(file.Name, ".enc")
 					save := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
 						save_path := ""
 						if err != nil {
@@ -562,7 +564,7 @@ func self_crypt() *fyne.Container {
 						d.Resize(program.size)
 						d.Show()
 					}, program.encryption)
-					save.SetFileName(file.Name)
+					save.SetFileName(filename)
 					save.Resize(program.size)
 					save.Show()
 
