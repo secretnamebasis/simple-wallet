@@ -63,6 +63,10 @@ func filesign() *fyne.Container {
 		}
 		defer reader.Close()
 		byt, err := io.ReadAll(reader)
+		if err != nil {
+			showError(err, program.encryption)
+			return
+		}
 		selectionBuffer <- fileSelection{
 			Name:    reader.URI().Name(),
 			Content: byt,
@@ -145,9 +149,10 @@ func filesign() *fyne.Container {
 					}
 					defer writer.Close()
 
-					writer.Write(data)
+					_, err = writer.Write(data)
 					if err != nil {
 						showError(err, program.encryption)
+						return
 					}
 					label.SetText("file signed")
 					save_path = writer.URI().Name()
@@ -271,9 +276,10 @@ func filesign() *fyne.Container {
 					}
 					defer writer.Close()
 
-					writer.Write(data)
+					_, err = writer.Write(data)
 					if err != nil {
 						showError(err, program.encryption)
+						return
 					}
 					label.SetText("file verified")
 					save_path = writer.URI().Name()
@@ -358,6 +364,10 @@ func self_crypt() *fyne.Container {
 		}
 		defer reader.Close()
 		byt, err := io.ReadAll(reader)
+		if err != nil {
+			showError(err, program.encryption)
+			return
+		}
 		selectionBuffer <- fileSelection{
 			Name:    filepath.Base(reader.URI().Path()),
 			Content: byt,
@@ -425,7 +435,7 @@ func self_crypt() *fyne.Container {
 						}
 						defer writer.Close()
 
-						writer.Write([]byte(base64.StdEncoding.EncodeToString(data)))
+						_, err = writer.Write([]byte(base64.StdEncoding.EncodeToString(data)))
 						if err != nil {
 							showError(err, program.encryption)
 						}
@@ -537,7 +547,7 @@ func self_crypt() *fyne.Container {
 						}
 						defer writer.Close()
 
-						writer.Write(data)
+						_, err = writer.Write(data)
 						if err != nil {
 							showError(err, program.encryption)
 						}
@@ -644,6 +654,10 @@ func recipient_crypt() *fyne.Container {
 		}
 		defer reader.Close()
 		byt, err := io.ReadAll(reader)
+		if err != nil {
+			showError(err, program.encryption)
+			return
+		}
 		selectionBuffer <- fileSelection{
 			Name:    filepath.Base(reader.URI().Path()),
 			Content: byt,
@@ -749,7 +763,7 @@ func recipient_crypt() *fyne.Container {
 						}
 						defer writer.Close()
 
-						writer.Write([]byte(base64.StdEncoding.EncodeToString(file.Content)))
+						_, err = writer.Write([]byte(base64.StdEncoding.EncodeToString(file.Content)))
 						if err != nil {
 							showError(err, program.encryption)
 						}
@@ -857,7 +871,7 @@ func recipient_crypt() *fyne.Container {
 				if entry.Text == "" {
 
 					if len(selectionBuffer) == 0 {
-						showError(errors.New("nothing to encrypt"), program.encryption)
+						showError(errors.New("nothing to decrypt"), program.encryption)
 						return
 					}
 
@@ -917,11 +931,11 @@ func recipient_crypt() *fyne.Container {
 						}
 						defer writer.Close()
 
-						writer.Write(file.Content)
+						_, err = writer.Write(data)
 						if err != nil {
 							showError(err, program.encryption)
 						}
-						label.SetText("file encrypted")
+						label.SetText("file decrypted")
 						save_path = writer.URI().Path()
 						// let's make another notice
 						notice := "File successfully decrypted\n" +
