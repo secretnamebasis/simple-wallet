@@ -917,7 +917,7 @@ func recipient_crypt() *fyne.Container {
 						}
 						defer writer.Close()
 
-						writer.Write(file.Content)
+						_, err = writer.Write(data)
 						if err != nil {
 							showError(err, program.encryption)
 						}
