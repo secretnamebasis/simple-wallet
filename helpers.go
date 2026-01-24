@@ -92,15 +92,7 @@ func updateHeader(bold *widget.Hyperlink) {
 		program.hyperlinks.login,
 		program.hyperlinks.logout,
 	} {
-		if link == bold {
-			link.TextStyle = fyne.TextStyle{
-				Bold: true,
-			}
-		} else {
-			link.TextStyle = fyne.TextStyle{
-				Bold: false,
-			}
-		}
+		link.TextStyle = fyne.TextStyle{Bold: link == bold}
 		link.Refresh()
 	}
 }
