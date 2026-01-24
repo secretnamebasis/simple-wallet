@@ -282,67 +282,67 @@ func notificationNewEntry() {
 
 			// check if we are still logged in
 			if !program.preferences.Bool("loggedIn") ||
-		// check if the wallet is present
+				// check if the wallet is present
 				program.wallet == nil {
-			return
-		}
+				return
+			}
 
 			if !program.preferences.Bool("notifications") ||
-		// check if we are registered
+				// check if we are registered
 				!program.wallet.IsRegistered() {
-			continue
-		}
+				continue
+			}
 
-		// go get the transfers
+			// go get the transfers
 			var current_transfers wallet_entries = getAllTransfers(crypto.ZEROHASH)
 
 			// check all assets
 			for _, each := range program.caches.assets {
 				hash := crypto.HashHexToHash(each.hash)
 				current_transfers = append(current_transfers, getAllTransfers(hash)...)
-		}
+			}
 
-		// now get the length of transfers
-		current_len := len(current_transfers)
+			// now get the length of transfers
+			current_len := len(current_transfers)
 
-		// do a diff check
-		diff := current_len - old_len
+			// do a diff check
+			diff := current_len - old_len
 
-		// set current as old length
-		old_len = current_len
+			// set current as old length
+			old_len = current_len
 
-		// now if they are the same, move on
+			// now if they are the same, move on
 			if diff == current_len || diff == 0 || current_len == 0 {
-			continue
-		}
-
-		// determine the inset for the slice
-		inset := current_len - diff
-
-		// to avoid runtime error: slice bounds out of range...
-		if inset > len(current_transfers) {
-			continue
-		}
-
-		// define the new transfers slice
-		new_transfers := current_transfers[inset:]
-
-		// now range the new transfers
-		for _, each := range new_transfers {
-
-			// only show today's transfers
-			today := time.Now()
-				midnight := time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, time.UTC)
-
-			if each.Time.Before(midnight) { // maybe look in to longer timescales
 				continue
 			}
 
-			// build a notification
+			// determine the inset for the slice
+			inset := current_len - diff
+
+			// to avoid runtime error: slice bounds out of range...
+			if inset > len(current_transfers) {
+				continue
+			}
+
+			// define the new transfers slice
+			new_transfers := current_transfers[inset:]
+
+			// now range the new transfers
+			for _, each := range new_transfers {
+
+				// only show today's transfers
+				today := time.Now()
+				midnight := time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, time.UTC)
+
+				if each.Time.Before(midnight) { // maybe look in to longer timescales
+					continue
+				}
+
+				// build a notification
 				notification := fyne.NewNotification("New Transfer", each.String())
 
-			// ship the notification
-			program.application.SendNotification(notification)
+				// ship the notification
+				program.application.SendNotification(notification)
 			}
 
 		default:
@@ -390,7 +390,7 @@ func updateBalance() {
 
 			// hella sensitive
 			if program.wallet != nil { // check if there is a wallet first
-			bal, _ = program.wallet.Get_Balance()
+				bal, _ = program.wallet.Get_Balance()
 			}
 
 			// check it against previous
@@ -436,17 +436,17 @@ func updateCaches() {
 	for {
 		select {
 		case <-ticker.C:
-		height := walletapi.Get_Daemon_TopoHeight()
+			height := walletapi.Get_Daemon_TopoHeight()
 			if new < height {
 				new = height
 				heightChan <- height // 👈 this goes to the update balances
 				checkChan <- height  // 👈 this goes to the notifications
-			program.node.info = getDaemonInfo()
-			program.node.pool = getTxPool()
-		}
+				program.node.info = getDaemonInfo()
+				program.node.pool = getTxPool()
+			}
 		case <-ctxConnection.Done():
 			return
-	}
+		}
 	}
 }
 
@@ -1725,12 +1725,9 @@ func asset_scan() {
 			scid_count := len(list_of_scids)
 
 			// start a sync activity widget
-			fyne.DoAndWait(func() {
-				syncing.Stop()
-				syncing.Hide()
-				scids.Show()
-				label.SetText("Scanning SCIDs")
-			})
+			stop := func() { syncing.Stop(); syncing.Hide(); scids.Show(); label.SetText("Scanning SCIDs") }
+			fyne.DoAndWait(stop)
+
 			scid_chan := make(chan string, len(list_of_scids))
 			for _, scid := range list_of_scids {
 				scid_chan <- scid
@@ -1739,6 +1736,34 @@ func asset_scan() {
 
 			var wg sync.WaitGroup
 			var counter int
+
+			task := func(scid string) {
+				counter++
+				value := float64(counter) / float64(scid_count)
+				fyne.DoAndWait(func() { scids.SetValue(value) })
+				hash := crypto.HashHexToHash(scid)
+				bal, _, err := program.wallet.GetDecryptedBalanceAtTopoHeight(hash, -1, program.wallet.GetAddress().String())
+				if err != nil {
+					return
+				}
+				if bal != 0 {
+					text := "ASSET FOUND: " + truncator(scid) + " Balance: " + rpc.FormatMoney(bal)
+					fyne.DoAndWait(func() { label.SetText(text) })
+					if err := program.wallet.TokenAdd(hash); err != nil {
+						// obviously already in the map
+					}
+					// we are just going to set this now...
+					program.wallet.GetAccount().Balance[hash] = bal
+
+					// if there is a "better" balance, we'll let it happen here
+					if err := program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
+						showError(err, program.window)
+						return
+					} // seems like there isn't an error
+
+				}
+			}
+
 			work := func() {
 				defer wg.Done()
 				for scid := range scid_chan {
@@ -1746,32 +1771,11 @@ func asset_scan() {
 					case <-cancel:
 						return
 					default:
-					}
-					counter++
-					fyne.DoAndWait(func() { scids.SetValue(float64(counter) / float64(scid_count)) })
-					hash := crypto.HashHexToHash(scid)
-					bal, _, err := program.wallet.GetDecryptedBalanceAtTopoHeight(hash, -1, program.wallet.GetAddress().String())
-					if err != nil {
-						continue
-					}
-					if bal != 0 {
-						text := "ASSET FOUND: " + truncator(scid) + " Balance: " + rpc.FormatMoney(bal)
-						fyne.DoAndWait(func() { label.SetText(text) })
-						if err := program.wallet.TokenAdd(hash); err != nil {
-							// obviously already in the map
-						}
-						// we are just going to set this now...
-						program.wallet.GetAccount().Balance[hash] = bal
-
-						// if there is a "better" balance, we'll let it happen here
-						if err := program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
-							showError(err, program.window)
-							continue
-						} // seems like there isn't an error
-
+						task(scid)
 					}
 				}
 			}
+
 			var os_thread, app_thread int = 1, 1
 			// reserve 1 thread for os management
 			// reserve 1 thread for app management
@@ -1784,20 +1788,12 @@ func asset_scan() {
 				go work()
 			}
 			wg.Wait()
-			fyne.DoAndWait(func() {
-				scids.Hide()
-				label.SetText("Rebuilding cache")
-				syncing.Show()
-				syncing.Start()
-			})
+			start := func() { scids.Hide(); syncing.Show(); syncing.Start(); label.SetText("Rebuilding cache") }
+			fyne.DoAndWait(start)
 			finish := func() {
 				buildAssetHashList()
-				fyne.DoAndWait(func() {
-					syncing.Stop()
-					syncing.Hide()
-					program.lists.asset_list.Refresh()
-					syncro.Dismiss()
-				})
+				stop := func() { syncing.Stop(); syncing.Hide(); syncro.Dismiss(); program.lists.asset_list.Refresh() }
+				fyne.DoAndWait(stop)
 			}
 			select {
 			case <-cancel:
@@ -1808,7 +1804,6 @@ func asset_scan() {
 				fyne.DoAndWait(func() {
 					showInfo("Asset Scan", "Scan complete", program.window)
 				})
-
 			}
 		}()
 	}
