@@ -17,7 +17,6 @@ import (
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/transaction"
-	"github.com/deroproject/derohe/walletapi"
 )
 
 // this is going to be a rudimentary explorer at first
@@ -59,14 +58,14 @@ func explorer() {
 
 		for i := range limit {
 
-			h := uint64(walletapi.Get_Daemon_TopoHeight()) - (uint64(i)) - 1
+			h := uint64(program.node.info.TopoHeight) - (uint64(i)) - 1
 
 			_, exists := diff_map[int(h)]
 
 			_, havBlock := program.node.blocks[h]
 
 			if exists {
-				x := int(walletapi.Get_Daemon_TopoHeight()) - limit
+				x := int(program.node.info.TopoHeight) - limit
 				if len(diff_map) >= limit {
 					delete(diff_map, x)
 				}

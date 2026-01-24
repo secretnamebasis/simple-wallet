@@ -107,15 +107,19 @@ func updateHeader(bold *widget.Hyperlink) {
 
 func createPreferred() {
 	filename := "preferred"
+
 	// let's make a simple way to have a preferred connection
 	preferred_connection := struct {
 		ip   string
 		name string
 	}{name: filename}
+
 	fp := filename + ".conf"
+
 	if fyne.CurrentDevice().IsMobile() {
 		fp = filepath.Join(program.preferences.String("HOME"), fp)
 	}
+
 	if _, err := os.Stat(fp); err != nil {
 		os.Create(fp)
 		// really
@@ -240,18 +244,18 @@ func saveTable(filename string, table any) {
 
 // simple way to check if we are logged in
 func isLoggedIn() {
+
 	ticker := time.NewTicker(time.Second * 2)
 	var mu sync.Mutex
-	var now, height int64
-	now = walletapi.Get_Daemon_TopoHeight()
+	var now int64
+
 	for range ticker.C {
-		height = walletapi.Get_Daemon_TopoHeight()
-		if now < height {
-			now = height
+		if now < program.node.info.TopoHeight {
+			now = program.node.info.TopoHeight
 			mu.Lock()
 			if program.wallet == nil {
 				program.preferences.SetBool("loggedIn", false)
-				break
+				return
 			}
 			if program.ws_server != nil { // don't save the listeners into the wallet file
 				program.preferences.SetBool("loggedIn", true)
@@ -268,45 +272,47 @@ func isLoggedIn() {
 			}
 			mu.Unlock()
 		}
-
 	}
 }
 func notificationNewEntry() {
-	// we are going to be a little aggressive here
-	ticker := time.NewTicker(time.Second)
 	// and because we aren't doing any fancy websocket stuff...
 	var old_len int
-	for range ticker.C { // range that ticker
-		if !program.preferences.Bool("notifications") {
-			continue
-		}
-		// check if we are still logged in
-		if !program.preferences.Bool("loggedIn") {
+
+	for {
+
+		select {
+
+		case <-ctxConnection.Done():
 			return
-		}
+
+		// we are going to be a little aggressive here
+		case <-checkChan:
+
+			// check if we are still logged in
+			if !program.preferences.Bool("loggedIn") ||
 		// check if the wallet is present
-		if program.wallet == nil {
+				program.wallet == nil {
 			return
 		}
+
+			if !program.preferences.Bool("notifications") ||
 		// check if we are registered
-		if !program.wallet.IsRegistered() {
+				!program.wallet.IsRegistered() {
 			continue
 		}
 
 		// go get the transfers
-		var current_transfers wallet_entries
-		if program.wallet != nil { // expressly validate this
-			current_transfers = getAllTransfers(crypto.ZEROHASH)
+			var current_transfers wallet_entries = getAllTransfers(crypto.ZEROHASH)
+
+			// check all assets
 			for _, each := range program.caches.assets {
 				hash := crypto.HashHexToHash(each.hash)
 				current_transfers = append(current_transfers, getAllTransfers(hash)...)
-			}
-		} else {
-			continue
 		}
 
 		// now get the length of transfers
 		current_len := len(current_transfers)
+
 		// do a diff check
 		diff := current_len - old_len
 
@@ -314,9 +320,7 @@ func notificationNewEntry() {
 		old_len = current_len
 
 		// now if they are the same, move on
-		if diff == current_len ||
-			diff == 0 ||
-			current_len == 0 {
+			if diff == current_len || diff == 0 || current_len == 0 {
 			continue
 		}
 
@@ -336,24 +340,21 @@ func notificationNewEntry() {
 
 			// only show today's transfers
 			today := time.Now()
-			midnight := time.Date(
-				today.Year(),
-				today.Month(),
-				today.Day(),
-				0, 0, 0, 0,
-				time.UTC,
-			)
+				midnight := time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, time.UTC)
+
 			if each.Time.Before(midnight) { // maybe look in to longer timescales
 				continue
 			}
 
 			// build a notification
-			notification := fyne.NewNotification(
-				"New Transfer", each.String(),
-			)
+				notification := fyne.NewNotification("New Transfer", each.String())
 
 			// ship the notification
 			program.application.SendNotification(notification)
+			}
+
+		default:
+
 		}
 	}
 }
@@ -372,6 +373,7 @@ func updateBalance() {
 			})
 			return
 		} else {
+
 			// check if there is a wallet first
 			if program.wallet == nil {
 				return
@@ -386,12 +388,7 @@ func updateBalance() {
 				fyne.DoAndWait(func() { // update it
 					program.labels.loggedin.SetText("WALLET: ✅")
 					program.labels.balance.SetText("unregistered")
-
 				})
-			}
-			// check if there is a wallet first
-			if program.wallet == nil {
-				return
 			}
 
 			// get the balance
@@ -400,7 +397,9 @@ func updateBalance() {
 			}
 
 			// hella sensitive
+			if program.wallet != nil { // check if there is a wallet first
 			bal, _ = program.wallet.Get_Balance()
+			}
 
 			// check it against previous
 			if previous_bal != bal {
@@ -417,32 +416,46 @@ func updateBalance() {
 			}
 		}
 	}
+
+	// set the stage
 	callback()
-	ticker := time.NewTicker(time.Second * 2)
-	new := int64(0)
-	for range ticker.C {
-		height := walletapi.Get_Daemon_TopoHeight()
-		if new < height {
-			new = height
+
+	for {
+		select {
+		case <-heightChan:
 			callback()
-		} else {
-			continue
+
+		case <-ctxConnection.Done():
+			return
+		default:
+			// nada
 		}
 	}
 }
+
 func updateCaches() {
-	marker := walletapi.Get_Daemon_TopoHeight()
+	// set the caches
 	program.node.info = getDaemonInfo()
 	program.node.pool = getTxPool()
-	for range time.NewTicker(time.Second * 2).C {
+
+	new := int64(0)
+	ticker := time.NewTicker(time.Second * 2)
+
+	for {
+		select {
+		case <-ticker.C:
 		height := walletapi.Get_Daemon_TopoHeight()
-		if marker < height {
-			marker = height
+			if new < height {
+				new = height
+				heightChan <- height // 👈 this goes to the update balances
+				checkChan <- height  // 👈 this goes to the notifications
 			program.node.info = getDaemonInfo()
 			program.node.pool = getTxPool()
 		}
+		case <-ctxConnection.Done():
+			return
 	}
-
+	}
 }
 
 // simple way to get all transfers
@@ -869,7 +882,6 @@ func getSCIDImage(keys map[string]interface{}) image.Image {
 			return i
 		}
 	}
-	return nil
 }
 func getSCIDBalancesContainer(balances map[string]uint64) *fyne.Container {
 	bals := container.NewVBox()
