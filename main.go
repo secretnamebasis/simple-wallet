@@ -95,11 +95,11 @@ func run() {
 	setContentAsHome()
 
 	// let's simply show and run the program
-
+	once()
+	// on mobile:
 	//  *** Error in Fyne call thread, this should have been called in fyne.Do[AndWait] ***
 	// From: github.com/secretnamebasis/simple-wallet/main.go:92
 	// doesn't seem like this caller works right
-	once()
 }
 
 var once = sync.OnceFunc(func() { program.window.ShowAndRun() })
@@ -215,6 +215,6 @@ func initialize() {
 	// and let's hide these for a moment
 	program.hyperlinks.lockscreen.Hide()
 
+	// previous location of connection loop
 	// go maintain_connection()
-
 }
