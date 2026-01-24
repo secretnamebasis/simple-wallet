@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -40,6 +41,10 @@ const accept = true
 // walletapi.Show_Transfers establishes a max height
 // https://github.com/deroproject/derohe/blob/main/walletapi/wallet.go#L252
 const max_height = "5000000000000"
+
+// simple way to create a global context and cancel func
+var ctxConnection context.Context
+var cancelConnection context.CancelFunc
 
 // not to be confused with an app, this is a program:
 var program = components{
@@ -163,13 +168,10 @@ Please do not leave this page.`),
 		blocks:       make(map[uint64]rpc.GetBlock_Result),
 		list:         node_list,
 	},
-
 	name: "simple-wallet",
-	size: fyne.NewSize(
-		900,
-		600,
-	),
+	size: fyne.NewSize(900, 600),
 }
+
 var password_size = fyne.NewSize(program.size.Width/3, program.size.Height/4)
 
 // it would be ideal to have... like 20, or a callable list

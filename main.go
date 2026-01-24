@@ -218,6 +218,3 @@ func initialize() {
 	// go maintain_connection()
 
 }
-
-var ctxConnection context.Context
-var cancelConnection context.CancelFunc
