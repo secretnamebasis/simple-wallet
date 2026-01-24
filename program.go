@@ -46,6 +46,9 @@ const max_height = "5000000000000"
 var ctxConnection context.Context
 var cancelConnection context.CancelFunc
 
+var heightChan = make(chan int64)
+var checkChan = make(chan int64)
+
 // not to be confused with an app, this is a program:
 var program = components{
 	activities: activities{
