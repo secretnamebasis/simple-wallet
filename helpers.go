@@ -1868,7 +1868,10 @@ func slide_network(f float64) {
 		if err := os.MkdirAll(globals.GetDataDirectory(), 0750); err != nil {
 			panic(err)
 		}
-
+		walletapi.Connected = false
+		cancelConnection()
+		ctxConnection, cancelConnection = context.WithCancel(context.Background())
+		go maintain_connection()
 		setText(msg, program.labels.notice)
 	}
 	if program.sliders.network.Value > 0.33 && program.sliders.network.Value < 0.66 {
@@ -1893,7 +1896,10 @@ func slide_network(f float64) {
 		if err := os.MkdirAll(globals.GetDataDirectory(), 0750); err != nil {
 			panic(err)
 		}
-
+		walletapi.Connected = false
+		cancelConnection()
+		ctxConnection, cancelConnection = context.WithCancel(context.Background())
+		go maintain_connection()
 		setText(msg, program.labels.notice)
 	}
 	if program.sliders.network.Value > 0.66 && program.sliders.network.Value <= 1 {
@@ -1917,7 +1923,10 @@ func slide_network(f float64) {
 		if err := os.MkdirAll(globals.GetDataDirectory(), 0750); err != nil {
 			panic(err)
 		}
-
+		walletapi.Connected = false
+		cancelConnection()
+		ctxConnection, cancelConnection = context.WithCancel(context.Background())
+		go maintain_connection()
 		setText(msg, program.labels.notice)
 	}
 }

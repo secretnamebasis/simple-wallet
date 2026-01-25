@@ -180,7 +180,6 @@ func maintain_connection() {
 	for {
 		select {
 		case <-ctxConnection.Done():
-			fmt.Println("connection loop cancelled")
 			return
 		case <-ticker.C:
 			// assuming the localhost connection works, if not preference
