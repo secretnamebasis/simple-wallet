@@ -1101,6 +1101,12 @@ func simulator() {
 			if err != nil {
 				panic(err)
 			}
+			// the rpc servers are going to be turned on automatically
+			// program.toggles.ws_server.Disable() // do we disable here? I was pretty sure the simulator doesn't auto turn on...
+			program.toggles.rpc_server.Disable()
+			program.entries.username.Disable()
+			program.entries.password.Disable()
+
 			// and let's simulate a bunch of users
 			program.node.simulator_wallets = []*walletapi.Wallet_Disk{}
 			program.node.simulator_rpcservers = []*rpcserver.RPCServer{}
@@ -1128,11 +1134,6 @@ func simulator() {
 				"083e7fe96e8415ea119ec6c4d0ebe233e86b53bd4e2f7598505317efc23ae34b",
 				"0fd7f8db0ed6cbe3bf300258619d8d4a2ff8132ef3c896f6e3fa65a6c92bdf9a",
 			}
-			// the rpc servers are going to be turned on automatically
-			// program.toggles.ws_server.Disable() // do we disable here? I was pretty sure the simulator doesn't auto turn on...
-			program.toggles.rpc_server.Disable()
-			program.entries.username.Disable()
-			program.entries.password.Disable()
 			for i, seed := range simulation_seeds {
 				n := strconv.Itoa(i) + ".db" // less is more
 				wallet := create_wallet(n, seed)
