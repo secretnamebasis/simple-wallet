@@ -954,6 +954,7 @@ func simulator() {
 					program.buttons.simulation.Refresh()
 					program.sliders.network.Step = 0.0001
 					program.sliders.network.SetValue(0.85)
+					slide_network(0.85)
 				})
 			}()
 
