@@ -1227,6 +1227,8 @@ func simulator() {
 				}
 			}()
 
+			globals.Cron.Start() // because why not?
+
 			// we aren't logging so... not sure why we would start a cron...
 			// let's see if it works?.. lol
 		}
