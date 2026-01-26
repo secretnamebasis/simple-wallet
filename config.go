@@ -1195,10 +1195,10 @@ func simulator() {
 				})
 				return
 			} // mined genesis
-			single_block() // let's advance the blocks
-			single_block() // registrations get loaded into the pool
-			single_block() // need them to all get processed
-			single_block() // and this is a great place to start
+			// single_block() // let's advance the blocks
+			// single_block() // registrations get loaded into the pool
+			// single_block() // need them to all get processed
+			// single_block() // and this is a great place to start
 
 			// we have a different connective function handled in the slide_network
 			// go walletapi.Keep_Connectivity()
