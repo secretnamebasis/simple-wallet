@@ -973,7 +973,7 @@ func simulator() {
 				"--rpc-bind":       daemon_endpoint,
 				"--daemon-address": daemon_endpoint, // wallets connect to this
 				"--p2p-bind":       ":0",
-				// "--getwork-bind":   "127.0.0.1:10100", // N.B.
+				"--getwork-bind":   "127.0.0.1:10000", // N.B.
 				// nbio server polls the port with NumCPUs; and
 				// instead of returning an error that the port is in use,
 				// eg. a daemon is already running on the same machine,
@@ -1093,8 +1093,7 @@ func simulator() {
 
 			p2p.P2P_Init(simulation)
 
-			// Discontinuing this experiment for now...
-			// go derodrpc.Getwork_server()
+			go derodrpc.Getwork_server()
 
 			program.simulator_server, err = derodrpc.RPCServer_Start(simulation)
 			if err != nil {
@@ -1226,7 +1225,7 @@ func simulator() {
 				}
 			}()
 
-			globals.Cron.Start() // because why not?
+			globals.Cron.Start()
 
 			// we aren't logging so... not sure why we would start a cron...
 			// let's see if it works?.. lol
@@ -1267,7 +1266,7 @@ The simulator provides a convenient place to simulate the DERO blockchain for te
 
 You will need to completely shut down the wallet to create a new simulator. This prevents duplicate block histories.
 	
-The simulator RPC runs on 127.0.0.1:20000 and the wallet will connect automatically. There is a mining getwork server running on 127.0.0.1:10100.
+The simulator RPC runs on 127.0.0.1:20000 and the wallet will connect automatically. There is a mining getwork server running on 127.0.0.1:10000.
 	
 There are 21 registered, passwordless simulator wallets found in folder: ./testnet_simulator/ 
 	
