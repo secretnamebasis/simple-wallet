@@ -1089,8 +1089,14 @@ func simulator() {
 
 			p2p.P2P_Init(simulation)
 
-			go derodrpc.Getwork_server()
-			// we should probably consider the "toggle" very seriously
+			// N.B.
+			// nbio server polls the port with NumCPUs; and
+			// instead of returning an error that the port is in use,
+			// eg. a daemon is alread running on the same machine,
+			// the machine spins really hard.
+			// Discontinuing this experiment for now...
+
+			// go derodrpc.Getwork_server()
 			program.simulator_server, err = derodrpc.RPCServer_Start(simulation)
 			if err != nil {
 				panic(err)
