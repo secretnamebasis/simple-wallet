@@ -1147,6 +1147,8 @@ func simulator() {
 				wallet_endpoint := "127.0.0.1:" + strconv.Itoa(30000+i)
 				globals.Arguments["--rpc-bind"] = wallet_endpoint
 
+				// xswd would go here...
+
 				// now start the server endpoint
 				if r, err := rpcserver.RPCServer_Start(wallet, n); err != nil {
 					panic(err)
@@ -1199,7 +1201,7 @@ func simulator() {
 			single_block() // need them to all get processed
 			single_block() // and this is a great place to start
 
-			// we have a different connective function
+			// we have a different connective function handled in the slide_network
 			// go walletapi.Keep_Connectivity()
 			// we already have an in-wallet explorer
 
