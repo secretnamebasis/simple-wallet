@@ -979,6 +979,23 @@ func simulator() {
 				"--flog-level":   "2",
 			}
 
+			l, lerr := readline.NewEx(&readline.Config{
+				//Prompt:          "\033[92mDERO:\033[32m»\033[0m",
+				Prompt:      "\033[92mDEROSIM:\033[32m>>>\033[0m ",
+				HistoryFile: filepath.Join(os.TempDir(), "derosim_readline.tmp"),
+				// AutoComplete:    completer,
+				InterruptPrompt: "^C",
+				EOFPrompt:       "exit",
+
+				HistorySearchFold: true,
+				// FuncFilterInputRune: filterInput,
+			})
+			if lerr != nil {
+				fmt.Printf("Error starting readline err: %s\n", lerr)
+				return
+			}
+			defer l.Close()
+
 			// let's go pretend we are the captain
 			genesis_seed := "0206a2fca2d2da068dfa8f792ef190a352d656910895f6c541d54877fca95a77"
 
@@ -1039,24 +1056,6 @@ func simulator() {
 			// // now config the testnet
 			config.Testnet.Genesis_Block_Hash = genesis_hash // mainnet uses the same hash
 			config.Mainnet.Genesis_Block_Hash = config.Testnet.Genesis_Block_Hash
-
-			l, lerr := readline.NewEx(&readline.Config{
-				//Prompt:          "\033[92mDERO:\033[32m»\033[0m",
-				Prompt:      "\033[92mDEROSIM:\033[32m>>>\033[0m ",
-				HistoryFile: filepath.Join(os.TempDir(), "derosim_readline.tmp"),
-				// AutoComplete:    completer,
-				InterruptPrompt: "^C",
-				EOFPrompt:       "exit",
-
-				HistorySearchFold: true,
-				// FuncFilterInputRune: filterInput,
-			})
-			if lerr != nil {
-				fmt.Printf("Error starting readline err: %s\n", lerr)
-				return
-			}
-			defer l.Close()
-
 			// now, we'll init the network
 			globals.InitNetwork()
 
