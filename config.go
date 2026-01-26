@@ -973,12 +973,16 @@ func simulator() {
 				"--rpc-bind":       daemon_endpoint,
 				"--daemon-address": daemon_endpoint, // wallets connect to this
 				"--p2p-bind":       ":0",
-				"--getwork-bind":   "127.0.0.1:10100",
-				"--testnet":        true,
-				"--simulator":      true, // obviously
-				"--debug":          true, // to get more info
-				"--clog-level":     "2",
-				"--flog-level":     "2",
+				// "--getwork-bind":   "127.0.0.1:10100", // N.B.
+				// nbio server polls the port with NumCPUs; and
+				// instead of returning an error that the port is in use,
+				// eg. a daemon is already running on the same machine,
+				// the machine spins really hard.
+				"--testnet":    true,
+				"--simulator":  true, // obviously
+				"--debug":      true, // to get more info
+				"--clog-level": "2",
+				"--flog-level": "2",
 			}
 
 			l, lerr := readline.NewEx(&readline.Config{
@@ -1089,14 +1093,9 @@ func simulator() {
 
 			p2p.P2P_Init(simulation)
 
-			// N.B.
-			// nbio server polls the port with NumCPUs; and
-			// instead of returning an error that the port is in use,
-			// eg. a daemon is alread running on the same machine,
-			// the machine spins really hard.
 			// Discontinuing this experiment for now...
-
 			// go derodrpc.Getwork_server()
+
 			program.simulator_server, err = derodrpc.RPCServer_Start(simulation)
 			if err != nil {
 				panic(err)
