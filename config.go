@@ -1134,7 +1134,7 @@ func simulator() {
 			program.entries.username.Disable()
 			program.entries.password.Disable()
 			for i, seed := range simulation_seeds {
-				n := "simulation_wallet_" + strconv.Itoa(i) + ".db"
+				n := strconv.Itoa(i) + ".db" // less is more
 				wallet := create_wallet(n, seed)
 				if err := program.node.simulator_chain.Add_TX_To_Pool(wallet.GetRegistrationTX()); err != nil {
 					panic(err)
