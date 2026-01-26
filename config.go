@@ -1026,7 +1026,7 @@ func simulator() {
 			// and stringify the bytes
 			tx := fmt.Sprintf("%x", b)
 
-			// // now config the testnet
+			// now config the testnet
 			config.Testnet.Genesis_Tx = tx // mainnet uses the same tx
 			config.Mainnet.Genesis_Tx = config.Testnet.Genesis_Tx
 
