@@ -294,8 +294,6 @@ func maintain_connection() {
 }
 
 func connections() {
-
-	program.sliders.network.Step = 0.0001
 	program.sliders.network.Orientation = widget.Horizontal
 
 	// post up the current node
@@ -952,15 +950,10 @@ func simulator() {
 				fyne.DoAndWait(func() {
 					program.buttons.simulation.SetText("TURN SIMULATOR OFF")
 					program.buttons.simulation.Refresh()
-					program.sliders.network.Step = 0.0001
 					program.sliders.network.SetValue(0.85)
-					slide_network(0.85)
 				})
 			}()
 
-			// this should kick the maintain connection loop to try something else
-			walletapi.Connected = false
-			// program.preferences.SetBool("mainnet", false)
 			// let's turn on a simulation of the blockchain
 			// before we get started, let's clear something up
 			globals.Arguments = nil // now that we have taken care of that...
@@ -1189,7 +1182,6 @@ func simulator() {
 				showError(err, program.window)
 				fyne.DoAndWait(func() {
 
-					program.sliders.network.Step = 0.0001
 					program.sliders.network.SetValue(0.15)
 					program.sliders.network.Refresh()
 				})
@@ -1236,7 +1228,6 @@ func simulator() {
 				fyne.DoAndWait(func() {
 					program.buttons.simulation.SetText("RESTART WALLET TO LAUNCH AGAIN")
 					program.buttons.simulation.Disable()
-					program.sliders.network.Step = 0.0001
 					program.sliders.network.SetValue(0.15)
 					program.sliders.network.Refresh()
 				})

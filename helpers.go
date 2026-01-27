@@ -1847,7 +1847,7 @@ func setText(txt string, text *widget.Label) {
 
 func slide_network(f float64) {
 	var msg string = "Auto-connects to "
-	if program.sliders.network.Value >= 0 && program.sliders.network.Value < 0.33 {
+	if f >= 0 && f < 0.33 {
 		program.labels.mainnet.TextStyle.Bold = true
 		program.labels.testnet.TextStyle.Bold = false
 		program.labels.simulator.TextStyle.Bold = false
@@ -1871,10 +1871,9 @@ func slide_network(f float64) {
 		walletapi.Connected = false
 		cancelConnection()
 		ctxConnection, cancelConnection = context.WithCancel(context.Background())
-		go maintain_connection()
 		setText(msg, program.labels.notice)
 	}
-	if program.sliders.network.Value > 0.33 && program.sliders.network.Value < 0.66 {
+	if f > 0.33 && f < 0.66 {
 		program.labels.mainnet.TextStyle.Bold = false
 		program.labels.testnet.TextStyle.Bold = true
 		program.labels.simulator.TextStyle.Bold = false
@@ -1899,10 +1898,9 @@ func slide_network(f float64) {
 		walletapi.Connected = false
 		cancelConnection()
 		ctxConnection, cancelConnection = context.WithCancel(context.Background())
-		go maintain_connection()
 		setText(msg, program.labels.notice)
 	}
-	if program.sliders.network.Value > 0.66 && program.sliders.network.Value <= 1 {
+	if f > 0.66 && f <= 1 {
 		program.labels.mainnet.TextStyle.Bold = false
 		program.labels.testnet.TextStyle.Bold = false
 		program.labels.simulator.TextStyle.Bold = true
@@ -1926,9 +1924,10 @@ func slide_network(f float64) {
 		walletapi.Connected = false
 		cancelConnection()
 		ctxConnection, cancelConnection = context.WithCancel(context.Background())
-		go maintain_connection()
 		setText(msg, program.labels.notice)
 	}
+	go maintain_connection()
+
 }
 
 func addressValidator(s string) (err error) {

@@ -202,7 +202,8 @@ func initialize() {
 	// here is a simple way to get started
 	program.preferences.SetBool("mainnet", true)
 	program.sliders.network.OnChanged = slide_network
-	slide_network(0.1337) // mainnet
+	program.sliders.network.Step = 0.0001
+	program.sliders.network.SetValue(0.1337) // mainnet
 
 	// and simple place for logging out
 	program.hyperlinks.logout.OnTapped = logout
