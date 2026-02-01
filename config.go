@@ -189,7 +189,6 @@ func maintain_connection() {
 			height = getDaemonInfo().TopoHeight
 
 			if height == 0 || !walletapi.Connected {
-				fmt.Println("attempting connection", walletapi.Daemon_Endpoint)
 
 				if !isDancing {
 					go dance()
