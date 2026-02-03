@@ -95,11 +95,11 @@ func run() {
 	setContentAsHome()
 
 	// let's simply show and run the program
-
+	once()
+	// on mobile:
 	//  *** Error in Fyne call thread, this should have been called in fyne.Do[AndWait] ***
 	// From: github.com/secretnamebasis/simple-wallet/main.go:92
 	// doesn't seem like this caller works right
-	once()
 }
 
 var once = sync.OnceFunc(func() { program.window.ShowAndRun() })
@@ -202,7 +202,8 @@ func initialize() {
 	// here is a simple way to get started
 	program.preferences.SetBool("mainnet", true)
 	program.sliders.network.OnChanged = slide_network
-	slide_network(0.1337) // mainnet
+	program.sliders.network.Step = 0.0001
+	program.sliders.network.SetValue(0.1337) // mainnet
 
 	// and simple place for logging out
 	program.hyperlinks.logout.OnTapped = logout
@@ -215,9 +216,6 @@ func initialize() {
 	// and let's hide these for a moment
 	program.hyperlinks.lockscreen.Hide()
 
+	// previous location of connection loop
 	// go maintain_connection()
-
 }
-
-var ctxConnection context.Context
-var cancelConnection context.CancelFunc

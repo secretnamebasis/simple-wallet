@@ -17,7 +17,6 @@ import (
 	"github.com/deroproject/derohe/cryptography/crypto"
 	"github.com/deroproject/derohe/rpc"
 	"github.com/deroproject/derohe/transaction"
-	"github.com/deroproject/derohe/walletapi"
 )
 
 // this is going to be a rudimentary explorer at first
@@ -52,20 +51,21 @@ func explorer() {
 
 	// we are going to need this for our graph
 	diff_map := map[int]int{}
+
 	updateDiffData := func() {
 		// don't do more than this...
 		const limit = 48 // 1 / 100th of a day
 
 		for i := range limit {
 
-			h := uint64(walletapi.Get_Daemon_TopoHeight()) - (uint64(i)) - 1
+			h := uint64(program.node.info.TopoHeight) - (uint64(i)) - 1
 
 			_, exists := diff_map[int(h)]
 
 			_, havBlock := program.node.blocks[h]
 
 			if exists {
-				x := int(walletapi.Get_Daemon_TopoHeight()) - limit
+				x := int(program.node.info.TopoHeight) - limit
 				if len(diff_map) >= limit {
 					delete(diff_map, x)
 				}
@@ -108,13 +108,16 @@ func explorer() {
 	}
 
 	updateDiffData()
+
 	if len(diff_map) <= 0 {
 		showError(errors.New("failed to collect data, please check connection and try again"), program.window)
 		return
 	}
+
 	g := &graph{hd_map: diff_map}
 	g.ExtendBaseWidget(g)
 	diff_graph := g
+
 	contains_stats := container.NewBorder(
 		container.NewVBox(container.NewAdaptiveGrid(3,
 			diff,
@@ -353,11 +356,7 @@ func explorer() {
 					searchHeaders = search_headers_sc_prefix
 
 					// headers := []string{}
-					sc := getSC(rpc.GetSC_Params{
-						SCID:      s,
-						Code:      true,
-						Variables: true,
-					})
+					sc := getSC(rpc.GetSC_Params{SCID: s, Code: true, Variables: true})
 
 					searchData = []string{
 						tx.GetHash().String(),
@@ -771,6 +770,7 @@ func explorer() {
 	updateSearch := func(id widget.TableCellID, template fyne.CanvasObject) {
 		box := template.(*fyne.Container)
 		l := box.Objects[0].(*widget.Label)
+		l.Selectable = true
 
 		switch id.Col {
 		case 0:
@@ -798,25 +798,7 @@ func explorer() {
 			l.SetText("ERROR")
 		}
 	}
-	results_table = widget.NewTable(
-		lengthSearch, createSearch, updateSearch,
-	)
-	results_table.OnSelected = func(id widget.TableCellID) {
-		var data string
-		if id.Col == 0 {
-			data = searchHeaders[id.Row]
-			program.application.Clipboard().SetContent(data)
-			results_table.UnselectAll()
-			results_table.Refresh()
-			showInfoFast("Copied", data, program.explorer)
-		} else {
-			data = searchData[id.Row]
-			program.application.Clipboard().SetContent(data)
-			results_table.UnselectAll()
-			results_table.Refresh()
-			showInfoFast("Copied", data, program.explorer)
-		}
-	}
+	results_table = widget.NewTable(lengthSearch, createSearch, updateSearch)
 
 	tapped := func() {
 		if search.Text == "" {

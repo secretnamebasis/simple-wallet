@@ -62,10 +62,11 @@ func loggedIn() {
 	program.preferences.SetBool("loggedIn", true)
 
 	// update balance every second
-	go updateBalance()
-	logger.Info("balance loop", "status", "initiated")
 	go updateCaches()
 	logger.Info("cache loop", "status", "initiated")
+
+	go updateBalance()
+	logger.Info("balance loop", "status", "initiated")
 
 	// and while we are at it, notify me every time a new entry comes in
 	go notificationNewEntry()

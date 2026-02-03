@@ -92,30 +92,26 @@ func updateHeader(bold *widget.Hyperlink) {
 		program.hyperlinks.login,
 		program.hyperlinks.logout,
 	} {
-		if link == bold {
-			link.TextStyle = fyne.TextStyle{
-				Bold: true,
-			}
-		} else {
-			link.TextStyle = fyne.TextStyle{
-				Bold: false,
-			}
-		}
+		link.TextStyle = fyne.TextStyle{Bold: link == bold}
 		link.Refresh()
 	}
 }
 
 func createPreferred() {
 	filename := "preferred"
+
 	// let's make a simple way to have a preferred connection
 	preferred_connection := struct {
 		ip   string
 		name string
 	}{name: filename}
+
 	fp := filename + ".conf"
+
 	if fyne.CurrentDevice().IsMobile() {
 		fp = filepath.Join(program.preferences.String("HOME"), fp)
 	}
+
 	if _, err := os.Stat(fp); err != nil {
 		os.Create(fp)
 		// really
@@ -240,18 +236,18 @@ func saveTable(filename string, table any) {
 
 // simple way to check if we are logged in
 func isLoggedIn() {
+
 	ticker := time.NewTicker(time.Second * 2)
 	var mu sync.Mutex
-	var now, height int64
-	now = walletapi.Get_Daemon_TopoHeight()
+	var now int64
+
 	for range ticker.C {
-		height = walletapi.Get_Daemon_TopoHeight()
-		if now < height {
-			now = height
+		if now < program.node.info.TopoHeight {
+			now = program.node.info.TopoHeight
 			mu.Lock()
 			if program.wallet == nil {
 				program.preferences.SetBool("loggedIn", false)
-				break
+				return
 			}
 			if program.ws_server != nil { // don't save the listeners into the wallet file
 				program.preferences.SetBool("loggedIn", true)
@@ -268,92 +264,89 @@ func isLoggedIn() {
 			}
 			mu.Unlock()
 		}
-
 	}
 }
 func notificationNewEntry() {
-	// we are going to be a little aggressive here
-	ticker := time.NewTicker(time.Second)
 	// and because we aren't doing any fancy websocket stuff...
 	var old_len int
-	for range ticker.C { // range that ticker
-		if !program.preferences.Bool("notifications") {
-			continue
-		}
-		// check if we are still logged in
-		if !program.preferences.Bool("loggedIn") {
-			return
-		}
-		// check if the wallet is present
-		if program.wallet == nil {
-			return
-		}
-		// check if we are registered
-		if !program.wallet.IsRegistered() {
-			continue
-		}
 
-		// go get the transfers
-		var current_transfers wallet_entries
-		if program.wallet != nil { // expressly validate this
-			current_transfers = getAllTransfers(crypto.ZEROHASH)
+	for {
+
+		select {
+
+		case <-ctxConnection.Done():
+			return
+
+		// we are going to be a little aggressive here
+		case <-checkChan:
+
+			// check if we are still logged in
+			if !program.preferences.Bool("loggedIn") ||
+				// check if the wallet is present
+				program.wallet == nil {
+				return
+			}
+
+			if !program.preferences.Bool("notifications") ||
+				// check if we are registered
+				!program.wallet.IsRegistered() {
+				continue
+			}
+
+			// go get the transfers
+			var current_transfers wallet_entries = getAllTransfers(crypto.ZEROHASH)
+
+			// check all assets
 			for _, each := range program.caches.assets {
 				hash := crypto.HashHexToHash(each.hash)
 				current_transfers = append(current_transfers, getAllTransfers(hash)...)
 			}
-		} else {
-			continue
-		}
 
-		// now get the length of transfers
-		current_len := len(current_transfers)
-		// do a diff check
-		diff := current_len - old_len
+			// now get the length of transfers
+			current_len := len(current_transfers)
 
-		// set current as old length
-		old_len = current_len
+			// do a diff check
+			diff := current_len - old_len
 
-		// now if they are the same, move on
-		if diff == current_len ||
-			diff == 0 ||
-			current_len == 0 {
-			continue
-		}
+			// set current as old length
+			old_len = current_len
 
-		// determine the inset for the slice
-		inset := current_len - diff
-
-		// to avoid runtime error: slice bounds out of range...
-		if inset > len(current_transfers) {
-			continue
-		}
-
-		// define the new transfers slice
-		new_transfers := current_transfers[inset:]
-
-		// now range the new transfers
-		for _, each := range new_transfers {
-
-			// only show today's transfers
-			today := time.Now()
-			midnight := time.Date(
-				today.Year(),
-				today.Month(),
-				today.Day(),
-				0, 0, 0, 0,
-				time.UTC,
-			)
-			if each.Time.Before(midnight) { // maybe look in to longer timescales
+			// now if they are the same, move on
+			if diff == current_len || diff == 0 || current_len == 0 {
 				continue
 			}
 
-			// build a notification
-			notification := fyne.NewNotification(
-				"New Transfer", each.String(),
-			)
+			// determine the inset for the slice
+			inset := current_len - diff
 
-			// ship the notification
-			program.application.SendNotification(notification)
+			// to avoid runtime error: slice bounds out of range...
+			if inset > len(current_transfers) {
+				continue
+			}
+
+			// define the new transfers slice
+			new_transfers := current_transfers[inset:]
+
+			// now range the new transfers
+			for _, each := range new_transfers {
+
+				// only show today's transfers
+				today := time.Now()
+				midnight := time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, time.UTC)
+
+				if each.Time.Before(midnight) { // maybe look in to longer timescales
+					continue
+				}
+
+				// build a notification
+				notification := fyne.NewNotification("New Transfer", each.String())
+
+				// ship the notification
+				program.application.SendNotification(notification)
+			}
+
+		default:
+
 		}
 	}
 }
@@ -372,6 +365,7 @@ func updateBalance() {
 			})
 			return
 		} else {
+
 			// check if there is a wallet first
 			if program.wallet == nil {
 				return
@@ -386,12 +380,7 @@ func updateBalance() {
 				fyne.DoAndWait(func() { // update it
 					program.labels.loggedin.SetText("WALLET: ✅")
 					program.labels.balance.SetText("unregistered")
-
 				})
-			}
-			// check if there is a wallet first
-			if program.wallet == nil {
-				return
 			}
 
 			// get the balance
@@ -400,7 +389,9 @@ func updateBalance() {
 			}
 
 			// hella sensitive
-			bal, _ = program.wallet.Get_Balance()
+			if program.wallet != nil { // check if there is a wallet first
+				bal, _ = program.wallet.Get_Balance()
+			}
 
 			// check it against previous
 			if previous_bal != bal {
@@ -417,32 +408,46 @@ func updateBalance() {
 			}
 		}
 	}
+
+	// set the stage
 	callback()
-	ticker := time.NewTicker(time.Second * 2)
-	new := int64(0)
-	for range ticker.C {
-		height := walletapi.Get_Daemon_TopoHeight()
-		if new < height {
-			new = height
+
+	for {
+		select {
+		case <-heightChan:
 			callback()
-		} else {
-			continue
+
+		case <-ctxConnection.Done():
+			return
+		default:
+			// nada
 		}
 	}
 }
+
 func updateCaches() {
-	marker := walletapi.Get_Daemon_TopoHeight()
+	// set the caches
 	program.node.info = getDaemonInfo()
 	program.node.pool = getTxPool()
-	for range time.NewTicker(time.Second * 2).C {
-		height := walletapi.Get_Daemon_TopoHeight()
-		if marker < height {
-			marker = height
-			program.node.info = getDaemonInfo()
-			program.node.pool = getTxPool()
+
+	new := int64(0)
+	ticker := time.NewTicker(time.Second * 2)
+
+	for {
+		select {
+		case <-ticker.C:
+			height := walletapi.Get_Daemon_TopoHeight()
+			if new < height {
+				new = height
+				heightChan <- height // 👈 this goes to the update balances
+				checkChan <- height  // 👈 this goes to the notifications
+				program.node.info = getDaemonInfo()
+				program.node.pool = getTxPool()
+			}
+		case <-ctxConnection.Done():
+			return
 		}
 	}
-
 }
 
 // simple way to get all transfers
@@ -869,7 +874,6 @@ func getSCIDImage(keys map[string]interface{}) image.Image {
 			return i
 		}
 	}
-	return nil
 }
 func getSCIDBalancesContainer(balances map[string]uint64) *fyne.Container {
 	bals := container.NewVBox()
@@ -1721,12 +1725,9 @@ func asset_scan() {
 			scid_count := len(list_of_scids)
 
 			// start a sync activity widget
-			fyne.DoAndWait(func() {
-				syncing.Stop()
-				syncing.Hide()
-				scids.Show()
-				label.SetText("Scanning SCIDs")
-			})
+			stop := func() { syncing.Stop(); syncing.Hide(); scids.Show(); label.SetText("Scanning SCIDs") }
+			fyne.DoAndWait(stop)
+
 			scid_chan := make(chan string, len(list_of_scids))
 			for _, scid := range list_of_scids {
 				scid_chan <- scid
@@ -1735,6 +1736,34 @@ func asset_scan() {
 
 			var wg sync.WaitGroup
 			var counter int
+
+			task := func(scid string) {
+				counter++
+				value := float64(counter) / float64(scid_count)
+				fyne.DoAndWait(func() { scids.SetValue(value) })
+				hash := crypto.HashHexToHash(scid)
+				bal, _, err := program.wallet.GetDecryptedBalanceAtTopoHeight(hash, -1, program.wallet.GetAddress().String())
+				if err != nil {
+					return
+				}
+				if bal != 0 {
+					text := "ASSET FOUND: " + truncator(scid) + " Balance: " + rpc.FormatMoney(bal)
+					fyne.DoAndWait(func() { label.SetText(text) })
+					if err := program.wallet.TokenAdd(hash); err != nil {
+						// obviously already in the map
+					}
+					// we are just going to set this now...
+					program.wallet.GetAccount().Balance[hash] = bal
+
+					// if there is a "better" balance, we'll let it happen here
+					if err := program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
+						showError(err, program.window)
+						return
+					} // seems like there isn't an error
+
+				}
+			}
+
 			work := func() {
 				defer wg.Done()
 				for scid := range scid_chan {
@@ -1742,32 +1771,11 @@ func asset_scan() {
 					case <-cancel:
 						return
 					default:
-					}
-					counter++
-					fyne.DoAndWait(func() { scids.SetValue(float64(counter) / float64(scid_count)) })
-					hash := crypto.HashHexToHash(scid)
-					bal, _, err := program.wallet.GetDecryptedBalanceAtTopoHeight(hash, -1, program.wallet.GetAddress().String())
-					if err != nil {
-						continue
-					}
-					if bal != 0 {
-						text := "ASSET FOUND: " + truncator(scid) + " Balance: " + rpc.FormatMoney(bal)
-						fyne.DoAndWait(func() { label.SetText(text) })
-						if err := program.wallet.TokenAdd(hash); err != nil {
-							// obviously already in the map
-						}
-						// we are just going to set this now...
-						program.wallet.GetAccount().Balance[hash] = bal
-
-						// if there is a "better" balance, we'll let it happen here
-						if err := program.wallet.Sync_Wallet_Memory_With_Daemon_internal(hash); err != nil {
-							showError(err, program.window)
-							continue
-						} // seems like there isn't an error
-
+						task(scid)
 					}
 				}
 			}
+
 			var os_thread, app_thread int = 1, 1
 			// reserve 1 thread for os management
 			// reserve 1 thread for app management
@@ -1780,20 +1788,12 @@ func asset_scan() {
 				go work()
 			}
 			wg.Wait()
-			fyne.DoAndWait(func() {
-				scids.Hide()
-				label.SetText("Rebuilding cache")
-				syncing.Show()
-				syncing.Start()
-			})
+			start := func() { scids.Hide(); syncing.Show(); syncing.Start(); label.SetText("Rebuilding cache") }
+			fyne.DoAndWait(start)
 			finish := func() {
 				buildAssetHashList()
-				fyne.DoAndWait(func() {
-					syncing.Stop()
-					syncing.Hide()
-					program.lists.asset_list.Refresh()
-					syncro.Dismiss()
-				})
+				stop := func() { syncing.Stop(); syncing.Hide(); syncro.Dismiss(); program.lists.asset_list.Refresh() }
+				fyne.DoAndWait(stop)
 			}
 			select {
 			case <-cancel:
@@ -1804,7 +1804,6 @@ func asset_scan() {
 				fyne.DoAndWait(func() {
 					showInfo("Asset Scan", "Scan complete", program.window)
 				})
-
 			}
 		}()
 	}
@@ -1848,7 +1847,7 @@ func setText(txt string, text *widget.Label) {
 
 func slide_network(f float64) {
 	var msg string = "Auto-connects to "
-	if program.sliders.network.Value >= 0 && program.sliders.network.Value < 0.33 {
+	if f >= 0 && f < 0.33 {
 		program.labels.mainnet.TextStyle.Bold = true
 		program.labels.testnet.TextStyle.Bold = false
 		program.labels.simulator.TextStyle.Bold = false
@@ -1869,10 +1868,12 @@ func slide_network(f float64) {
 		if err := os.MkdirAll(globals.GetDataDirectory(), 0750); err != nil {
 			panic(err)
 		}
-
+		walletapi.Connected = false
+		cancelConnection()
+		ctxConnection, cancelConnection = context.WithCancel(context.Background())
 		setText(msg, program.labels.notice)
 	}
-	if program.sliders.network.Value > 0.33 && program.sliders.network.Value < 0.66 {
+	if f > 0.33 && f < 0.66 {
 		program.labels.mainnet.TextStyle.Bold = false
 		program.labels.testnet.TextStyle.Bold = true
 		program.labels.simulator.TextStyle.Bold = false
@@ -1894,10 +1895,12 @@ func slide_network(f float64) {
 		if err := os.MkdirAll(globals.GetDataDirectory(), 0750); err != nil {
 			panic(err)
 		}
-
+		walletapi.Connected = false
+		cancelConnection()
+		ctxConnection, cancelConnection = context.WithCancel(context.Background())
 		setText(msg, program.labels.notice)
 	}
-	if program.sliders.network.Value > 0.66 && program.sliders.network.Value <= 1 {
+	if f > 0.66 && f <= 1 {
 		program.labels.mainnet.TextStyle.Bold = false
 		program.labels.testnet.TextStyle.Bold = false
 		program.labels.simulator.TextStyle.Bold = true
@@ -1918,9 +1921,13 @@ func slide_network(f float64) {
 		if err := os.MkdirAll(globals.GetDataDirectory(), 0750); err != nil {
 			panic(err)
 		}
-
+		walletapi.Connected = false
+		cancelConnection()
+		ctxConnection, cancelConnection = context.WithCancel(context.Background())
 		setText(msg, program.labels.notice)
 	}
+	go maintain_connection()
+
 }
 
 func addressValidator(s string) (err error) {

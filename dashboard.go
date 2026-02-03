@@ -102,6 +102,7 @@ func keys() {
 				func() fyne.CanvasObject { return widget.NewLabel("") },
 				func(tci widget.TableCellID, co fyne.CanvasObject) {
 					label := co.(*widget.Label)
+					label.Selectable = true
 					switch tci.Col {
 					case 0:
 						label.SetText(headers[tci.Row])
@@ -118,13 +119,6 @@ func keys() {
 			table.SetRowHeight(0, 75)
 			table.SetColumnWidth(1, largestMinSize(data[1:]).Width)
 			table.Refresh()
-			table.OnSelected = func(id widget.TableCellID) {
-				table.UnselectAll()
-				if id.Col > 0 {
-					program.application.Clipboard().SetContent(data[id.Row])
-					showInfoFast("Copied", "Copied "+headers[id.Row], program.window)
-				}
-			}
 
 			// let's make a dialog window with all the keys included
 			keys := dialog.NewCustom("Keys", dismiss, table, program.window)

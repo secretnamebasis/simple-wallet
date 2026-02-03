@@ -180,7 +180,6 @@ func maintain_connection() {
 	for {
 		select {
 		case <-ctxConnection.Done():
-			fmt.Println("connection loop cancelled")
 			return
 		case <-ticker.C:
 			// assuming the localhost connection works, if not preference
@@ -190,7 +189,6 @@ func maintain_connection() {
 			height = getDaemonInfo().TopoHeight
 
 			if height == 0 || !walletapi.Connected {
-				fmt.Println("attempting connection", walletapi.Daemon_Endpoint)
 
 				if !isDancing {
 					go dance()
@@ -271,7 +269,7 @@ func maintain_connection() {
 				retries = 0
 
 				// simple way to see if height has changed
-				if height >= walletapi.Get_Daemon_Height() {
+				if height >= program.node.info.TopoHeight {
 					fyne.DoAndWait(func() {
 						program.labels.height.SetText(
 							fmt.Sprintf(("BLOCK: %0" + strconv.Itoa(len(max_height)) + "d"), height),
@@ -295,8 +293,6 @@ func maintain_connection() {
 }
 
 func connections() {
-
-	program.sliders.network.Step = 0.0001
 	program.sliders.network.Orientation = widget.Horizontal
 
 	// post up the current node
@@ -588,13 +584,20 @@ func ws_toggle(s string) {
 			program.toggles.ws_server.SetSelected("on")
 			program.labels.ws_server.SetText("WS: ✅")
 		}
+
+		// just long enough to make things click
+		time.Sleep(100 * time.Millisecond)
+		if !program.ws_server.IsRunning() {
+			showError(errors.New("xswd is not running, please review 'simple-wallet.log'"), program.window)
+			ws_toggle("off")
+		}
 	case "off":
 		program.toggles.ws_server.SetSelected("off")
 		if program.buttons.ws_on_off.Text == "TURN WS OFF" {
 			program.buttons.ws_on_off.SetText("TURN WS ON")
 		}
 		program.labels.ws_server.SetText("WS: 🔴")
-		if program.ws_server != nil {
+		if program.ws_server != nil && program.ws_server.IsRunning() {
 			program.ws_server.Stop()
 		}
 		program.entries.ws_port.Enable()
@@ -953,14 +956,10 @@ func simulator() {
 				fyne.DoAndWait(func() {
 					program.buttons.simulation.SetText("TURN SIMULATOR OFF")
 					program.buttons.simulation.Refresh()
-					program.sliders.network.Step = 0.0001
 					program.sliders.network.SetValue(0.85)
 				})
 			}()
 
-			// this should kick the maintain connection loop to try something else
-			walletapi.Connected = false
-			// program.preferences.SetBool("mainnet", false)
 			// let's turn on a simulation of the blockchain
 			// before we get started, let's clear something up
 			globals.Arguments = nil // now that we have taken care of that...
@@ -970,15 +969,37 @@ func simulator() {
 
 			// here is a list of arguments
 			globals.Arguments = map[string]interface{}{
-				"--rpc-bind":     daemon_endpoint,
-				"--p2p-bind":     ":0",
-				"--getwork-bind": "127.0.0.1:10100",
-				"--testnet":      true,
-				"--simulator":    true, // obviously
-				"--debug":        true, // to get more info
-				"--clog-level":   "2",
-				"--flog-level":   "2",
+				"--rpc-bind":       daemon_endpoint,
+				"--daemon-address": daemon_endpoint, // wallets connect to this
+				"--p2p-bind":       ":0",
+				"--getwork-bind":   "127.0.0.1:10000", // N.B.
+				// nbio server polls the port with NumCPUs; and
+				// instead of returning an error that the port is in use,
+				// eg. a daemon is already running on the same machine,
+				// the machine spins really hard.
+				"--testnet":    true,
+				"--simulator":  true, // obviously
+				"--debug":      true, // to get more info
+				"--clog-level": "2",
+				"--flog-level": "2",
 			}
+
+			l, lerr := readline.NewEx(&readline.Config{
+				//Prompt:          "\033[92mDERO:\033[32m»\033[0m",
+				Prompt:      "\033[92mDEROSIM:\033[32m>>>\033[0m ",
+				HistoryFile: filepath.Join(os.TempDir(), "derosim_readline.tmp"),
+				// AutoComplete:    completer,
+				InterruptPrompt: "^C",
+				EOFPrompt:       "exit",
+
+				HistorySearchFold: true,
+				// FuncFilterInputRune: filterInput,
+			})
+			if lerr != nil {
+				fmt.Printf("Error starting readline err: %s\n", lerr)
+				return
+			}
+			defer l.Close()
 
 			// let's go pretend we are the captain
 			genesis_seed := "0206a2fca2d2da068dfa8f792ef190a352d656910895f6c541d54877fca95a77"
@@ -1027,7 +1048,7 @@ func simulator() {
 			// and stringify the bytes
 			tx := fmt.Sprintf("%x", b)
 
-			// // now config the testnet
+			// now config the testnet
 			config.Testnet.Genesis_Tx = tx // mainnet uses the same tx
 			config.Mainnet.Genesis_Tx = config.Testnet.Genesis_Tx
 
@@ -1040,24 +1061,6 @@ func simulator() {
 			// // now config the testnet
 			config.Testnet.Genesis_Block_Hash = genesis_hash // mainnet uses the same hash
 			config.Mainnet.Genesis_Block_Hash = config.Testnet.Genesis_Block_Hash
-
-			l, lerr := readline.NewEx(&readline.Config{
-				//Prompt:          "\033[92mDERO:\033[32m»\033[0m",
-				Prompt:      "\033[92mDEROSIM:\033[32m>>>\033[0m ",
-				HistoryFile: filepath.Join(os.TempDir(), "derosim_readline.tmp"),
-				// AutoComplete:    completer,
-				InterruptPrompt: "^C",
-				EOFPrompt:       "exit",
-
-				HistorySearchFold: true,
-				// FuncFilterInputRune: filterInput,
-			})
-			if lerr != nil {
-				fmt.Printf("Error starting readline err: %s\n", lerr)
-				return
-			}
-			defer l.Close()
-
 			// now, we'll init the network
 			globals.InitNetwork()
 
@@ -1090,11 +1093,17 @@ func simulator() {
 			p2p.P2P_Init(simulation)
 
 			go derodrpc.Getwork_server()
-			// we should probably consider the "toggle" very seriously
+
 			program.simulator_server, err = derodrpc.RPCServer_Start(simulation)
 			if err != nil {
 				panic(err)
 			}
+			// the rpc servers are going to be turned on automatically
+			// program.toggles.ws_server.Disable() // do we disable here? I was pretty sure the simulator doesn't auto turn on...
+			program.toggles.rpc_server.Disable()
+			program.entries.username.Disable()
+			program.entries.password.Disable()
+
 			// and let's simulate a bunch of users
 			program.node.simulator_wallets = []*walletapi.Wallet_Disk{}
 			program.node.simulator_rpcservers = []*rpcserver.RPCServer{}
@@ -1122,13 +1131,8 @@ func simulator() {
 				"083e7fe96e8415ea119ec6c4d0ebe233e86b53bd4e2f7598505317efc23ae34b",
 				"0fd7f8db0ed6cbe3bf300258619d8d4a2ff8132ef3c896f6e3fa65a6c92bdf9a",
 			}
-			// the rpc servers are going to be turned on automatically
-			// program.toggles.ws_server.Disable() // do we disable here? I was pretty sure the simulator doesn't auto turn on...
-			program.toggles.rpc_server.Disable()
-			program.entries.username.Disable()
-			program.entries.password.Disable()
 			for i, seed := range simulation_seeds {
-				n := "simulation_wallet_" + strconv.Itoa(i) + ".db"
+				n := strconv.Itoa(i) + ".db" // less is more
 				wallet := create_wallet(n, seed)
 				if err := program.node.simulator_chain.Add_TX_To_Pool(wallet.GetRegistrationTX()); err != nil {
 					panic(err)
@@ -1140,6 +1144,8 @@ func simulator() {
 				// choose where the wallet will serve from
 				wallet_endpoint := "127.0.0.1:" + strconv.Itoa(30000+i)
 				globals.Arguments["--rpc-bind"] = wallet_endpoint
+
+				// xswd would go here...
 
 				// now start the server endpoint
 				if r, err := rpcserver.RPCServer_Start(wallet, n); err != nil {
@@ -1182,18 +1188,17 @@ func simulator() {
 				showError(err, program.window)
 				fyne.DoAndWait(func() {
 
-					program.sliders.network.Step = 0.0001
 					program.sliders.network.SetValue(0.15)
 					program.sliders.network.Refresh()
 				})
 				return
 			} // mined genesis
-			single_block() // let's advance the blocks
-			single_block() // registrations get loaded into the pool
-			single_block() // need them to all get processed
-			single_block() // and this is a great place to start
+			// single_block() // let's advance the blocks
+			// single_block() // registrations get loaded into the pool
+			// single_block() // need them to all get processed
+			// single_block() // and this is a great place to start
 
-			// we have a different connective function
+			// we have a different connective function handled in the slide_network
 			// go walletapi.Keep_Connectivity()
 			// we already have an in-wallet explorer
 
@@ -1218,6 +1223,8 @@ func simulator() {
 				}
 			}()
 
+			globals.Cron.Start()
+
 			// we aren't logging so... not sure why we would start a cron...
 			// let's see if it works?.. lol
 		}
@@ -1227,7 +1234,6 @@ func simulator() {
 				fyne.DoAndWait(func() {
 					program.buttons.simulation.SetText("RESTART WALLET TO LAUNCH AGAIN")
 					program.buttons.simulation.Disable()
-					program.sliders.network.Step = 0.0001
 					program.sliders.network.SetValue(0.15)
 					program.sliders.network.Refresh()
 				})
@@ -1257,7 +1263,7 @@ The simulator provides a convenient place to simulate the DERO blockchain for te
 
 You will need to completely shut down the wallet to create a new simulator. This prevents duplicate block histories.
 	
-The simulator RPC runs on 127.0.0.1:20000 and the wallet will connect automatically. There is a mining getwork server running on 127.0.0.1:10100.
+The simulator RPC runs on 127.0.0.1:20000 and the wallet will connect automatically. There is a mining getwork server running on 127.0.0.1:10000.
 	
 There are 21 registered, passwordless simulator wallets found in folder: ./testnet_simulator/ 
 	
