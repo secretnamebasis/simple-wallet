@@ -584,13 +584,20 @@ func ws_toggle(s string) {
 			program.toggles.ws_server.SetSelected("on")
 			program.labels.ws_server.SetText("WS: ✅")
 		}
+
+		// just long enough to make things click
+		time.Sleep(100 * time.Millisecond)
+		if !program.ws_server.IsRunning() {
+			showError(errors.New("xswd is not running, please review 'simple-wallet.log'"), program.window)
+			ws_toggle("off")
+		}
 	case "off":
 		program.toggles.ws_server.SetSelected("off")
 		if program.buttons.ws_on_off.Text == "TURN WS OFF" {
 			program.buttons.ws_on_off.SetText("TURN WS ON")
 		}
 		program.labels.ws_server.SetText("WS: 🔴")
-		if program.ws_server != nil {
+		if program.ws_server != nil && program.ws_server.IsRunning() {
 			program.ws_server.Stop()
 		}
 		program.entries.ws_port.Enable()
