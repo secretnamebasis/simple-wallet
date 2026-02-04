@@ -564,7 +564,7 @@ func conductTransfer() {
 							transact.Dismiss()
 							// set it to a new dialog screen and show
 							dialog.ShowCustom(
-								"Transaction Dispatched", "dismissed",
+								"Transaction Dispatched", "dismiss",
 								container.NewVBox(txid), program.window,
 							)
 						})
