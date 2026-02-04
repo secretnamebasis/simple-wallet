@@ -676,19 +676,8 @@ func assetsList() {
 		onSelected := func(id widget.ListItemID) {
 			entries_list.Unselect(id)
 
-			lines := strings.Split(entries[id].String(), "\n")
-			keys := []string{}
-			values := []string{}
-			for _, line := range lines {
-				if line == "" {
-					continue
-				}
-				pair := strings.Split(line, ": ")
-				key := pair[0]
-				value := pair[1]
-				keys = append(keys, key)
-				values = append(values, value)
-			}
+			var lines list = strings.Split(entries[id].String(), "\n")
+			keys, values := lines.split_to_kv(": ")
 			table := widget.NewTable(
 				func() (rows int, cols int) { return len(lines), 2 },
 				func() fyne.CanvasObject { return widget.NewLabel("") },
