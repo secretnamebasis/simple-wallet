@@ -5,7 +5,6 @@ import (
 	"errors"
 	"slices"
 	"strconv"
-	"strings"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -97,9 +96,7 @@ func sendForm() {
 		}
 		// if a valid , they are the receiver
 		if a != "" {
-			if strings.EqualFold(
-				a, program.wallet.GetAddress().String(),
-			) {
+			if a != program.wallet.GetAddress().String() {
 				showError(errors.New("cannot send to self"), program.window)
 				return
 			} else {
@@ -208,7 +205,7 @@ func sendForm() {
 	}
 
 	// also, would make sense to make sure that it is not self
-	if strings.EqualFold(program.receiver, program.wallet.GetAddress().String()) {
+	if program.receiver != program.wallet.GetAddress().String() {
 		showError(errors.New("cannot send to self"), program.window)
 		return
 	}

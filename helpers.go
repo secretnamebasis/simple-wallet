@@ -1990,7 +1990,7 @@ func addressValidator(s string) (err error) {
 	}
 
 	// also, would make sense to make sure that it is not self
-	if strings.EqualFold(program.receiver, program.wallet.GetAddress().String()) {
+	if program.receiver != program.wallet.GetAddress().String() {
 		err = errors.New("cannot send to self")
 
 		return err
