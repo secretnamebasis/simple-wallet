@@ -531,18 +531,18 @@ func conductTransfer() {
 
 				task := func(tx *transaction.Transaction, result rpc.GetTransaction_Result) bool {
 
-					txid1 := tx.GetHash().String()
+					og_tx := tx.GetHash().String()
 
 					for _, each := range result.Txs_as_hex {
 
 						b, _ := hex.DecodeString(each)
 						var tr transaction.Transaction
 						tr.Deserialize(b)
-						txid2 := tr.GetHash().String()
+						on_chain := tr.GetHash().String()
 
-						if !strings.EqualFold(txid1, txid2) {
+						if og_tx != on_chain {
 							continue
-						}
+						} // now that we know that they are the same
 
 						// let's make a link
 						link := truncator(tx.GetHash().String())
