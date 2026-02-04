@@ -1265,7 +1265,7 @@ You will need to completely shut down the wallet to create a new simulator. This
 	
 The simulator RPC runs on 127.0.0.1:20000 and the wallet will connect automatically. There is a mining getwork server running on 127.0.0.1:10000.
 	
-There are 21 registered, passwordless simulator wallets found in folder: ./testnet_simulator/ 
+There are 22 registered, passwordless simulator wallets found in folder: ./testnet_simulator/ 
 	
 These wallets are started with RPC servers ON without username or password. Endpoints can be found starting on 127.0.0.1:30000 and up, eg 30000 is wallet 0, 30001 is wallet 1, etc`)
 	notice.Wrapping = fyne.TextWrapWord
