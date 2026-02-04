@@ -333,10 +333,7 @@ func conductTransfer() {
 	var t *dialog.FormDialog
 	pass := widget.NewPasswordEntry()
 	pass.SetPlaceHolder("w41137-p@55w0rd")
-	pass.OnSubmitted = func(s string) {
-		t.Submit()
-		t.Dismiss()
-	}
+	pass.OnSubmitted = func(s string) { t.Submit(); t.Dismiss() }
 	callback := func(b bool) {
 
 		// get the pass
