@@ -346,7 +346,7 @@ func notificationNewEntry() {
 			}
 
 		default:
-
+			time.Sleep(time.Second)
 		}
 	}
 }
@@ -420,7 +420,7 @@ func updateBalance() {
 		case <-ctxConnection.Done():
 			return
 		default:
-			// nada
+			time.Sleep(time.Second)
 		}
 	}
 }
