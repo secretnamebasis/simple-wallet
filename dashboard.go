@@ -527,8 +527,6 @@ func txList() {
 
 func assetsList() {
 
-	var list *fyne.Container
-
 	if !strings.Contains(program.labels.indexer.Text, "✅") {
 		program.buttons.asset_scan.OnTapped = func() {
 			showError(errors.New("please connect indexer"), program.window)
@@ -1167,19 +1165,17 @@ func assetsList() {
 	t.ActionItem = widget.NewButtonWithIcon("", theme.ContentAddIcon(), token_add)
 
 	// let's set the asset list into a new list
-	list = container.NewBorder(
+	asset_list := container.NewBorder(
 		container.NewAdaptiveGrid(3,
 			t, program.buttons.asset_scan, filter,
-		),
-		nil,
-		nil,
-		nil,
-		program.lists.asset_list)
+		), nil, nil, nil,
+		program.lists.asset_list,
+	)
 
-	list.Refresh()
+	asset_list.Refresh()
 
 	// and we'll set the scroll into a new dialog, resize and show
-	collection := dialog.NewCustom("Collectibles", dismiss, list, program.window)
+	collection := dialog.NewCustom("Collectibles", dismiss, asset_list, program.window)
 	collection.Resize(program.size)
 	collection.Show()
 }
