@@ -527,9 +527,6 @@ func txList() {
 
 func assetsList() {
 
-	// let's just refresh the hash cache
-	// buildAssetHashList()
-
 	var list *fyne.Container
 
 	if !strings.Contains(program.labels.indexer.Text, "✅") {
