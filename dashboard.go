@@ -420,35 +420,45 @@ func txList() {
 
 		switch tabs.Selected().Text {
 		case "Sent":
-			var s wallet_entries
-			s = getSentTransfers(crypto.ZEROHASH)
+
+			var s wallet_entries = getSentTransfers(crypto.ZEROHASH)
 			s.sort()
+
+			look := func(e rpc.Entry) {
+
+				tx := getTransaction(rpc.GetTransaction_Params{
+					Tx_Hashes: []string{e.TXID},
+				})
+				b, err := hex.DecodeString(tx.Txs_as_hex[0])
+				if err != nil {
+					panic(err)
+				}
+				var t transaction.Transaction
+				if err := t.Deserialize(b); err != nil {
+					panic(err)
+				}
+
+				if strings.Contains(rpc.FormatMoney(t.Fees()), search) ||
+					strings.Contains(strings.ToLower(e.String()), search) {
+
+					s_entries = append(s_entries, e)
+
+				}
+			}
 
 			if search == "" {
 				s_entries = s
 			} else {
+				// reset the entries
 				s_entries = wallet_entries{}
+				// and spin over the selection
 				for _, each := range s {
-
-					tx := getTransaction(rpc.GetTransaction_Params{
-						Tx_Hashes: []string{each.TXID},
-					})
-					b, err := hex.DecodeString(tx.Txs_as_hex[0])
-					if err != nil {
-						panic(err)
-					}
-					var t transaction.Transaction
-					if err := t.Deserialize(b); err != nil {
-						panic(err)
-					}
-
-					if strings.Contains(rpc.FormatMoney(t.Fees()), search) ||
-						strings.Contains(strings.ToLower(each.String()), search) {
-						s_entries = append(s_entries, each)
-					}
+					look(each)
 				}
 			}
+
 			sent.Refresh()
+
 		case "Received":
 			var r wallet_entries
 			r = getReceivedTransfers(crypto.ZEROHASH)
