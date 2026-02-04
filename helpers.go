@@ -446,7 +446,10 @@ func updateCaches() {
 			}
 		case <-ctxConnection.Done():
 			return
+		default:
+			time.Sleep(time.Second)
 		}
+
 	}
 }
 
