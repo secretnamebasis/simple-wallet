@@ -634,10 +634,10 @@ func explorer() {
 	}
 
 	block_label_data := [][]string{}
-	const limit = 10
 
 	var block_table *widget.Table
 	updateBlocksData := func() {
+		const limit = 10
 
 		block_label_data = [][]string{}
 		height := program.node.info.TopoHeight
