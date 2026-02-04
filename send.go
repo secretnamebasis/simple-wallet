@@ -606,13 +606,19 @@ func conductTransfer() {
 							return
 						}
 
-						if len(program.node.pool.Tx_list) > 0 {
-							if slices.Contains(program.node.pool.Tx_list, tx.GetHash().String()) {
-								hard_stop := time.Now().Add(time.Second * 600)
-								if callback(tx, hard_stop) {
-									return
-								}
-							}
+						if len(program.node.pool.Tx_list) == 0 {
+							continue
+						}
+
+						// if it isn't in the pool, skip it
+						if !slices.Contains(program.node.pool.Tx_list, tx.GetHash().String()) {
+							continue
+						}
+
+						hard_stop := time.Now().Add(time.Second * 600)
+
+						if callback(tx, hard_stop) {
+							return
 						}
 					}
 				}
