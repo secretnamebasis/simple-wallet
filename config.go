@@ -287,7 +287,10 @@ func maintain_connection() {
 					program.wallet.SetOnlineMode()
 				}
 			}
+		default:
+			time.Sleep(time.Millisecond * 500)
 		}
+
 	}
 
 }
