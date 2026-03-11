@@ -1,3 +1,17 @@
+// test description:
+/*
+
+The purpose of this test is to imitate the simple-wallet's strategy
+for handling sensitive methods, like QueryKey; and the current
+strategy assumes that the user understands:
+
+IF an application has asked to connect WITH permissions,
+those permissions are then ALLOWED or DENIED from the outset
+and the application has then has the authority to based authorization.
+
+
+*/
+//
 package main
 
 import (
@@ -24,38 +38,33 @@ func TestMethods(t *testing.T) {
 		t.Fatal(err)
 	}
 	fmt.Println(wd.GetAddress())
-	server := xswd.NewXSWDServerWithPort(44326, wd, true, []string{""},
-		func(ad *xswd.ApplicationData) bool {
-			return true // for testing purposes
-		},
-		func(ad *xswd.ApplicationData, r *jrpc2.Request) xswd.Permission {
-			// we are implementing essentially the same as what can be seen
-			// in ws.go, with the exception of the front end
-			// the key point here is
-			// when the method "querykey" is used, the break
+	forceAsk := false
+	noStore := []string{""}
+	appHandler := func(ad *xswd.ApplicationData) bool { return true } // for testing purposes
+	requestHandler := func(ad *xswd.ApplicationData, r *jrpc2.Request) xswd.Permission {
+		if r.HasParams() {
+			fmt.Println(r.Method())
+			switch r.Method() {
+			case "QueryKey":
 
-			if r.HasParams() {
-				fmt.Println(r.Method())
-				switch r.Method() {
-				case "QueryKey":
+				// not implemented
+				return xswd.AlwaysDeny
 
-					// not implemented
-					return xswd.AlwaysDeny
+			default:
 
-				default:
-
-				}
 			}
+		}
 
-			// now wait for the choice
-			// if <-choice { // if accepted...
-			return xswd.Allow
-			// }
+		// now wait for the choice
+		// if <-choice { // if accepted...
+		return xswd.Allow
+		// }
 
-			// default is to deny
-			// return xswd.Deny
-		},
-	)
+		// default is to deny
+		// return xswd.Deny
+	}
+
+	server := xswd.NewXSWDServerWithPort(44326, wd, forceAsk, noStore, appHandler, requestHandler)
 	defer server.Stop()
 	time.Sleep(1 * time.Second) // wait for the server?
 	if !server.IsRunning() {
@@ -79,7 +88,7 @@ ZTgzNDMzMzdjNzUyMDczYw==
 		Name:        "simple-tela-deploymnet-manager",
 		Description: "Creating deployments on must be simple and fun! :)",
 		Url:         "http://localhost:8080",
-		Permissions: map[string]xswd.Permission{"QueryKey": xswd.AlwaysAllow},
+		// Permissions: map[string]xswd.Permission{"QueryKey": xswd.AlwaysAllow},
 	}
 	var websocket_endpoint string = "ws://127.0.0.1:44326/xswd"
 
