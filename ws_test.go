@@ -1,17 +1,23 @@
-// test description:
 /*
+Test Description:
 
 The purpose of this test is to imitate the simple-wallet's strategy
 for handling sensitive methods, like QueryKey; and the current
 strategy assumes that the user understands:
 
-IF an application has asked to connect WITH permissions,
-those permissions are then ALLOWED or DENIED from the outset
-and the application has then has the authority to based authorization.
+> IF a connecting application has asked to connect WITH permissions,
+> ALL requested permissions are either Authorized or Rejected by the user;
+> the connection then has the authority to execute based on initial request.
 
+If the application DID NOT ask on initial connection,
+then the default for QueryKey is AlwaysDeny
 
+If the application DID ask for permission on initial connection,
+and the user Accepted the Permissions list of the request,
+the connection will have permission to operate based on
+that initial authorization exchange with that user until that
+connection has disconnected and needs to be re-established again.
 */
-//
 package main
 
 import (
