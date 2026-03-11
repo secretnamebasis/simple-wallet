@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/url"
 	"runtime"
+	"strings"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -113,11 +114,11 @@ func xswdAppHandler(data *xswd.ApplicationData) bool {
 		app.Add(container.NewCenter(widget.NewLabel(
 			"	✋⚠️ APP PERMISSIONS REQUESTS ⚠️✋\n" +
 				"this application is asking for these permissions:")))
-		permit := ""
+		var permit strings.Builder
 		for permission, request := range data.Permissions {
-			permit += "❓ " + permission + ": " + request.String() + "\n"
+			permit.WriteString("❓ " + permission + ": " + request.String() + "\n")
 		}
-		p := widget.NewLabel(permit)
+		p := widget.NewLabel(permit.String())
 		p.Alignment = fyne.TextAlignCenter
 		content.Add(container.NewScroll(p))
 	}
@@ -230,9 +231,9 @@ func xswdRequestHandler(data *xswd.ApplicationData, r *jrpc2.Request) xswd.Permi
 		// add param string to the request
 		label := widget.NewLabel("")
 		switch r.Method() {
-		case "querykey":
+		case "QueryKey":
 			// not implemented
-			break
+			return xswd.AlwaysDeny
 		case "scinvoke":
 			p := rpc.SC_Invoke_Params{}
 			if err := json.Unmarshal([]byte(r.ParamString()), &p); err != nil {

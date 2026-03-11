@@ -420,35 +420,45 @@ func txList() {
 
 		switch tabs.Selected().Text {
 		case "Sent":
-			var s wallet_entries
-			s = getSentTransfers(crypto.ZEROHASH)
+
+			var s wallet_entries = getSentTransfers(crypto.ZEROHASH)
 			s.sort()
+
+			look := func(e rpc.Entry) {
+
+				tx := getTransaction(rpc.GetTransaction_Params{
+					Tx_Hashes: []string{e.TXID},
+				})
+				b, err := hex.DecodeString(tx.Txs_as_hex[0])
+				if err != nil {
+					panic(err)
+				}
+				var t transaction.Transaction
+				if err := t.Deserialize(b); err != nil {
+					panic(err)
+				}
+
+				if strings.Contains(rpc.FormatMoney(t.Fees()), search) ||
+					strings.Contains(strings.ToLower(e.String()), search) {
+
+					s_entries = append(s_entries, e)
+
+				}
+			}
 
 			if search == "" {
 				s_entries = s
 			} else {
+				// reset the entries
 				s_entries = wallet_entries{}
+				// and spin over the selection
 				for _, each := range s {
-
-					tx := getTransaction(rpc.GetTransaction_Params{
-						Tx_Hashes: []string{each.TXID},
-					})
-					b, err := hex.DecodeString(tx.Txs_as_hex[0])
-					if err != nil {
-						panic(err)
-					}
-					var t transaction.Transaction
-					if err := t.Deserialize(b); err != nil {
-						panic(err)
-					}
-
-					if strings.Contains(rpc.FormatMoney(t.Fees()), search) ||
-						strings.Contains(strings.ToLower(each.String()), search) {
-						s_entries = append(s_entries, each)
-					}
+					look(each)
 				}
 			}
+
 			sent.Refresh()
+
 		case "Received":
 			var r wallet_entries
 			r = getReceivedTransfers(crypto.ZEROHASH)
@@ -516,11 +526,6 @@ func txList() {
 }
 
 func assetsList() {
-
-	// let's just refresh the hash cache
-	// buildAssetHashList()
-
-	var list *fyne.Container
 
 	if !strings.Contains(program.labels.indexer.Text, "✅") {
 		program.buttons.asset_scan.OnTapped = func() {
@@ -671,19 +676,8 @@ func assetsList() {
 		onSelected := func(id widget.ListItemID) {
 			entries_list.Unselect(id)
 
-			lines := strings.Split(entries[id].String(), "\n")
-			keys := []string{}
-			values := []string{}
-			for _, line := range lines {
-				if line == "" {
-					continue
-				}
-				pair := strings.Split(line, ": ")
-				key := pair[0]
-				value := pair[1]
-				keys = append(keys, key)
-				values = append(values, value)
-			}
+			var lines list = strings.Split(entries[id].String(), "\n")
+			keys, values := lines.split_to_kv(": ")
 			table := widget.NewTable(
 				func() (rows int, cols int) { return len(lines), 2 },
 				func() fyne.CanvasObject { return widget.NewLabel("") },
@@ -824,9 +818,7 @@ func assetsList() {
 				}
 				// if a valid , they are the receiver
 				if a != "" {
-					if strings.EqualFold(
-						a, program.wallet.GetAddress().String(),
-					) {
+					if a != program.wallet.GetAddress().String() {
 						showError(errors.New("cannot send to self"), program.window)
 						return
 					} else {
@@ -849,7 +841,7 @@ func assetsList() {
 				return
 			}
 			// also, would make sense to make sure that it is not self
-			if strings.EqualFold(program.receiver, program.wallet.GetAddress().String()) {
+			if program.receiver != program.wallet.GetAddress().String() {
 				showError(errors.New("cannot send to self"), program.window)
 				return
 			}
@@ -1162,19 +1154,17 @@ func assetsList() {
 	t.ActionItem = widget.NewButtonWithIcon("", theme.ContentAddIcon(), token_add)
 
 	// let's set the asset list into a new list
-	list = container.NewBorder(
+	asset_list := container.NewBorder(
 		container.NewAdaptiveGrid(3,
 			t, program.buttons.asset_scan, filter,
-		),
-		nil,
-		nil,
-		nil,
-		program.lists.asset_list)
+		), nil, nil, nil,
+		program.lists.asset_list,
+	)
 
-	list.Refresh()
+	asset_list.Refresh()
 
 	// and we'll set the scroll into a new dialog, resize and show
-	collection := dialog.NewCustom("Collectibles", dismiss, list, program.window)
+	collection := dialog.NewCustom("Collectibles", dismiss, asset_list, program.window)
 	collection.Resize(program.size)
 	collection.Show()
 }

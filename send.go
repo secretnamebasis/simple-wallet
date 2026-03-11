@@ -5,7 +5,6 @@ import (
 	"errors"
 	"slices"
 	"strconv"
-	"strings"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -97,9 +96,7 @@ func sendForm() {
 		}
 		// if a valid , they are the receiver
 		if a != "" {
-			if strings.EqualFold(
-				a, program.wallet.GetAddress().String(),
-			) {
+			if a != program.wallet.GetAddress().String() {
 				showError(errors.New("cannot send to self"), program.window)
 				return
 			} else {
@@ -208,7 +205,7 @@ func sendForm() {
 	}
 
 	// also, would make sense to make sure that it is not self
-	if strings.EqualFold(program.receiver, program.wallet.GetAddress().String()) {
+	if program.receiver != program.wallet.GetAddress().String() {
 		showError(errors.New("cannot send to self"), program.window)
 		return
 	}
@@ -333,10 +330,7 @@ func conductTransfer() {
 	var t *dialog.FormDialog
 	pass := widget.NewPasswordEntry()
 	pass.SetPlaceHolder("w41137-p@55w0rd")
-	pass.OnSubmitted = func(s string) {
-		t.Submit()
-		t.Dismiss()
-	}
+	pass.OnSubmitted = func(s string) { t.Submit(); t.Dismiss() }
 	callback := func(b bool) {
 
 		// get the pass
@@ -531,18 +525,18 @@ func conductTransfer() {
 
 				task := func(tx *transaction.Transaction, result rpc.GetTransaction_Result) bool {
 
-					txid1 := tx.GetHash().String()
+					og_tx := tx.GetHash().String()
 
 					for _, each := range result.Txs_as_hex {
 
 						b, _ := hex.DecodeString(each)
 						var tr transaction.Transaction
 						tr.Deserialize(b)
-						txid2 := tr.GetHash().String()
+						on_chain := tr.GetHash().String()
 
-						if !strings.EqualFold(txid1, txid2) {
+						if og_tx != on_chain {
 							continue
-						}
+						} // now that we know that they are the same
 
 						// let's make a link
 						link := truncator(tx.GetHash().String())
@@ -564,7 +558,7 @@ func conductTransfer() {
 							transact.Dismiss()
 							// set it to a new dialog screen and show
 							dialog.ShowCustom(
-								"Transaction Dispatched", "dismissed",
+								"Transaction Dispatched", "dismiss",
 								container.NewVBox(txid), program.window,
 							)
 						})
@@ -606,13 +600,19 @@ func conductTransfer() {
 							return
 						}
 
-						if len(program.node.pool.Tx_list) > 0 {
-							if slices.Contains(program.node.pool.Tx_list, tx.GetHash().String()) {
-								hard_stop := time.Now().Add(time.Second * 600)
-								if callback(tx, hard_stop) {
-									return
-								}
-							}
+						if len(program.node.pool.Tx_list) == 0 {
+							continue
+						}
+
+						// if it isn't in the pool, skip it
+						if !slices.Contains(program.node.pool.Tx_list, tx.GetHash().String()) {
+							continue
+						}
+
+						hard_stop := time.Now().Add(time.Second * 600)
+
+						if callback(tx, hard_stop) {
+							return
 						}
 					}
 				}
